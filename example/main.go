@@ -33,7 +33,7 @@ func main() {
 
 	users := []model.User{}
 
-	if err = gateway.Select(&users, oak.Command("select-users")); err != nil {
+	if err = gateway.Select(&users, oak.Command("select-all-users")); err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
