@@ -6,7 +6,7 @@ import (
 
 	randomdata "github.com/Pallinder/go-randomdata"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/phogolabs/oak/example"
+	_ "github.com/phogolabs/oak/example/database"
 	"github.com/phogolabs/parcello"
 	validator "gopkg.in/go-playground/validator.v9"
 
@@ -17,13 +17,13 @@ import (
 )
 
 func main() {
-	gateway, err := oak.OpenURL("sqlite3://oak.db")
+	gateway, err := oak.OpenURL("sqlite3://example.db")
 	if err != nil {
 		log.WithError(err).Fatal("Failed to open database connection")
 	}
 	defer gateway.Close()
 
-	if err = oak.Setup(gateway, parcello.Root("database")); err != nil {
+	if err = oak.Setup(gateway, parcello.ResourceManager); err != nil {
 		log.WithError(err).Fatal("Failed to setup OAK")
 	}
 

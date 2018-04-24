@@ -1,4 +1,4 @@
 // Package example provides a small application that demonstrates the GOM usage
-package example
+package database
 
 //go:generate parcello -r -i *.md -i *.db
