@@ -1,6 +1,8 @@
 package oak
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 func selectMany(preparer Preparer, dest Entity, query Query) error {
 	stmt, args, err := prepareQuery(preparer, query)

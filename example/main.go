@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	gateway, err := oak.OpenURL("sqlite3://example.db")
+	gateway, err := oak.OpenURL("sqlite3://prana.db")
 	if err != nil {
 		log.WithError(err).Fatal("Failed to open database connection")
 	}
@@ -33,7 +33,7 @@ func main() {
 
 	users := []model.User{}
 
-	if err = gateway.Select(&users, oak.Command("show-users")); err != nil {
+	if err = gateway.Select(&users, oak.Command("select-users")); err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
