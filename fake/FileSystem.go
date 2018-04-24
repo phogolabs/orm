@@ -5,4 +5,5 @@ import (
 	"github.com/phogolabs/parcello/fake"
 )
 
+// FileSystem represents a fake file system that is used for testing
 type FileSystem = fake.FileSystem
