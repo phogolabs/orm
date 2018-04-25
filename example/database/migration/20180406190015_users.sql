@@ -10,4 +10,3 @@ CREATE TABLE users (
 
 -- name: down
 DROP TABLE IF EXISTS users;
-
