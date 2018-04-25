@@ -1,4 +1,4 @@
-// Package example provides a small application that demonstrates the GOM usage
+// Package database provides SQL scripts and database models
 package database
 
 //go:generate parcello -r -i *.md -i *.db
