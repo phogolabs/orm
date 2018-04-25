@@ -2,6 +2,19 @@ package oak_test
 
 import "github.com/phogolabs/parcello"
 
+func addResourceWithMissingMigrationDir(manager *parcello.Manager) {
+	manager.Add([]byte{
+		31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 42, 78, 46, 202, 44, 40,
+		209, 47, 169, 40, 209, 43, 169, 40, 97, 160, 9, 48, 48, 48,
+		48, 48, 51, 49, 1, 211, 230, 102, 166, 96, 218, 192, 8, 194,
+		135, 2, 6, 67, 99, 35, 115, 3, 67, 67, 19, 83, 99, 67, 6,
+		3, 67, 19, 35, 3, 67, 6, 5, 3, 218, 56, 7, 21, 148, 22, 151,
+		36, 22, 49, 24, 24, 20, 37, 230, 36, 103, 224, 81, 87, 92,
+		146, 152, 150, 134, 71, 30, 230, 17, 24, 61, 68, 0, 0, 0,
+		0, 255, 255,
+	})
+}
+
 func addResourceWithMissingMigrations(manager *parcello.Manager) {
 	manager.Add([]byte{
 		31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 236, 81, 97, 139, 218,

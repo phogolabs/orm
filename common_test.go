@@ -152,6 +152,22 @@ var _ = Describe("Setup", func() {
 		})
 	})
 
+	Context("when the resource migration is not found", func() {
+		It("returns an error", func() {
+			manager = &parcello.Manager{}
+			addResourceWithMissingMigrationDir(manager)
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Resource 'migration' not found"))
+		})
+	})
+
+	Context("when the resource script cannot be load", func() {
+		It("returns an error", func() {
+			manager = &parcello.Manager{}
+			addResource(manager)
+			Expect(oak.Setup(gateway, manager)).To(HaveOccurred())
+		})
+	})
+
 	Context("when the loading the migration fails", func() {
 		BeforeEach(func() {
 			addResourceWithMissingMigrations(manager)
