@@ -1,10 +1,12 @@
 package oak
 
 import (
+	"context"
+
 	"github.com/jmoiron/sqlx"
 )
 
-func selectMany(preparer Preparer, dest Entity, query Query) error {
+func selectMany(ctx context.Context, preparer Preparer, dest Entity, query Query) error {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return err
@@ -16,11 +18,11 @@ func selectMany(preparer Preparer, dest Entity, query Query) error {
 		}
 	}()
 
-	err = stmt.Select(dest, args)
+	err = stmt.SelectContext(ctx, dest, args)
 	return err
 }
 
-func selectOne(preparer Preparer, dest Entity, query Query) error {
+func selectOne(ctx context.Context, preparer Preparer, dest Entity, query Query) error {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return err
@@ -32,11 +34,11 @@ func selectOne(preparer Preparer, dest Entity, query Query) error {
 		}
 	}()
 
-	err = stmt.Get(dest, args)
+	err = stmt.GetContext(ctx, dest, args)
 	return err
 }
 
-func queryRows(preparer Preparer, query Query) (*Rows, error) {
+func queryRows(ctx context.Context, preparer Preparer, query Query) (*Rows, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -49,11 +51,11 @@ func queryRows(preparer Preparer, query Query) (*Rows, error) {
 	}()
 
 	var rows *Rows
-	rows, err = stmt.Queryx(args)
+	rows, err = stmt.QueryxContext(ctx, args)
 	return rows, err
 }
 
-func queryRow(preparer Preparer, query Query) (*Row, error) {
+func queryRow(ctx context.Context, preparer Preparer, query Query) (*Row, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -65,10 +67,10 @@ func queryRow(preparer Preparer, query Query) (*Row, error) {
 		}
 	}()
 
-	return stmt.QueryRowx(args), nil
+	return stmt.QueryRowxContext(ctx, args), nil
 }
 
-func exec(preparer Preparer, query Query) (Result, error) {
+func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func exec(preparer Preparer, query Query) (Result, error) {
 	}()
 
 	var result Result
-	result, err = stmt.Exec(args)
+	result, err = stmt.ExecContext(ctx, args)
 	return result, err
 }
 

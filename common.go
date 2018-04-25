@@ -65,11 +65,21 @@ func init() {
 
 // Setup setups the oak environment for us
 func Setup(gateway *Gateway, manager *parcello.Manager) error {
-	if err := LoadSQLCommandsFrom(parcello.Root("script")); err != nil {
+	script, err := manager.Root("script")
+	if err != nil {
 		return err
 	}
 
-	if err := Migrate(gateway, parcello.Root("migration")); err != nil {
+	if err = LoadSQLCommandsFrom(script); err != nil {
+		return err
+	}
+
+	migration, err := manager.Root("migration")
+	if err != nil {
+		return err
+	}
+
+	if err := Migrate(gateway, migration); err != nil {
 		return err
 	}
 

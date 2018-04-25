@@ -2,6 +2,7 @@ package oak_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -88,6 +89,19 @@ var _ = Describe("Gateway", func() {
 				Expect(persons[0].Email).To(Equal("john@example.com"))
 			})
 
+			Context("with context", func() {
+
+				It("executes a query successfully", func() {
+					query := lk.Select("first_name", "last_name", "email").From("users")
+					persons := []Person{}
+					Expect(db.SelectContext(context.Background(), &persons, query)).To(Succeed())
+					Expect(persons).To(HaveLen(1))
+					Expect(persons[0].FirstName).To(Equal("John"))
+					Expect(persons[0].LastName).To(Equal("Doe"))
+					Expect(persons[0].Email).To(Equal("john@example.com"))
+				})
+			})
+
 			Context("when the query fails", func() {
 				It("returns an error", func() {
 					query := lk.Select("name").From("categories")
@@ -130,6 +144,15 @@ var _ = Describe("Gateway", func() {
 				Expect(db.SelectOne(&person, query)).To(Succeed())
 			})
 
+			Context("with context", func() {
+				It("executes a query successfully", func() {
+					query := lk.Select("first_name", "last_name", "email").From("users")
+
+					person := Person{}
+					Expect(db.SelectOneContext(context.Background(), &person, query)).To(Succeed())
+				})
+			})
+
 			Context("when the query fails", func() {
 				It("returns an error", func() {
 					query := lk.Select("name").From("categories")
@@ -163,6 +186,30 @@ var _ = Describe("Gateway", func() {
 				Expect(rows.Close()).To(Succeed())
 			})
 
+			Context("with context", func() {
+				It("executes a query successfully", func() {
+					query := lk.Select("first_name", "last_name", "email").From("users")
+
+					var (
+						firstName string
+						lastName  string
+						email     string
+					)
+
+					rows, err := db.QueryContext(context.Background(), query)
+					Expect(err).To(BeNil())
+					Expect(rows.Next()).To(BeTrue())
+
+					Expect(rows.Scan(&firstName, &lastName, &email)).To(Succeed())
+					Expect(firstName).To(Equal("John"))
+					Expect(lastName).To(Equal("Doe"))
+					Expect(email).To(Equal("john@example.com"))
+
+					Expect(rows.Next()).To(BeFalse())
+					Expect(rows.Close()).To(Succeed())
+				})
+			})
+
 			Context("when the query fails", func() {
 				It("returns an error", func() {
 					query := lk.Select("name").From("categories")
@@ -194,6 +241,27 @@ var _ = Describe("Gateway", func() {
 				Expect(email).To(Equal("john@example.com"))
 			})
 
+			Context("with context", func() {
+				It("executes a query successfully", func() {
+					query := lk.Select("first_name", "last_name", "email").From("users")
+
+					row, err := db.QueryRowContext(context.Background(), query)
+					Expect(err).To(BeNil())
+					Expect(row).NotTo(BeNil())
+
+					var (
+						firstName string
+						lastName  string
+						email     string
+					)
+
+					Expect(row.Scan(&firstName, &lastName, &email)).To(Succeed())
+					Expect(firstName).To(Equal("John"))
+					Expect(lastName).To(Equal("Doe"))
+					Expect(email).To(Equal("john@example.com"))
+				})
+			})
+
 			Context("when the query fails", func() {
 				It("returns an error", func() {
 					query := lk.Select("name").From("categories")
@@ -217,6 +285,21 @@ var _ = Describe("Gateway", func() {
 				Expect(rows).NotTo(BeNil())
 				Expect(rows.Next()).To(BeFalse())
 				Expect(rows.Close()).To(Succeed())
+			})
+
+			Context("when context", func() {
+				It("executes a query successfully", func() {
+					query := lk.Delete("users")
+
+					_, err := db.ExecContext(context.Background(), query)
+					Expect(err).To(Succeed())
+
+					rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+					Expect(err).To(BeNil())
+					Expect(rows).NotTo(BeNil())
+					Expect(rows.Next()).To(BeFalse())
+					Expect(rows.Close()).To(Succeed())
+				})
 			})
 
 			Context("when the query fails", func() {
@@ -244,9 +327,9 @@ var _ = Describe("Gateway", func() {
 					Expect(txDb.DriverName()).To(Equal("sqlite3"))
 					Expect(txDb.Close()).To(Succeed())
 
-					tx, err := txDb.Begin()
+					anotherTx, err := txDb.Begin()
 					Expect(err).To(MatchError("sql: database is closed"))
-					Expect(tx).To(BeNil())
+					Expect(anotherTx).To(BeNil())
 				})
 			})
 
@@ -262,6 +345,20 @@ var _ = Describe("Gateway", func() {
 					Expect(persons[0].Email).To(Equal("john@example.com"))
 					Expect(tx.Commit()).To(Succeed())
 				})
+
+				Context("with context", func() {
+					It("executes a query successfully", func() {
+						query := lk.Select("first_name", "last_name", "email").From("users")
+
+						persons := []Person{}
+						Expect(tx.SelectContext(context.Background(), &persons, query)).To(Succeed())
+						Expect(persons).To(HaveLen(1))
+						Expect(persons[0].FirstName).To(Equal("John"))
+						Expect(persons[0].LastName).To(Equal("Doe"))
+						Expect(persons[0].Email).To(Equal("john@example.com"))
+						Expect(tx.Commit()).To(Succeed())
+					})
+				})
 			})
 
 			Describe("SelectOne", func() {
@@ -272,6 +369,16 @@ var _ = Describe("Gateway", func() {
 					Expect(tx.SelectOne(&person, query)).To(Succeed())
 					Expect(tx.Commit()).To(Succeed())
 				})
+
+				Context("with context", func() {
+					It("executes a query successfully", func() {
+						query := lk.Select("first_name", "last_name", "email").From("users")
+
+						person := Person{}
+						Expect(tx.SelectOneContext(context.Background(), &person, query)).To(Succeed())
+						Expect(tx.Commit()).To(Succeed())
+					})
+				})
 			})
 
 			Describe("QueryRow", func() {
@@ -279,6 +386,14 @@ var _ = Describe("Gateway", func() {
 					query := lk.Select("first_name", "last_name", "email").From("users")
 					_, err := tx.QueryRow(query)
 					Expect(err).To(Succeed())
+				})
+
+				Context("with context", func() {
+					It("executes a query successfully", func() {
+						query := lk.Select("first_name", "last_name", "email").From("users")
+						_, err := tx.QueryRowContext(context.Background(), query)
+						Expect(err).To(Succeed())
+					})
 				})
 			})
 
@@ -295,6 +410,22 @@ var _ = Describe("Gateway", func() {
 					Expect(rows.Next()).To(BeFalse())
 					Expect(rows.Close()).To(Succeed())
 					Expect(tx.Commit()).To(Succeed())
+				})
+
+				Context("with context", func() {
+					It("executes a query successfully", func() {
+						query := lk.Delete("users")
+
+						_, err := tx.ExecContext(context.Background(), query)
+						Expect(err).To(Succeed())
+
+						rows, err := tx.QueryContext(context.Background(), oak.SQL("SELECT * FROM users"))
+						Expect(err).To(BeNil())
+						Expect(rows).NotTo(BeNil())
+						Expect(rows.Next()).To(BeFalse())
+						Expect(rows.Close()).To(Succeed())
+						Expect(tx.Commit()).To(Succeed())
+					})
 				})
 			})
 

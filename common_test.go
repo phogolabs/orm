@@ -25,7 +25,6 @@ var _ = Describe("Command", func() {
 		fmt.Fprintln(buffer)
 		fmt.Fprintln(buffer, "SELECT * FROM users")
 		Expect(oak.LoadSQLCommandsFromReader(buffer)).To(Succeed())
-
 	})
 
 	It("returns a command", func() {
@@ -119,5 +118,47 @@ var _ = Describe("Migrate", func() {
 		db, err := oak.Open("sqlite3", url)
 		Expect(err).To(BeNil())
 		Expect(oak.Migrate(db, parcello.Dir(dir))).To(Succeed())
+	})
+})
+
+var _ = Describe("Setup", func() {
+	var (
+		manager *parcello.Manager
+		gateway *oak.Gateway
+	)
+
+	BeforeEach(func() {
+		dir, err := ioutil.TempDir("", "oak_generator")
+		Expect(err).To(BeNil())
+		url := filepath.Join(dir, "oak.db")
+
+		manager = &parcello.Manager{}
+		gateway, err = oak.Open("sqlite3", url)
+		Expect(err).To(BeNil())
+	})
+
+	AfterEach(func() {
+		gateway.Close()
+	})
+
+	It("setups the project successfully", func() {
+		addResource(manager)
+		Expect(oak.Setup(gateway, manager)).To(Succeed())
+	})
+
+	Context("when the resource script is not found", func() {
+		It("returns an error", func() {
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Resource 'script' not found"))
+		})
+	})
+
+	Context("when the loading the migration fails", func() {
+		BeforeEach(func() {
+			addResourceWithMissingMigrations(manager)
+		})
+
+		It("returns an error", func() {
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Command 'up' not found for sqlmigr '00060524000000_setup.sql'"))
+		})
 	})
 })

@@ -1,6 +1,8 @@
 package oak
 
 import (
+	"context"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -51,28 +53,54 @@ func (g *Gateway) Begin() (*Tx, error) {
 
 // Select executes a given query and maps the result to the provided slice of entities.
 func (g *Gateway) Select(dest Entity, query Query) error {
-	return selectMany(g.db, dest, query)
+	return selectMany(context.Background(), g.db, dest, query)
+}
+
+// SelectContext executes a given query and maps the result to the provided slice of entities.
+func (g *Gateway) SelectContext(ctx context.Context, dest Entity, query Query) error {
+	return selectMany(ctx, g.db, dest, query)
 }
 
 // SelectOne executes a given query and maps a single result to the provided entity.
 func (g *Gateway) SelectOne(dest Entity, query Query) error {
-	return selectOne(g.db, dest, query)
+	return selectOne(context.Background(), g.db, dest, query)
+}
+
+// SelectOneContext executes a given query and maps a single result to the provided entity.
+func (g *Gateway) SelectOneContext(ctx context.Context, dest Entity, query Query) error {
+	return selectOne(ctx, g.db, dest, query)
 }
 
 // Query executes a given query and returns an instance of rows cursor.
 func (g *Gateway) Query(query Query) (*Rows, error) {
-	return queryRows(g.db, query)
+	return queryRows(context.Background(), g.db, query)
+}
+
+// QueryContext executes a given query and returns an instance of rows cursor.
+func (g *Gateway) QueryContext(ctx context.Context, query Query) (*Rows, error) {
+	return queryRows(ctx, g.db, query)
 }
 
 // QueryRow executes a given query and returns an instance of row.
 func (g *Gateway) QueryRow(query Query) (*Row, error) {
-	return queryRow(g.db, query)
+	return queryRow(context.Background(), g.db, query)
+}
+
+// QueryRowContext executes a given query and returns an instance of row.
+func (g *Gateway) QueryRowContext(ctx context.Context, query Query) (*Row, error) {
+	return queryRow(ctx, g.db, query)
 }
 
 // Exec executes a given query. It returns a result that provides information
 // about the affected rows.
 func (g *Gateway) Exec(query Query) (Result, error) {
-	return exec(g.db, query)
+	return exec(context.Background(), g.db, query)
+}
+
+// ExecContext executes a given query. It returns a result that provides information
+// about the affected rows.
+func (g *Gateway) ExecContext(ctx context.Context, query Query) (Result, error) {
+	return exec(ctx, g.db, query)
 }
 
 // Tx is an sqlx wrapper around sqlx.Tx with extra functionality
@@ -92,26 +120,52 @@ func (tx *Tx) Rollback() error {
 
 // Select executes a given query and maps the result to the provided slice of entities.
 func (tx *Tx) Select(dest Entity, query Query) error {
-	return selectMany(tx.tx, dest, query)
+	return selectMany(context.Background(), tx.tx, dest, query)
+}
+
+// SelectContext executes a given query and maps the result to the provided slice of entities.
+func (tx *Tx) SelectContext(ctx context.Context, dest Entity, query Query) error {
+	return selectMany(ctx, tx.tx, dest, query)
 }
 
 // SelectOne executes a given query and maps a single result to the provided entity.
 func (tx *Tx) SelectOne(dest Entity, query Query) error {
-	return selectOne(tx.tx, dest, query)
+	return selectOne(context.Background(), tx.tx, dest, query)
+}
+
+// SelectOneContext executes a given query and maps a single result to the provided entity.
+func (tx *Tx) SelectOneContext(ctx context.Context, dest Entity, query Query) error {
+	return selectOne(context.Background(), tx.tx, dest, query)
 }
 
 // Query executes a given query and returns an instance of rows cursor.
 func (tx *Tx) Query(query Query) (*Rows, error) {
-	return queryRows(tx.tx, query)
+	return queryRows(context.Background(), tx.tx, query)
+}
+
+// QueryContext executes a given query and returns an instance of rows cursor.
+func (tx *Tx) QueryContext(ctx context.Context, query Query) (*Rows, error) {
+	return queryRows(ctx, tx.tx, query)
 }
 
 // QueryRow executes a given query and returns an instance of row.
 func (tx *Tx) QueryRow(query Query) (*Row, error) {
-	return queryRow(tx.tx, query)
+	return queryRow(context.Background(), tx.tx, query)
+}
+
+// QueryRowContext executes a given query and returns an instance of row.
+func (tx *Tx) QueryRowContext(ctx context.Context, query Query) (*Row, error) {
+	return queryRow(ctx, tx.tx, query)
 }
 
 // Exec executes a given query. It returns a result that provides information
 // about the affected rows.
 func (tx *Tx) Exec(query Query) (Result, error) {
-	return exec(tx.tx, query)
+	return exec(context.Background(), tx.tx, query)
+}
+
+// ExecContext executes a given query. It returns a result that provides information
+// about the affected rows.
+func (tx *Tx) ExecContext(ctx context.Context, query Query) (Result, error) {
+	return exec(ctx, tx.tx, query)
 }
