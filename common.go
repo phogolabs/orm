@@ -19,6 +19,10 @@ import (
 	"github.com/phogolabs/prana/sqlmigr"
 )
 
+// P is a shortcut to a map. It facilitates passing named params to a named
+// commands and queries
+type P = map[string]interface{}
+
 // FileSystem provides with primitives to work with the underlying file system
 type FileSystem = parcello.FileSystem
 
