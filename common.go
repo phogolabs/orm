@@ -68,7 +68,7 @@ func init() {
 }
 
 // Setup setups the oak environment for us
-func Setup(gateway *Gateway, manager *parcello.Manager) error {
+func Setup(gateway *Gateway, manager parcello.FileSystemManager) error {
 	script, err := manager.Root("script")
 	if err != nil {
 		return err

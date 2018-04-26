@@ -1,5 +1,5 @@
 hash: 8951f3f5660b48600aa77acb01c228f1827c78114b2503dde33bc13de42fadf4
-updated: 2018-04-26T11:18:33.738873+01:00
+updated: 2018-04-26T17:46:33.838011+01:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -46,11 +46,11 @@ imports:
 - name: github.com/Pallinder/go-randomdata
   version: dab270d296c6c8fb98de3b4334bbd7d7b0ceca53
 - name: github.com/phogolabs/parcello
-  version: 545376a38902769f2f8ab3bc9cc704c7b46b72e2
+  version: 197f0535d8584861394d5d58326daa572ad08f2f
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: 3aa20966264fd8e6146e2f9f61e1f9baae160949
+  version: 94329e34f664f2f16ee5c924d5e412003dbe42e6
   subpackages:
   - sqlexec
   - sqlmigr
