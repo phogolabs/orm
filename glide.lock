@@ -1,5 +1,5 @@
 hash: 8951f3f5660b48600aa77acb01c228f1827c78114b2503dde33bc13de42fadf4
-updated: 2018-04-25T10:51:54.227598+01:00
+updated: 2018-04-26T10:55:37.461631+01:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -9,6 +9,8 @@ imports:
   version: c14afcac17253ce7418da751ec6b1988790cdc8f
   subpackages:
   - memfs
+- name: github.com/daaku/go.zipexe
+  version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/fatih/color
   version: 507f6050b8568533fb3f5504de8e5205fa62a114
 - name: github.com/gchaincl/dotsql
@@ -27,6 +29,8 @@ imports:
   version: 2aeb6a910c2b94f2d5eb53d9895d80e27264ec41
   subpackages:
   - reflectx
+- name: github.com/kardianos/osext
+  version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/lib/pq
   version: d34b9ff171c21ad295489235aec8b6626023cd04
 - name: github.com/mattn/go-colorable
@@ -42,11 +46,11 @@ imports:
 - name: github.com/Pallinder/go-randomdata
   version: dab270d296c6c8fb98de3b4334bbd7d7b0ceca53
 - name: github.com/phogolabs/parcello
-  version: 5eeecbc4a9d6293ce77542d07c50e5b56be71cdf
+  version: 5fe3017e3dccf8803bb82cdff2ca2da79b66b313
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: 6f61c092133f203872231d82c92641364f689580
+  version: de8833e6e579da05f6c703f3649c48ca0b10ab0c
   subpackages:
   - sqlexec
   - sqlmigr

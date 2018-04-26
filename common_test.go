@@ -36,6 +36,15 @@ var _ = Describe("Command", func() {
 		Expect(params).To(BeEmpty())
 	})
 
+	It("returns a named command", func() {
+		stmt := oak.NamedCommand(script)
+		Expect(stmt).NotTo(BeNil())
+
+		query, params := stmt.Prepare()
+		Expect(query).To(Equal("SELECT * FROM users"))
+		Expect(params).To(BeEmpty())
+	})
+
 	Context("when loading a whole directory", func() {
 		BeforeEach(func() {
 			buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
@@ -73,6 +82,12 @@ var _ = Describe("Command", func() {
 	Context("when the statement does not exits", func() {
 		It("does not return a statement", func() {
 			Expect(func() { oak.Command("down") }).To(Panic())
+		})
+	})
+
+	Context("when the named statement does not exits", func() {
+		It("does not return a statement", func() {
+			Expect(func() { oak.NamedCommand("down") }).To(Panic())
 		})
 	})
 })
@@ -174,7 +189,7 @@ var _ = Describe("Setup", func() {
 		})
 
 		It("returns an error", func() {
-			Expect(oak.Setup(gateway, manager)).To(MatchError("Command 'up' not found for sqlmigr '00060524000000_setup.sql'"))
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Command 'up' not found for migration '00060524000000_setup.sql'"))
 		})
 	})
 })

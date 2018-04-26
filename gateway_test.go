@@ -72,7 +72,7 @@ var _ = Describe("Gateway", func() {
 		})
 
 		AfterEach(func() {
-			_, err := db.Exec(oak.SQL("DROP TABLE users"))
+			_, err := db.Exec(oak.NamedSQL("DROP TABLE users"))
 			Expect(err).To(BeNil())
 			Expect(db.Close()).To(Succeed())
 		})

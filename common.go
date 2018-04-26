@@ -105,7 +105,7 @@ func LoadSQLCommandsFrom(fileSystem FileSystem) error {
 
 // Command returns a command for given name and parameters. The operation can
 // panic if the command cannot be found.
-func Command(name string, params ...sqlexec.Param) *sqlexec.Cmd {
+func Command(name string, params ...sqlexec.Param) Query {
 	cmd, err := provider.Command(name, params...)
 
 	if err != nil {
@@ -115,9 +115,26 @@ func Command(name string, params ...sqlexec.Param) *sqlexec.Cmd {
 	return cmd
 }
 
+// NamedCommand returns a command for given name and map the parameters as
+// named. The operation can panic if the command cannot be found.
+func NamedCommand(name string, params ...sqlexec.Param) Query {
+	cmd, err := provider.NamedCommand(name, params...)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return cmd
+}
+
 // SQL create a new command from raw query
-func SQL(query string, params ...sqlexec.Param) *sqlexec.Cmd {
+func SQL(query string, params ...sqlexec.Param) Query {
 	return sqlexec.SQL(query, params...)
+}
+
+// NamedSQL create a new command from raw query
+func NamedSQL(query string, params ...sqlexec.Param) Query {
+	return sqlexec.NamedSQL(query, params...)
 }
 
 // ParseURL parses a URL and returns the database driver and connection string to the database
