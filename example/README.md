@@ -1,4 +1,8 @@
-# Prana Example
+# OAK Example
+
+The example shows how to use OAK with
+[Prana](https://github.com/phogolabs/prana) and
+[Parcello](https://github.com/phogolabs/parcello).
 
 If you want, you can setup the database via Prana CLI:
 
