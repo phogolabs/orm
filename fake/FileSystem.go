@@ -7,3 +7,9 @@ import (
 
 // FileSystem represents a fake file system that is used for testing
 type FileSystem = fake.FileSystem
+
+// FileSystemManager represents a fake file system manager that is used for testing
+type FileSystemManager = fake.FileSystemManager
+
+// File represents a fake file that is used for testing
+type File = fake.File

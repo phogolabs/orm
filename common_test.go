@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -37,7 +38,7 @@ var _ = Describe("Command", func() {
 	})
 
 	It("returns a named command", func() {
-		stmt := oak.NamedCommand(script)
+		stmt := oak.NamedCommand(script, oak.P{})
 		Expect(stmt).NotTo(BeNil())
 
 		query, params := stmt.Prepare()
@@ -87,7 +88,7 @@ var _ = Describe("Command", func() {
 
 	Context("when the named statement does not exits", func() {
 		It("does not return a statement", func() {
-			Expect(func() { oak.NamedCommand("down") }).To(Panic())
+			Expect(func() { oak.NamedCommand("down", oak.P{}) }).To(Panic())
 		})
 	})
 })
@@ -138,7 +139,7 @@ var _ = Describe("Migrate", func() {
 
 var _ = Describe("Setup", func() {
 	var (
-		manager *parcello.Manager
+		manager *fake.FileSystemManager
 		gateway *oak.Gateway
 	)
 
@@ -147,7 +148,25 @@ var _ = Describe("Setup", func() {
 		Expect(err).To(BeNil())
 		url := filepath.Join(dir, "oak.db")
 
-		manager = &parcello.Manager{}
+		manager = &fake.FileSystemManager{}
+		manager.RootReturns(manager, nil)
+
+		manager.OpenFileStub = func(name string, flag int, perm os.FileMode) (parcello.File, error) {
+			fileContent := &bytes.Buffer{}
+			file := &fake.File{}
+
+			file.WriteStub = func(data []byte) (int, error) {
+				return fileContent.Write(data)
+			}
+
+			file.ReadStub = func(data []byte) (int, error) {
+				content := bytes.NewBuffer(fileContent.Bytes())
+				return content.Read(data)
+			}
+
+			return file, nil
+		}
+
 		gateway, err = oak.Open("sqlite3", url)
 		Expect(err).To(BeNil())
 	})
@@ -157,37 +176,51 @@ var _ = Describe("Setup", func() {
 	})
 
 	It("setups the project successfully", func() {
-		addResource(manager)
-		Expect(oak.Setup(gateway, manager)).To(Succeed())
+		Expect(oak.Setup(gateway, parcello.Dir("./example/database"))).To(Succeed())
 	})
 
 	Context("when the resource script is not found", func() {
+		BeforeEach(func() {
+			manager.RootReturns(nil, fmt.Errorf("Oh no!"))
+		})
+
 		It("returns an error", func() {
-			Expect(oak.Setup(gateway, manager)).To(MatchError("Resource 'script' not found"))
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Oh no!"))
+		})
+	})
+
+	Context("when the resource script cannot be load", func() {
+		BeforeEach(func() {
+			manager.WalkReturns(fmt.Errorf("Oh no!"))
+		})
+
+		It("returns an error", func() {
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Oh no!"))
 		})
 	})
 
 	Context("when the resource migration is not found", func() {
+		BeforeEach(func() {
+			manager.RootStub = func(name string) (parcello.FileSystemManager, error) {
+				if name == "script" {
+					return manager, nil
+				}
+				return nil, fmt.Errorf("Oh no!")
+			}
+		})
+
 		It("returns an error", func() {
-			manager = &parcello.Manager{}
-			addResourceWithMissingMigrationDir(manager)
-			Expect(oak.Setup(gateway, manager)).To(MatchError("Resource 'migration' not found"))
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Oh no!"))
 		})
 	})
 
 	Context("when the resource script cannot be load", func() {
 		It("returns an error", func() {
-			manager = &parcello.Manager{}
-			addResource(manager)
 			Expect(oak.Setup(gateway, manager)).To(HaveOccurred())
 		})
 	})
 
 	Context("when the loading the migration fails", func() {
-		BeforeEach(func() {
-			addResourceWithMissingMigrations(manager)
-		})
-
 		It("returns an error", func() {
 			Expect(oak.Setup(gateway, manager)).To(MatchError("Command 'up' not found for migration '00060524000000_setup.sql'"))
 		})

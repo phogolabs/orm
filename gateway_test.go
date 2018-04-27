@@ -67,12 +67,13 @@ var _ = Describe("Gateway", func() {
 			_, err = db.Exec(oak.SQL(buffer.String()))
 			Expect(err).To(BeNil())
 
-			_, err = db.Exec(oak.SQL("INSERT INTO users VALUES(?, ?, ?)", "John", "Doe", "john@example.com"))
+			param := oak.P{"first_name": "John", "last_name": "Doe", "email": "john@example.com"}
+			_, err = db.Exec(oak.NamedSQL("INSERT INTO users VALUES(:first_name, :last_name, :email)", param))
 			Expect(err).To(Succeed())
 		})
 
 		AfterEach(func() {
-			_, err := db.Exec(oak.NamedSQL("DROP TABLE users"))
+			_, err := db.Exec(oak.SQL("DROP TABLE users"))
 			Expect(err).To(BeNil())
 			Expect(db.Close()).To(Succeed())
 		})

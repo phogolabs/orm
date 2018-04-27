@@ -21,7 +21,7 @@ import (
 
 // P is a shortcut to a map. It facilitates passing named params to a named
 // commands and queries
-type P = map[string]interface{}
+type P = sqlexec.P
 
 // FileSystem provides with primitives to work with the underlying file system
 type FileSystem = parcello.FileSystem
@@ -121,8 +121,8 @@ func Command(name string, params ...sqlexec.Param) Query {
 
 // NamedCommand returns a command for given name and map the parameters as
 // named. The operation can panic if the command cannot be found.
-func NamedCommand(name string, params ...sqlexec.Param) Query {
-	cmd, err := provider.NamedCommand(name, params...)
+func NamedCommand(name string, param sqlexec.Param) Query {
+	cmd, err := provider.NamedCommand(name, param)
 
 	if err != nil {
 		panic(err)
@@ -137,8 +137,8 @@ func SQL(query string, params ...sqlexec.Param) Query {
 }
 
 // NamedSQL create a new command from raw query
-func NamedSQL(query string, params ...sqlexec.Param) Query {
-	return sqlexec.NamedSQL(query, params...)
+func NamedSQL(query string, param sqlexec.Param) Query {
+	return sqlexec.NamedSQL(query, param)
 }
 
 // ParseURL parses a URL and returns the database driver and connection string to the database
