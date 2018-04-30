@@ -138,7 +138,7 @@ if err := oak.Migrate(gateway, parcello.Dir("./database/migration")); err != nil
 }
 ```
 
-### SQL Scripts and Commands with Prana
+### SQL Scripts and Routines with Prana
 
 OAK provides a way to work with embeddable SQL scripts. It can understand
 [SQL Scripts](https://github.com/phogolabs/prana#sql-scripts-and-commands) from
@@ -148,7 +148,7 @@ query named `show-sqlite-master`.
 Let's first load the SQL script from file:
 
 ```golang
-if err = oak.LoadSQLCommandsFromReader(file); err != nil {
+if err = oak.LoadSQLRoutinesFromReader(file); err != nil {
 	log.WithError(err).Fatal("Failed to load script")
 }
 ```
@@ -156,7 +156,7 @@ if err = oak.LoadSQLCommandsFromReader(file); err != nil {
 Then you can execute the desired script by just passing its name:
 
 ```golang
-_, err = gateway.Exec(oak.Command("show-sqlite-master"))
+_, err = gateway.Exec(oak.Routine("show-sqlite-master"))
 ```
 
 Also you can Raw SQL Scripts from your code, you should follow this

@@ -150,14 +150,14 @@ func ExampleGateway_Exec() {
 }
 
 func ExampleCommand() {
-	err := oak.LoadSQLCommandsFrom(parcello.Dir("./database/command"))
+	err := oak.LoadSQLRoutinesFrom(parcello.Dir("./database/command"))
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	cmd := oak.Command("show-sqlite-master")
+	cmd := oak.Routine("show-sqlite-master")
 
 	gateway, err := oak.Open("sqlite3", "example.db")
 	if err != nil {

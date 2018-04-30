@@ -17,7 +17,7 @@ import (
 	"github.com/phogolabs/parcello"
 )
 
-var _ = Describe("Command", func() {
+var _ = Describe("Routine", func() {
 	var script string
 
 	BeforeEach(func() {
@@ -25,11 +25,11 @@ var _ = Describe("Command", func() {
 		buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
 		fmt.Fprintln(buffer)
 		fmt.Fprintln(buffer, "SELECT * FROM users")
-		Expect(oak.LoadSQLCommandsFromReader(buffer)).To(Succeed())
+		Expect(oak.LoadSQLRoutinesFromReader(buffer)).To(Succeed())
 	})
 
 	It("returns a command", func() {
-		stmt := oak.Command(script)
+		stmt := oak.Routine(script)
 		Expect(stmt).NotTo(BeNil())
 
 		query, params := stmt.Prepare()
@@ -38,7 +38,7 @@ var _ = Describe("Command", func() {
 	})
 
 	It("returns a named command", func() {
-		stmt := oak.NamedCommand(script, oak.P{})
+		stmt := oak.NamedRoutine(script, oak.P{})
 		Expect(stmt).NotTo(BeNil())
 
 		query, params := stmt.Prepare()
@@ -67,11 +67,11 @@ var _ = Describe("Command", func() {
 				return fn("command", &parcello.ResourceFileInfo{Node: node}, nil)
 			}
 
-			Expect(oak.LoadSQLCommandsFrom(fileSystem)).To(Succeed())
+			Expect(oak.LoadSQLRoutinesFrom(fileSystem)).To(Succeed())
 		})
 
 		It("returns a command", func() {
-			stmt := oak.Command("cmd")
+			stmt := oak.Routine("cmd")
 			Expect(stmt).NotTo(BeNil())
 
 			query, params := stmt.Prepare()
@@ -82,13 +82,13 @@ var _ = Describe("Command", func() {
 
 	Context("when the statement does not exits", func() {
 		It("does not return a statement", func() {
-			Expect(func() { oak.Command("down") }).To(Panic())
+			Expect(func() { oak.Routine("down") }).To(Panic())
 		})
 	})
 
 	Context("when the named statement does not exits", func() {
 		It("does not return a statement", func() {
-			Expect(func() { oak.NamedCommand("down", oak.P{}) }).To(Panic())
+			Expect(func() { oak.NamedRoutine("down", oak.P{}) }).To(Panic())
 		})
 	})
 })
@@ -202,7 +202,7 @@ var _ = Describe("Setup", func() {
 	Context("when the resource migration is not found", func() {
 		BeforeEach(func() {
 			manager.RootStub = func(name string) (parcello.FileSystemManager, error) {
-				if name == "script" {
+				if name == "routine" {
 					return manager, nil
 				}
 				return nil, fmt.Errorf("Oh no!")
@@ -222,7 +222,7 @@ var _ = Describe("Setup", func() {
 
 	Context("when the loading the migration fails", func() {
 		It("returns an error", func() {
-			Expect(oak.Setup(gateway, manager)).To(MatchError("Command 'up' not found for migration '00060524000000_setup.sql'"))
+			Expect(oak.Setup(gateway, manager)).To(MatchError("Routine 'up' not found for migration '00060524000000_setup.sql'"))
 		})
 	})
 })

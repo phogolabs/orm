@@ -1,5 +1,5 @@
 hash: 8951f3f5660b48600aa77acb01c228f1827c78114b2503dde33bc13de42fadf4
-updated: 2018-04-27T09:54:45.915731+01:00
+updated: 2018-04-30T12:40:30.554871+01:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -46,11 +46,11 @@ imports:
 - name: github.com/Pallinder/go-randomdata
   version: dab270d296c6c8fb98de3b4334bbd7d7b0ceca53
 - name: github.com/phogolabs/parcello
-  version: 73888efc9b998db236352fd2adf89c09e1c60803
+  version: bd573b2ad411d66e6028d8cb84ee461f468846ff
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: 399536585e5fcbc8fbfa28dd79f1566b82fc123c
+  version: c35fda348b2a3a91d70fc25190b48f67d915c0e5
   subpackages:
   - sqlexec
   - sqlmigr
@@ -69,7 +69,7 @@ imports:
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: golang.org/x/sys
-  version: 3b87a42e500a6dc65dae1a55d0b641295971163e
+  version: f67ecc163a74fbeea4cb1db0a101dcd07201464a
   subpackages:
   - unix
 - name: gopkg.in/go-playground/validator.v9
@@ -116,7 +116,7 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/net
-  version: 61147c48b25b599e5b561d2e9c4f3e1ef489ca41
+  version: 5f9ae10d9af5b1c89ae6904293b14b064d4ada23
   subpackages:
   - html
   - html/atom

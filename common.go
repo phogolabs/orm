@@ -69,12 +69,12 @@ func init() {
 
 // Setup setups the oak environment for us
 func Setup(gateway *Gateway, manager parcello.FileSystemManager) error {
-	script, err := manager.Root("script")
+	script, err := manager.Root("routine")
 	if err != nil {
 		return err
 	}
 
-	if err = LoadSQLCommandsFrom(script); err != nil {
+	if err = LoadSQLRoutinesFrom(script); err != nil {
 		return err
 	}
 
@@ -95,22 +95,22 @@ func Migrate(gateway *Gateway, fileSystem FileSystem) error {
 	return sqlmigr.RunAll(gateway.db, fileSystem)
 }
 
-// LoadSQLCommandsFromReader loads all commands from a given reader.
-func LoadSQLCommandsFromReader(r io.Reader) error {
+// LoadSQLRoutinesFromReader loads all commands from a given reader.
+func LoadSQLRoutinesFromReader(r io.Reader) error {
 	_, err := provider.ReadFrom(r)
 	return err
 }
 
-// LoadSQLCommandsFrom loads all script commands from a given directory. Note that all
+// LoadSQLRoutinesFrom loads all script commands from a given directory. Note that all
 // scripts should have .sql extension.
-func LoadSQLCommandsFrom(fileSystem FileSystem) error {
+func LoadSQLRoutinesFrom(fileSystem FileSystem) error {
 	return provider.ReadDir(fileSystem)
 }
 
-// Command returns a command for given name and parameters. The operation can
+// Routine returns a SQL statement for given name and parameters. The operation can
 // panic if the command cannot be found.
-func Command(name string, params ...sqlexec.Param) Query {
-	cmd, err := provider.Command(name, params...)
+func Routine(name string, params ...sqlexec.Param) Query {
+	cmd, err := provider.Query(name, params...)
 
 	if err != nil {
 		panic(err)
@@ -119,10 +119,10 @@ func Command(name string, params ...sqlexec.Param) Query {
 	return cmd
 }
 
-// NamedCommand returns a command for given name and map the parameters as
+// NamedRoutine returns a SQL statement for given name and map the parameters as
 // named. The operation can panic if the command cannot be found.
-func NamedCommand(name string, param sqlexec.Param) Query {
-	cmd, err := provider.NamedCommand(name, param)
+func NamedRoutine(name string, param sqlexec.Param) Query {
+	cmd, err := provider.NamedQuery(name, param)
 
 	if err != nil {
 		panic(err)
