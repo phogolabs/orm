@@ -310,6 +310,57 @@ var _ = Describe("Gateway", func() {
 					Expect(err).To(MatchError("no such table: categories"))
 				})
 			})
+
+			Describe("Transaction", func() {
+				Context("when the db is closed", func() {
+					It("returns the error", func() {
+						ddb, err := oak.Open("sqlite3", "/tmp/oak.db")
+						Expect(err).To(BeNil())
+						Expect(ddb.Close()).To(Succeed())
+
+						terr := ddb.Transaction(func(tx *oak.Tx) error {
+							return nil
+						})
+
+						Expect(terr).To(MatchError("sql: database is closed"))
+					})
+				})
+
+				It("start the transaction successfully", func() {
+					err := db.Transaction(func(tx *oak.Tx) error {
+						_, err := tx.Exec(oak.SQL("DELETE FROM users"))
+						Expect(err).NotTo(HaveOccurred())
+						return nil
+
+					})
+
+					Expect(err).NotTo(HaveOccurred())
+
+					rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+					Expect(err).To(BeNil())
+					Expect(rows).NotTo(BeNil())
+					Expect(rows.Next()).To(BeFalse())
+					Expect(rows.Close()).To(Succeed())
+				})
+
+				Context("when the function returns an error", func() {
+					It("rollbacks the transaction", func() {
+						err := db.Transaction(func(tx *oak.Tx) error {
+							_, err := tx.Exec(oak.SQL("DELETE FROM users"))
+							Expect(err).NotTo(HaveOccurred())
+							return fmt.Errorf("Oh no!")
+						})
+
+						Expect(err).NotTo(HaveOccurred())
+
+						rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+						Expect(err).To(BeNil())
+						Expect(rows).NotTo(BeNil())
+						Expect(rows.Next()).To(BeTrue())
+						Expect(rows.Close()).To(Succeed())
+					})
+				})
+			})
 		})
 
 		Describe("Tx", func() {

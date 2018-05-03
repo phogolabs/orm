@@ -19,29 +19,22 @@ import (
 	"github.com/phogolabs/prana/sqlmigr"
 )
 
-// P is a shortcut to a map. It facilitates passing named params to a named
-// commands and queries
-type P = sqlexec.P
+var provider *sqlexec.Provider
 
-// FileSystem provides with primitives to work with the underlying file system
-type FileSystem = parcello.FileSystem
+func init() {
+	provider = &sqlexec.Provider{}
+}
 
 // Dir implements FileSystem using the native file system restricted to a
 // specific directory tree.
 type Dir = parcello.Dir
 
-// Query represents an SQL Query that can be executed by Gateway.
-type Query interface {
-	// Prepare prepares the query for execution. It returns the actual query and
-	// a maps of its arguments.
-	Prepare() (string, map[string]interface{})
-}
+// FileSystem provides with primitives to work with the underlying file system
+type FileSystem = parcello.FileSystem
 
-// Preparer prepares query for execution
-type Preparer interface {
-	// PrepareNamed returns a prepared named statement
-	PrepareNamed(query string) (*NamedStmt, error)
-}
+// P is a shortcut to a map. It facilitates passing named params to a named
+// commands and queries
+type P = sqlexec.P
 
 // NamedStmt is a prepared statement that executes named queries.  Prepare it
 // how you would execute a NamedQuery, but pass in a struct or map when executing.
@@ -61,10 +54,20 @@ type Row = sqlx.Row
 // A Result summarizes an executed SQL command.
 type Result = sql.Result
 
-var provider *sqlexec.Provider
+// TxFunc is a transaction function
+type TxFunc func(tx *Tx) error
 
-func init() {
-	provider = &sqlexec.Provider{}
+// Query represents an SQL Query that can be executed by Gateway.
+type Query interface {
+	// Prepare prepares the query for execution. It returns the actual query and
+	// a maps of its arguments.
+	Prepare() (string, map[string]interface{})
+}
+
+// Preparer prepares query for execution
+type Preparer interface {
+	// PrepareNamed returns a prepared named statement
+	PrepareNamed(query string) (*NamedStmt, error)
 }
 
 // Setup setups the oak environment for us
