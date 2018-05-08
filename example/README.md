@@ -7,7 +7,6 @@ The example shows how to use OAK with
 If you want, you can setup the database via Prana CLI:
 
 ```bash
-$ prana migration setup
 $ prana migration run
 ```
 Otherwise when you run the example, it will setup the database programmatically

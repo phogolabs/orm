@@ -88,7 +88,7 @@ func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
 }
 
 func prepareQuery(preparer Preparer, query Query) (*sqlx.NamedStmt, map[string]interface{}, error) {
-	body, args := query.Prepare()
+	body, args := query.NamedQuery()
 
 	stmt, err := preparer.PrepareNamed(body)
 	if err != nil {

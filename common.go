@@ -8,22 +8,13 @@ package oak
 
 import (
 	"database/sql"
-	"fmt"
-	"io"
-	"net/url"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/parcello"
+	"github.com/phogolabs/prana"
 	"github.com/phogolabs/prana/sqlexec"
 	"github.com/phogolabs/prana/sqlmigr"
 )
-
-var provider *sqlexec.Provider
-
-func init() {
-	provider = &sqlexec.Provider{}
-}
 
 // Dir implements FileSystem using the native file system restricted to a
 // specific directory tree.
@@ -58,11 +49,10 @@ type Result = sql.Result
 type TxFunc func(tx *Tx) error
 
 // Query represents an SQL Query that can be executed by Gateway.
-type Query interface {
-	// Prepare prepares the query for execution. It returns the actual query and
-	// a maps of its arguments.
-	Prepare() (string, map[string]interface{})
-}
+type Query = sqlexec.Query
+
+// ParseURL parses a URL and returns the database driver and connection string to the database
+var ParseURL = prana.ParseURL
 
 // Preparer prepares query for execution
 type Preparer interface {
@@ -70,68 +60,9 @@ type Preparer interface {
 	PrepareNamed(query string) (*NamedStmt, error)
 }
 
-// Setup setups the oak environment for us
-func Setup(gateway *Gateway, manager parcello.FileSystemManager) error {
-	script, err := manager.Root("routine")
-	if err != nil {
-		return err
-	}
-
-	if err = LoadSQLRoutinesFrom(script); err != nil {
-		return err
-	}
-
-	migration, err := manager.Root("migration")
-	if err != nil {
-		return err
-	}
-
-	if err := Migrate(gateway, migration); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Migrate runs all pending migration
 func Migrate(gateway *Gateway, fileSystem FileSystem) error {
 	return sqlmigr.RunAll(gateway.db, fileSystem)
-}
-
-// LoadSQLRoutinesFromReader loads all commands from a given reader.
-func LoadSQLRoutinesFromReader(r io.Reader) error {
-	_, err := provider.ReadFrom(r)
-	return err
-}
-
-// LoadSQLRoutinesFrom loads all script commands from a given directory. Note that all
-// scripts should have .sql extension.
-func LoadSQLRoutinesFrom(fileSystem FileSystem) error {
-	return provider.ReadDir(fileSystem)
-}
-
-// Routine returns a SQL statement for given name and parameters. The operation can
-// panic if the command cannot be found.
-func Routine(name string, params ...sqlexec.Param) Query {
-	cmd, err := provider.Query(name, params...)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return cmd
-}
-
-// NamedRoutine returns a SQL statement for given name and map the parameters as
-// named. The operation can panic if the command cannot be found.
-func NamedRoutine(name string, param sqlexec.Param) Query {
-	cmd, err := provider.NamedQuery(name, param)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return cmd
 }
 
 // SQL create a new command from raw query
@@ -142,22 +73,4 @@ func SQL(query string, params ...sqlexec.Param) Query {
 // NamedSQL create a new command from raw query
 func NamedSQL(query string, param sqlexec.Param) Query {
 	return sqlexec.NamedSQL(query, param)
-}
-
-// ParseURL parses a URL and returns the database driver and connection string to the database
-func ParseURL(conn string) (string, string, error) {
-	uri, err := url.Parse(conn)
-	if err != nil {
-		return "", "", err
-	}
-
-	driver := strings.ToLower(uri.Scheme)
-
-	switch driver {
-	case "mysql", "sqlite3":
-		source := strings.Replace(conn, fmt.Sprintf("%s://", driver), "", -1)
-		return driver, source, nil
-	default:
-		return driver, conn, nil
-	}
 }

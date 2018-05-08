@@ -149,16 +149,7 @@ func ExampleGateway_Exec() {
 	}
 }
 
-func ExampleCommand() {
-	err := oak.LoadSQLRoutinesFrom(parcello.Dir("./database/command"))
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	cmd := oak.Routine("show-sqlite-master")
-
+func ExampleGateway_Routine() {
 	gateway, err := oak.Open("sqlite3", "example.db")
 	if err != nil {
 		fmt.Println(err)
@@ -170,6 +161,18 @@ func ExampleCommand() {
 			fmt.Println(dbErr)
 		}
 	}()
+
+	err = gateway.LoadRoutinesFrom(parcello.Dir("./database/command"))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	cmd, err := gateway.Routine("show-sqlite-master")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	if _, err := gateway.Exec(cmd); err != nil {
 		fmt.Println(err)

@@ -1,10 +1,8 @@
-hash: 8951f3f5660b48600aa77acb01c228f1827c78114b2503dde33bc13de42fadf4
-updated: 2018-05-03T12:32:01.854212+01:00
+hash: 06c86f1e11cf7384ba352bef3dc9ba33774ce92f6ad16bab8ce465e9728157ff
+updated: 2018-05-09T02:40:51.858416+03:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
-  subpackages:
-  - handlers/json
 - name: github.com/blang/vfs
   version: c14afcac17253ce7418da751ec6b1988790cdc8f
   subpackages:
@@ -13,8 +11,6 @@ imports:
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/fatih/color
   version: 507f6050b8568533fb3f5504de8e5205fa62a114
-- name: github.com/gchaincl/dotsql
-  version: 5487b6a5fc12870425fc14d9e05a3fabddd91d7e
 - name: github.com/go-openapi/inflect
   version: b1f6470ffb9c552dc105dd869f16e36ba86ba7d0
 - name: github.com/go-playground/locales
@@ -36,8 +32,6 @@ imports:
   - reflectx
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
-- name: github.com/lib/pq
-  version: d34b9ff171c21ad295489235aec8b6626023cd04
 - name: github.com/mattn/go-colorable
   version: efa589957cd060542a26d2dd7832fd6a6c6c3ade
 - name: github.com/mattn/go-isatty
@@ -46,23 +40,21 @@ imports:
   version: ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb
 - name: github.com/mattn/go-sqlite3
   version: 6c771bb9887719704b210e87e934f08be014bdb1
-- name: github.com/olekukonko/tablewriter
-  version: d5dd8a50526aadb3d5f2c9b5233277bc2db90e88
 - name: github.com/Pallinder/go-randomdata
-  version: dab270d296c6c8fb98de3b4334bbd7d7b0ceca53
+  version: b073033ef5a7c42a3f188393575a0850919777a6
 - name: github.com/phogolabs/parcello
-  version: bd573b2ad411d66e6028d8cb84ee461f468846ff
+  version: 3b48cfcb61c1a98ac0512babf63de0c164be7698
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: f4c72e7a603f88027a093a6ff370e337374b8085
+  version: f407d54df05929d214575da9eeaf7976b83b41af
   subpackages:
   - sqlexec
   - sqlmigr
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/ulule/loukoum
-  version: 09752c4c10f314002ad590a1f9b12d2815376b51
+  version: bd40f33da45d04deb4c70872b7cfd39f2b4a0c0b
   subpackages:
   - builder
   - format
@@ -71,14 +63,12 @@ imports:
   - stmt
   - token
   - types
-- name: github.com/urfave/cli
-  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: golang.org/x/sys
-  version: 78d5f264b493f125018180c204871ecf58a2dce1
+  version: 7db1c3b1a98089d0071c84f646ff5c96aad43682
   subpackages:
   - unix
 - name: gopkg.in/go-playground/validator.v9
-  version: 14984d91328f9612b58443cbdf4a077d4fd71091
+  version: ee0bbdea519c2c66777c6bfc943838291734ba6c
 - name: gopkg.in/volatiletech/null.v6
   version: 0bef4e07ae1b27a2a4efa23bbb3006c8c3d2e01d
   subpackages:
@@ -108,8 +98,6 @@ testImports:
   version: 003f63b7f4cff3fc95357005358af2de0f5fe152
   subpackages:
   - format
-  - gbytes
-  - gexec
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -121,7 +109,7 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/net
-  version: 640f4622ab692b87c2f3a94265e6f579fe38263d
+  version: 3a7846fea0afe8cc88deb31d8cfb1fa15a3615ef
   subpackages:
   - html
   - html/atom

@@ -23,7 +23,7 @@ func main() {
 	}
 	defer gateway.Close()
 
-	if err = oak.Setup(gateway, parcello.ResourceManager); err != nil {
+	if err = oak.Migrate(gateway, parcello.DirAt("migration")); err != nil {
 		log.WithError(err).Fatal("Failed to setup OAK")
 	}
 
@@ -31,9 +31,17 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate users")
 	}
 
-	users := []model.User{}
+	if err = gateway.LoadRoutinesFrom(parcello.DirAt("routine")); err != nil {
+		log.WithError(err).Fatal("Failed to load routine")
+	}
 
-	if err = gateway.Select(&users, oak.Command("select-all-users")); err != nil {
+	routine, err := gateway.Routine("select-all-users")
+	if err != nil {
+		log.WithError(err).Fatal("Failed to get routine")
+	}
+
+	users := []model.User{}
+	if err = gateway.Select(&users, routine); err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 

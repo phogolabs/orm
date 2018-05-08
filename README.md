@@ -148,7 +148,7 @@ query named `show-sqlite-master`.
 Let's first load the SQL script from file:
 
 ```golang
-if err = oak.LoadSQLRoutinesFromReader(file); err != nil {
+if err = gateway.LoadRoutinesFromReader(file); err != nil {
 	log.WithError(err).Fatal("Failed to load script")
 }
 ```
@@ -156,7 +156,12 @@ if err = oak.LoadSQLRoutinesFromReader(file); err != nil {
 Then you can execute the desired script by just passing its name:
 
 ```golang
-_, err = gateway.Exec(oak.Routine("show-sqlite-master"))
+routine, err := gateway.Routine("show-sqlite-master")
+if err != nil {
+  return err
+}
+
+_, err = gateway.Exec(routine)
 ```
 
 Also you can Raw SQL Scripts from your code, you should follow this
@@ -169,7 +174,7 @@ rows, err := gateway.Query(oak.SQL("SELECT * FROM users WHERE id = ?", 5432))
 If you want to execute named queries, you should use the following code snippet:
 
 ```golang
-rows, err := gateway.Query(oak.NamedSQL("SELECT * FROM users WHERE id = :id", oak.P{"id": 5432}))
+rows, err := gateway.Query(gateway.NamedSQL("SELECT * FROM users WHERE id = :id", oak.P{"id": 5432}))
 ```
 
 ### Example

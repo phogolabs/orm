@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
+	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,6 +14,8 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/phogolabs/oak"
+	"github.com/phogolabs/oak/fake"
+	"github.com/phogolabs/parcello"
 )
 
 var _ = Describe("Gateway", func() {
@@ -76,6 +81,87 @@ var _ = Describe("Gateway", func() {
 			_, err := db.Exec(oak.SQL("DROP TABLE users"))
 			Expect(err).To(BeNil())
 			Expect(db.Close()).To(Succeed())
+		})
+
+		Describe("Routine", func() {
+			var script string
+
+			BeforeEach(func() {
+				script = fmt.Sprintf("%v", time.Now().UnixNano())
+				buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
+				fmt.Fprintln(buffer)
+				fmt.Fprintln(buffer, "SELECT * FROM users")
+				Expect(db.LoadRoutinesFromReader(buffer)).To(Succeed())
+			})
+
+			It("returns a command", func() {
+				stmt, err := db.Routine(script)
+				Expect(stmt).NotTo(BeNil())
+				Expect(err).To(BeNil())
+
+				query, params := stmt.NamedQuery()
+				Expect(query).To(Equal("SELECT * FROM users"))
+				Expect(params).To(BeEmpty())
+			})
+
+			It("returns a named command", func() {
+				stmt, err := db.NamedRoutine(script, oak.P{})
+				Expect(stmt).NotTo(BeNil())
+				Expect(err).To(BeNil())
+
+				query, params := stmt.NamedQuery()
+				Expect(query).To(Equal("SELECT * FROM users"))
+				Expect(params).To(BeEmpty())
+			})
+
+			Context("when loading a whole directory", func() {
+				BeforeEach(func() {
+					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
+					fmt.Fprintln(buffer)
+					fmt.Fprintln(buffer, "SELECT * FROM categories")
+
+					content := buffer.Bytes()
+
+					node := &parcello.Node{
+						Name:    "script.sql",
+						Content: &content,
+						Mutex:   &sync.RWMutex{},
+					}
+
+					fileSystem := &fake.FileSystem{}
+					fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+
+					fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+					}
+
+					Expect(db.LoadRoutinesFrom(fileSystem)).To(Succeed())
+				})
+
+				It("returns a command", func() {
+					stmt, err := db.Routine("cmd")
+					Expect(err).To(BeNil())
+					Expect(stmt).NotTo(BeNil())
+
+					query, params := stmt.NamedQuery()
+					Expect(query).To(Equal("SELECT * FROM categories"))
+					Expect(params).To(BeEmpty())
+				})
+			})
+
+			Context("when the statement does not exits", func() {
+				It("does not return a statement", func() {
+					_, err := db.Routine("down")
+					Expect(err).To(MatchError("query 'down' not found"))
+				})
+			})
+
+			Context("when the named statement does not exits", func() {
+				It("does not return a statement", func() {
+					_, err := db.NamedRoutine("down", oak.P{})
+					Expect(err).To(MatchError("query 'down' not found"))
+				})
+			})
 		})
 
 		Describe("Select", func() {

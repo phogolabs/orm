@@ -2,13 +2,16 @@ package oak
 
 import (
 	"context"
+	"io"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/phogolabs/prana/sqlexec"
 )
 
 // Gateway is connected to a database and can executes SQL queries against it.
 type Gateway struct {
-	db *sqlx.DB
+	db       *sqlx.DB
+	provider *sqlexec.Provider
 }
 
 // OpenURL creates a new gateway connecto to the provided URL.
@@ -28,7 +31,10 @@ func Open(driver, source string) (*Gateway, error) {
 		return nil, err
 	}
 
-	return &Gateway{db: db}, nil
+	return &Gateway{
+		provider: &sqlexec.Provider{DriverName: driver},
+		db:       db,
+	}, nil
 }
 
 // Close closes the connection to underlying database.
@@ -39,6 +45,30 @@ func (g *Gateway) Close() error {
 // DriverName returns the driverName passed to the Open function for this DB.
 func (g *Gateway) DriverName() string {
 	return g.db.DriverName()
+}
+
+// LoadRoutinesFromReader loads all script commands from a given directory. Note that all
+// scripts should have .sql extension.
+func (g *Gateway) LoadRoutinesFromReader(reader io.Reader) error {
+	_, err := g.provider.ReadFrom(reader)
+	return err
+}
+
+// LoadRoutinesFrom loads all script commands from a given directory. Note that all
+// scripts should have .sql extension.
+func (g *Gateway) LoadRoutinesFrom(fileSystem FileSystem) error {
+	return g.provider.ReadDir(fileSystem)
+}
+
+// Routine returns a SQL statement for given name and parameters.
+func (g *Gateway) Routine(name string, params ...sqlexec.Param) (Query, error) {
+	return g.provider.Query(name, params...)
+}
+
+// NamedRoutine returns a SQL statement for given name and map the parameters as
+// named.
+func (g *Gateway) NamedRoutine(name string, param sqlexec.Param) (Query, error) {
+	return g.provider.NamedQuery(name, param)
 }
 
 // Transaction starts a new transaction. It commits the transaction if
