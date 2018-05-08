@@ -174,7 +174,7 @@ rows, err := gateway.Query(oak.SQL("SELECT * FROM users WHERE id = ?", 5432))
 If you want to execute named queries, you should use the following code snippet:
 
 ```golang
-rows, err := gateway.Query(gateway.NamedSQL("SELECT * FROM users WHERE id = :id", oak.P{"id": 5432}))
+rows, err := gateway.Query(oak.NamedSQL("SELECT * FROM users WHERE id = :id", oak.P{"id": 5432}))
 ```
 
 ### Example
