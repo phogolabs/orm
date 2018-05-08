@@ -52,9 +52,9 @@ All [loukoum][loukoum-url] queries are complaint with `oak.Query` interface:
 ```golang
 // Query represents an SQL Query that can be executed by Gateway.
 type Query interface {
-	// Prepare prepares the query for execution. It returns the actual query and
+	// QueryNamed prepares the query for execution. It returns the actual query and
 	// a maps of its arguments.
-	Prepare() (string, map[string]interface{})
+	QueryNamed() (string, map[string]interface{})
 }
 ```
 
