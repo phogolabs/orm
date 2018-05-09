@@ -47,17 +47,17 @@ func (g *Gateway) DriverName() string {
 	return g.db.DriverName()
 }
 
+// LoadRoutinesFromFileSystem loads all script commands from a given directory. Note that all
+// scripts should have .sql extension and support the database driver.
+func (g *Gateway) LoadRoutinesFromFileSystem(fileSystem FileSystem) error {
+	return g.provider.ReadDir(fileSystem)
+}
+
 // LoadRoutinesFromReader loads all script commands from a given directory. Note that all
 // scripts should have .sql extension.
 func (g *Gateway) LoadRoutinesFromReader(reader io.Reader) error {
 	_, err := g.provider.ReadFrom(reader)
 	return err
-}
-
-// LoadRoutinesFrom loads all script commands from a given directory. Note that all
-// scripts should have .sql extension.
-func (g *Gateway) LoadRoutinesFrom(fileSystem FileSystem) error {
-	return g.provider.ReadDir(fileSystem)
 }
 
 // Routine returns a SQL statement for given name and parameters.

@@ -31,7 +31,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate users")
 	}
 
-	if err = gateway.LoadRoutinesFrom(parcello.DirAt("routine")); err != nil {
+	if err = gateway.LoadRoutinesFromFileSystem(parcello.DirAt("routine")); err != nil {
 		log.WithError(err).Fatal("Failed to load routine")
 	}
 

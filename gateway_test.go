@@ -135,7 +135,7 @@ var _ = Describe("Gateway", func() {
 						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
 					}
 
-					Expect(db.LoadRoutinesFrom(fileSystem)).To(Succeed())
+					Expect(db.LoadRoutinesFromFileSystem(fileSystem)).To(Succeed())
 				})
 
 				It("returns a command", func() {
