@@ -50,11 +50,16 @@ if err != nil {
 All [loukoum][loukoum-url] queries are complaint with `oak.Query` interface:
 
 ```golang
-// Query represents an SQL Query that can be executed by Gateway.
+// Query returns the underlying query
 type Query interface {
-	// QueryNamed prepares the query for execution. It returns the actual query and
-	// a maps of its arguments.
-	QueryNamed() (string, map[string]interface{})
+	// Query prepares the query
+	Query() (string, []Param)
+}
+
+// NamedQuery returns the underlying query
+type NamedQuery interface {
+	// Query prepares the query
+	NamedQuery() (string, map[string]Param)
 }
 ```
 
