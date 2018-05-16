@@ -24,6 +24,9 @@ $ go install github.com/phogolabs/oak/cmd/oak
 
 ## Introduction
 
+Note that OAK is in BETA. We may introduce breaking changes until we reach
+v1.0.
+
 Gateway API facilitates object relation mapping and query building by using
 [loukoum](loukoum-url) and [sqlx][sqlx-url].
 
