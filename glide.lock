@@ -1,5 +1,5 @@
 hash: 06c86f1e11cf7384ba352bef3dc9ba33774ce92f6ad16bab8ce465e9728157ff
-updated: 2018-05-09T02:40:51.858416+03:00
+updated: 2018-05-16T12:10:00.745781+03:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -43,18 +43,18 @@ imports:
 - name: github.com/Pallinder/go-randomdata
   version: b073033ef5a7c42a3f188393575a0850919777a6
 - name: github.com/phogolabs/parcello
-  version: 3b48cfcb61c1a98ac0512babf63de0c164be7698
+  version: 48e6cbb8c0d4488dd6a17deca3adf14330cfd381
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: f407d54df05929d214575da9eeaf7976b83b41af
+  version: 2d47c66310a0dd1474832a3b53fdab8ff1e0c8df
   subpackages:
   - sqlexec
   - sqlmigr
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/ulule/loukoum
-  version: bd40f33da45d04deb4c70872b7cfd39f2b4a0c0b
+  version: 5229f07995e29955dc266fa7ae48e3f34bdead77
   subpackages:
   - builder
   - format
@@ -64,11 +64,11 @@ imports:
   - token
   - types
 - name: golang.org/x/sys
-  version: 7db1c3b1a98089d0071c84f646ff5c96aad43682
+  version: 7c87d13f8e835d2fb3a70a2912c811ed0c1d241b
   subpackages:
   - unix
 - name: gopkg.in/go-playground/validator.v9
-  version: ee0bbdea519c2c66777c6bfc943838291734ba6c
+  version: f28cb45dc0f0f406ba2015cdb59a5203ad220bc2
 - name: gopkg.in/volatiletech/null.v6
   version: 0bef4e07ae1b27a2a4efa23bbb3006c8c3d2e01d
   subpackages:
@@ -109,13 +109,13 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/net
-  version: 3a7846fea0afe8cc88deb31d8cfb1fa15a3615ef
+  version: 2491c5de3490fced2f6cff376127c667efeed857
   subpackages:
   - html
   - html/atom
   - html/charset
 - name: golang.org/x/text
-  version: 7922cc490dd5a7dbaa7fd5d6196b49db59ac042f
+  version: 5c1cf69b5978e5a34c5f9ba09a83e56acc4b7877
   subpackages:
   - encoding
   - encoding/charmap

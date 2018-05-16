@@ -18,7 +18,7 @@ func selectMany(ctx context.Context, preparer Preparer, dest Entity, query Query
 		}
 	}()
 
-	err = stmt.SelectContext(ctx, dest, args)
+	err = stmt.SelectContext(ctx, dest, args...)
 	return err
 }
 
@@ -34,7 +34,7 @@ func selectOne(ctx context.Context, preparer Preparer, dest Entity, query Query)
 		}
 	}()
 
-	err = stmt.GetContext(ctx, dest, args)
+	err = stmt.GetContext(ctx, dest, args...)
 	return err
 }
 
@@ -51,7 +51,7 @@ func queryRows(ctx context.Context, preparer Preparer, query Query) (*Rows, erro
 	}()
 
 	var rows *Rows
-	rows, err = stmt.QueryxContext(ctx, args)
+	rows, err = stmt.QueryxContext(ctx, args...)
 	return rows, err
 }
 
@@ -67,7 +67,7 @@ func queryRow(ctx context.Context, preparer Preparer, query Query) (*Row, error)
 		}
 	}()
 
-	return stmt.QueryRowxContext(ctx, args), nil
+	return stmt.QueryRowxContext(ctx, args...), nil
 }
 
 func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
@@ -83,14 +83,14 @@ func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
 	}()
 
 	var result Result
-	result, err = stmt.ExecContext(ctx, args)
+	result, err = stmt.ExecContext(ctx, args...)
 	return result, err
 }
 
-func prepareQuery(preparer Preparer, query Query) (*sqlx.NamedStmt, map[string]interface{}, error) {
-	body, args := query.NamedQuery()
+func prepareQuery(preparer Preparer, query Query) (*sqlx.Stmt, []interface{}, error) {
+	body, args := query.Query()
 
-	stmt, err := preparer.PrepareNamed(body)
+	stmt, err := preparer.Preparex(body)
 	if err != nil {
 		return nil, nil, err
 	}

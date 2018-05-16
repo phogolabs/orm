@@ -61,14 +61,13 @@ func (g *Gateway) LoadRoutinesFromReader(reader io.Reader) error {
 }
 
 // Routine returns a SQL statement for given name and parameters.
-func (g *Gateway) Routine(name string, params ...sqlexec.Param) (Query, error) {
-	return g.provider.Query(name, params...)
-}
+func (g *Gateway) Routine(name string, params ...Param) (Query, error) {
+	query, err := g.provider.Query(name)
+	if err != nil {
+		return nil, err
+	}
 
-// NamedRoutine returns a SQL statement for given name and map the parameters as
-// named.
-func (g *Gateway) NamedRoutine(name string, param sqlexec.Param) (Query, error) {
-	return g.provider.NamedQuery(name, param)
+	return SQL(query, params...), nil
 }
 
 // Transaction starts a new transaction. It commits the transaction if
