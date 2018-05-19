@@ -6,7 +6,7 @@
 [![Coverage][codecov-img]][codecov-url]
 [![Go Report Card][report-img]][report-url]
 
-*Golang Database Manager*
+*Golang Query Executor and Database Connector*
 
 [![OAK][oak-img]][oak-url]
 
