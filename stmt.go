@@ -2,15 +2,16 @@ package oak
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/reflectx"
 )
 
 var (
-	_ Query      = &Stmt{}
-	_ NamedQuery = &NamedStmt{}
+	_ NamedQuery = &Stmt{}
 )
 
 // Stmt represents a single command from SQL sqlexec.
@@ -20,35 +21,25 @@ type Stmt struct {
 }
 
 // SQL create a new command from raw query
-func SQL(query string, params ...Param) Query {
+func SQL(query string, params ...Param) NamedQuery {
 	return &Stmt{
 		query:  query,
 		params: params,
 	}
 }
 
-// Query prepares prepares the command for execution.
-func (cmd *Stmt) Query() (string, []Param) {
-	return cmd.query, cmd.params
+// NamedQuery prepares prepares the command for execution.
+func (cmd *Stmt) NamedQuery() (string, map[string]Param) {
+	return cmd.prepareQuery(), cmd.prepareParams()
 }
 
-// NamedStmt is command that can use named parameters
-type NamedStmt struct {
-	query  string
-	params []Param
+func (cmd *Stmt) prepareQuery() string {
+	return sqlx.Rebind(sqlx.NAMED, cmd.query)
 }
 
-// NamedSQL create a new named command from raw query
-func NamedSQL(query string, params ...Param) NamedQuery {
-	return &NamedStmt{
-		query:  query,
-		params: params,
-	}
-}
-
-// NamedQuery prepares the command for execution.
-func (cmd *NamedStmt) NamedQuery() (string, map[string]interface{}) {
+func (cmd *Stmt) prepareParams() map[string]Param {
 	params := make(map[string]interface{})
+	index := 1
 
 	for _, param := range cmd.params {
 		switch arg := param.(type) {
@@ -59,24 +50,39 @@ func (cmd *NamedStmt) NamedQuery() (string, map[string]interface{}) {
 				params[key] = value
 			}
 		default:
-			for key, value := range cmd.bindArgs(arg) {
+			for key, value := range cmd.bind(arg) {
+				if key == "?" {
+					key = fmt.Sprintf("arg%d", index)
+					index++
+				}
 				params[key] = value
 			}
 		}
 	}
 
-	return cmd.query, params
+	return params
 }
 
-func (cmd *NamedStmt) bindArgs(param Param) map[string]interface{} {
+func (cmd *Stmt) bind(param Param) map[string]interface{} {
+	value := reflect.ValueOf(param)
+
+	for value = reflect.ValueOf(param); value.Kind() == reflect.Ptr; {
+		value = value.Elem()
+	}
+
+	switch {
+	case value.Kind() == reflect.Struct:
+		return cmd.reflect(value)
+	default:
+		return map[string]interface{}{
+			"?": reflect.ValueOf(param).Interface(),
+		}
+	}
+}
+
+func (cmd *Stmt) reflect(v reflect.Value) map[string]interface{} {
 	params := make(map[string]interface{})
 	mapper := reflectx.NewMapper("db")
-
-	v := reflect.ValueOf(param)
-
-	for v = reflect.ValueOf(param); v.Kind() == reflect.Ptr; {
-		v = v.Elem()
-	}
 
 	for key, value := range mapper.FieldMap(v) {
 		key = strings.ToLower(key)

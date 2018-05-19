@@ -47,21 +47,20 @@ func (g *Gateway) DriverName() string {
 	return g.db.DriverName()
 }
 
-// LoadRoutinesFromFileSystem loads all script commands from a given directory. Note that all
+// ReadDir loads all script commands from a given directory. Note that all
 // scripts should have .sql extension and support the database driver.
-func (g *Gateway) LoadRoutinesFromFileSystem(fileSystem FileSystem) error {
+func (g *Gateway) ReadDir(fileSystem FileSystem) error {
 	return g.provider.ReadDir(fileSystem)
 }
 
-// LoadRoutinesFromReader loads all script commands from a given directory. Note that all
+// ReadFrom loads all script commands from a given directory. Note that all
 // scripts should have .sql extension.
-func (g *Gateway) LoadRoutinesFromReader(reader io.Reader) error {
-	_, err := g.provider.ReadFrom(reader)
-	return err
+func (g *Gateway) ReadFrom(reader io.Reader) (int64, error) {
+	return g.provider.ReadFrom(reader)
 }
 
 // Routine returns a SQL statement for given name and parameters.
-func (g *Gateway) Routine(name string, params ...Param) (Query, error) {
+func (g *Gateway) Routine(name string, params ...Param) (NamedQuery, error) {
 	query, err := g.provider.Query(name)
 	if err != nil {
 		return nil, err
@@ -96,53 +95,53 @@ func (g *Gateway) Begin() (*Tx, error) {
 }
 
 // Select executes a given query and maps the result to the provided slice of entities.
-func (g *Gateway) Select(dest Entity, query Query) error {
+func (g *Gateway) Select(dest Entity, query NamedQuery) error {
 	return selectMany(context.Background(), g.db, dest, query)
 }
 
 // SelectContext executes a given query and maps the result to the provided slice of entities.
-func (g *Gateway) SelectContext(ctx context.Context, dest Entity, query Query) error {
+func (g *Gateway) SelectContext(ctx context.Context, dest Entity, query NamedQuery) error {
 	return selectMany(ctx, g.db, dest, query)
 }
 
 // SelectOne executes a given query and maps a single result to the provided entity.
-func (g *Gateway) SelectOne(dest Entity, query Query) error {
+func (g *Gateway) SelectOne(dest Entity, query NamedQuery) error {
 	return selectOne(context.Background(), g.db, dest, query)
 }
 
 // SelectOneContext executes a given query and maps a single result to the provided entity.
-func (g *Gateway) SelectOneContext(ctx context.Context, dest Entity, query Query) error {
+func (g *Gateway) SelectOneContext(ctx context.Context, dest Entity, query NamedQuery) error {
 	return selectOne(ctx, g.db, dest, query)
 }
 
 // Query executes a given query and returns an instance of rows cursor.
-func (g *Gateway) Query(query Query) (*Rows, error) {
+func (g *Gateway) Query(query NamedQuery) (*Rows, error) {
 	return queryRows(context.Background(), g.db, query)
 }
 
 // QueryContext executes a given query and returns an instance of rows cursor.
-func (g *Gateway) QueryContext(ctx context.Context, query Query) (*Rows, error) {
+func (g *Gateway) QueryContext(ctx context.Context, query NamedQuery) (*Rows, error) {
 	return queryRows(ctx, g.db, query)
 }
 
 // QueryRow executes a given query and returns an instance of row.
-func (g *Gateway) QueryRow(query Query) (*Row, error) {
+func (g *Gateway) QueryRow(query NamedQuery) (*Row, error) {
 	return queryRow(context.Background(), g.db, query)
 }
 
 // QueryRowContext executes a given query and returns an instance of row.
-func (g *Gateway) QueryRowContext(ctx context.Context, query Query) (*Row, error) {
+func (g *Gateway) QueryRowContext(ctx context.Context, query NamedQuery) (*Row, error) {
 	return queryRow(ctx, g.db, query)
 }
 
 // Exec executes a given query. It returns a result that provides information
 // about the affected rows.
-func (g *Gateway) Exec(query Query) (Result, error) {
+func (g *Gateway) Exec(query NamedQuery) (Result, error) {
 	return exec(context.Background(), g.db, query)
 }
 
 // ExecContext executes a given query. It returns a result that provides information
 // about the affected rows.
-func (g *Gateway) ExecContext(ctx context.Context, query Query) (Result, error) {
+func (g *Gateway) ExecContext(ctx context.Context, query NamedQuery) (Result, error) {
 	return exec(ctx, g.db, query)
 }

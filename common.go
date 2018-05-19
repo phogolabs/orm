@@ -53,21 +53,13 @@ type P = map[string]Param
 type Preparer interface {
 	// Rebind rebinds the query
 	Rebind(query string) string
-	// Preparex returns a prepared statement
-	Preparex(query string) (*sqlx.Stmt, error)
 	// PrepareNamed returns a prepared named statement
 	PrepareNamed(query string) (*sqlx.NamedStmt, error)
 }
 
-// Query returns the underlying query
-type Query interface {
-	// Query prepares the query
-	Query() (string, []Param)
-}
-
 // NamedQuery returns the underlying query
 type NamedQuery interface {
-	// Query prepares the query
+	// NamedQuery prepares the query
 	NamedQuery() (string, map[string]Param)
 }
 

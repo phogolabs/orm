@@ -23,7 +23,7 @@ func main() {
 	}
 	defer gateway.Close()
 
-	if err = oak.Migrate(gateway, parcello.DirAt("migration")); err != nil {
+	if err = oak.Migrate(gateway, parcello.ManagerAt("migration")); err != nil {
 		log.WithError(err).Fatal("Failed to setup OAK")
 	}
 
@@ -31,7 +31,7 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate users")
 	}
 
-	if err = gateway.LoadRoutinesFromFileSystem(parcello.DirAt("routine")); err != nil {
+	if err = gateway.ReadDir(parcello.ManagerAt("routine")); err != nil {
 		log.WithError(err).Fatal("Failed to load routine")
 	}
 

@@ -162,7 +162,7 @@ func ExampleGateway_Routine() {
 		}
 	}()
 
-	err = gateway.LoadRoutinesFromFileSystem(parcello.Dir("./database/command"))
+	err = gateway.ReadDir(parcello.Dir("./database/command"))
 	if err != nil {
 		fmt.Println(err)
 		return

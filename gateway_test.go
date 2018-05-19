@@ -90,7 +90,8 @@ var _ = Describe("Gateway", func() {
 				buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
 				fmt.Fprintln(buffer)
 				fmt.Fprintln(buffer, "SELECT * FROM users")
-				Expect(db.LoadRoutinesFromReader(buffer)).To(Succeed())
+				_, err := db.ReadFrom(buffer)
+				Expect(err).To(Succeed())
 			})
 
 			It("returns a command", func() {
@@ -98,7 +99,7 @@ var _ = Describe("Gateway", func() {
 				Expect(stmt).NotTo(BeNil())
 				Expect(err).To(BeNil())
 
-				query, params := stmt.Query()
+				query, params := stmt.NamedQuery()
 				Expect(query).To(Equal("SELECT * FROM users"))
 				Expect(params).To(BeEmpty())
 			})
@@ -124,7 +125,7 @@ var _ = Describe("Gateway", func() {
 						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
 					}
 
-					Expect(db.LoadRoutinesFromFileSystem(fileSystem)).To(Succeed())
+					Expect(db.ReadDir(fileSystem)).To(Succeed())
 				})
 
 				It("returns a command", func() {
@@ -132,7 +133,7 @@ var _ = Describe("Gateway", func() {
 					Expect(err).To(BeNil())
 					Expect(stmt).NotTo(BeNil())
 
-					query, params := stmt.Query()
+					query, params := stmt.NamedQuery()
 					Expect(query).To(Equal("SELECT * FROM categories"))
 					Expect(params).To(BeEmpty())
 				})

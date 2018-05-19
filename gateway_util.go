@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func selectMany(ctx context.Context, preparer Preparer, dest Entity, query Query) error {
+func selectMany(ctx context.Context, preparer Preparer, dest Entity, query NamedQuery) error {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return err
@@ -18,11 +18,11 @@ func selectMany(ctx context.Context, preparer Preparer, dest Entity, query Query
 		}
 	}()
 
-	err = stmt.SelectContext(ctx, dest, args...)
+	err = stmt.SelectContext(ctx, dest, args)
 	return err
 }
 
-func selectOne(ctx context.Context, preparer Preparer, dest Entity, query Query) error {
+func selectOne(ctx context.Context, preparer Preparer, dest Entity, query NamedQuery) error {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return err
@@ -34,11 +34,11 @@ func selectOne(ctx context.Context, preparer Preparer, dest Entity, query Query)
 		}
 	}()
 
-	err = stmt.GetContext(ctx, dest, args...)
+	err = stmt.GetContext(ctx, dest, args)
 	return err
 }
 
-func queryRows(ctx context.Context, preparer Preparer, query Query) (*Rows, error) {
+func queryRows(ctx context.Context, preparer Preparer, query NamedQuery) (*Rows, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -51,11 +51,11 @@ func queryRows(ctx context.Context, preparer Preparer, query Query) (*Rows, erro
 	}()
 
 	var rows *Rows
-	rows, err = stmt.QueryxContext(ctx, args...)
+	rows, err = stmt.QueryxContext(ctx, args)
 	return rows, err
 }
 
-func queryRow(ctx context.Context, preparer Preparer, query Query) (*Row, error) {
+func queryRow(ctx context.Context, preparer Preparer, query NamedQuery) (*Row, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -67,10 +67,10 @@ func queryRow(ctx context.Context, preparer Preparer, query Query) (*Row, error)
 		}
 	}()
 
-	return stmt.QueryRowxContext(ctx, args...), nil
+	return stmt.QueryRowxContext(ctx, args), nil
 }
 
-func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
+func exec(ctx context.Context, preparer Preparer, query NamedQuery) (Result, error) {
 	stmt, args, err := prepareQuery(preparer, query)
 	if err != nil {
 		return nil, err
@@ -83,15 +83,14 @@ func exec(ctx context.Context, preparer Preparer, query Query) (Result, error) {
 	}()
 
 	var result Result
-	result, err = stmt.ExecContext(ctx, args...)
+	result, err = stmt.ExecContext(ctx, args)
 	return result, err
 }
 
-func prepareQuery(preparer Preparer, query Query) (*sqlx.Stmt, []interface{}, error) {
-	body, args := query.Query()
-	body = preparer.Rebind(body)
+func prepareQuery(preparer Preparer, query NamedQuery) (*sqlx.NamedStmt, map[string]Param, error) {
+	body, args := query.NamedQuery()
 
-	stmt, err := preparer.Preparex(body)
+	stmt, err := preparer.PrepareNamed(body)
 	if err != nil {
 		return nil, nil, err
 	}

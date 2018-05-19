@@ -1,5 +1,5 @@
 hash: 06c86f1e11cf7384ba352bef3dc9ba33774ce92f6ad16bab8ce465e9728157ff
-updated: 2018-05-18T16:41:33.027229+03:00
+updated: 2018-05-19T15:07:43.553706+03:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -47,7 +47,7 @@ imports:
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: 96ff16c80301465f4580ee9b142457935ebae738
+  version: 2c7d81aea494a2f2c9e5b40e6ee96a6b74efdd1d
   subpackages:
   - sqlexec
   - sqlmigr
