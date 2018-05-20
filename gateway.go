@@ -59,14 +59,17 @@ func (g *Gateway) ReadFrom(reader io.Reader) (int64, error) {
 	return g.provider.ReadFrom(reader)
 }
 
-// Routine returns a SQL statement for given name and parameters.
-func (g *Gateway) Routine(name string, params ...Param) (NamedQuery, error) {
-	query, err := g.provider.Query(name)
+// Begin begins a transaction and returns an *Tx
+func (g *Gateway) Begin() (*Tx, error) {
+	tx, err := g.db.Beginx()
 	if err != nil {
 		return nil, err
 	}
 
-	return SQL(query, params...), nil
+	return &Tx{
+		tx:       tx,
+		provider: g.provider,
+	}, nil
 }
 
 // Transaction starts a new transaction. It commits the transaction if
@@ -84,64 +87,54 @@ func (g *Gateway) Transaction(fn TxFunc) error {
 	return tx.Commit()
 }
 
-// Begin begins a transaction and returns an *Tx
-func (g *Gateway) Begin() (*Tx, error) {
-	tx, err := g.db.Beginx()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Tx{tx: tx}, nil
-}
-
 // Select executes a given query and maps the result to the provided slice of entities.
 func (g *Gateway) Select(dest Entity, query NamedQuery) error {
-	return selectMany(context.Background(), g.db, dest, query)
+	return namedSelectMany(context.Background(), g.db, g.provider, dest, query)
 }
 
 // SelectContext executes a given query and maps the result to the provided slice of entities.
 func (g *Gateway) SelectContext(ctx context.Context, dest Entity, query NamedQuery) error {
-	return selectMany(ctx, g.db, dest, query)
+	return namedSelectMany(ctx, g.db, g.provider, dest, query)
 }
 
 // SelectOne executes a given query and maps a single result to the provided entity.
 func (g *Gateway) SelectOne(dest Entity, query NamedQuery) error {
-	return selectOne(context.Background(), g.db, dest, query)
+	return namedSelectOne(context.Background(), g.db, g.provider, dest, query)
 }
 
 // SelectOneContext executes a given query and maps a single result to the provided entity.
 func (g *Gateway) SelectOneContext(ctx context.Context, dest Entity, query NamedQuery) error {
-	return selectOne(ctx, g.db, dest, query)
+	return namedSelectOne(ctx, g.db, g.provider, dest, query)
 }
 
 // Query executes a given query and returns an instance of rows cursor.
 func (g *Gateway) Query(query NamedQuery) (*Rows, error) {
-	return queryRows(context.Background(), g.db, query)
+	return namedQueryRows(context.Background(), g.db, g.provider, query)
 }
 
 // QueryContext executes a given query and returns an instance of rows cursor.
 func (g *Gateway) QueryContext(ctx context.Context, query NamedQuery) (*Rows, error) {
-	return queryRows(ctx, g.db, query)
+	return namedQueryRows(ctx, g.db, g.provider, query)
 }
 
 // QueryRow executes a given query and returns an instance of row.
 func (g *Gateway) QueryRow(query NamedQuery) (*Row, error) {
-	return queryRow(context.Background(), g.db, query)
+	return namedQueryRow(context.Background(), g.db, g.provider, query)
 }
 
 // QueryRowContext executes a given query and returns an instance of row.
 func (g *Gateway) QueryRowContext(ctx context.Context, query NamedQuery) (*Row, error) {
-	return queryRow(ctx, g.db, query)
+	return namedQueryRow(ctx, g.db, g.provider, query)
 }
 
 // Exec executes a given query. It returns a result that provides information
 // about the affected rows.
 func (g *Gateway) Exec(query NamedQuery) (Result, error) {
-	return exec(context.Background(), g.db, query)
+	return namedExec(context.Background(), g.db, g.provider, query)
 }
 
 // ExecContext executes a given query. It returns a result that provides information
 // about the affected rows.
 func (g *Gateway) ExecContext(ctx context.Context, query NamedQuery) (Result, error) {
-	return exec(ctx, g.db, query)
+	return namedExec(ctx, g.db, g.provider, query)
 }

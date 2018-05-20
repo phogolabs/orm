@@ -16,8 +16,9 @@ var (
 
 // Stmt represents a single command from SQL sqlexec.
 type Stmt struct {
-	query  string
-	params []Param
+	routine string
+	query   string
+	params  []Param
 }
 
 // SQL create a new command from raw query
@@ -25,6 +26,14 @@ func SQL(query string, params ...Param) NamedQuery {
 	return &Stmt{
 		query:  query,
 		params: params,
+	}
+}
+
+// Routine create a new routine for given name
+func Routine(routine string, params ...Param) NamedQuery {
+	return &Stmt{
+		routine: routine,
+		params:  params,
 	}
 }
 

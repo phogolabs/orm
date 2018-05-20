@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/phogolabs/prana/sqlexec"
 )
 
-func selectMany(ctx context.Context, preparer Preparer, dest Entity, query NamedQuery) error {
-	stmt, args, err := prepareQuery(preparer, query)
+func namedSelectMany(ctx context.Context, preparer Preparer, provider *sqlexec.Provider, dest Entity, query NamedQuery) error {
+	stmt, args, err := prepareNamedQuery(preparer, provider, query)
 	if err != nil {
 		return err
 	}
@@ -22,8 +23,8 @@ func selectMany(ctx context.Context, preparer Preparer, dest Entity, query Named
 	return err
 }
 
-func selectOne(ctx context.Context, preparer Preparer, dest Entity, query NamedQuery) error {
-	stmt, args, err := prepareQuery(preparer, query)
+func namedSelectOne(ctx context.Context, preparer Preparer, provider *sqlexec.Provider, dest Entity, query NamedQuery) error {
+	stmt, args, err := prepareNamedQuery(preparer, provider, query)
 	if err != nil {
 		return err
 	}
@@ -38,8 +39,8 @@ func selectOne(ctx context.Context, preparer Preparer, dest Entity, query NamedQ
 	return err
 }
 
-func queryRows(ctx context.Context, preparer Preparer, query NamedQuery) (*Rows, error) {
-	stmt, args, err := prepareQuery(preparer, query)
+func namedQueryRows(ctx context.Context, preparer Preparer, provider *sqlexec.Provider, query NamedQuery) (*Rows, error) {
+	stmt, args, err := prepareNamedQuery(preparer, provider, query)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +56,8 @@ func queryRows(ctx context.Context, preparer Preparer, query NamedQuery) (*Rows,
 	return rows, err
 }
 
-func queryRow(ctx context.Context, preparer Preparer, query NamedQuery) (*Row, error) {
-	stmt, args, err := prepareQuery(preparer, query)
+func namedQueryRow(ctx context.Context, preparer Preparer, provider *sqlexec.Provider, query NamedQuery) (*Row, error) {
+	stmt, args, err := prepareNamedQuery(preparer, provider, query)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +71,8 @@ func queryRow(ctx context.Context, preparer Preparer, query NamedQuery) (*Row, e
 	return stmt.QueryRowxContext(ctx, args), nil
 }
 
-func exec(ctx context.Context, preparer Preparer, query NamedQuery) (Result, error) {
-	stmt, args, err := prepareQuery(preparer, query)
+func namedExec(ctx context.Context, preparer Preparer, provider *sqlexec.Provider, query NamedQuery) (Result, error) {
+	stmt, args, err := prepareNamedQuery(preparer, provider, query)
 	if err != nil {
 		return nil, err
 	}
@@ -87,13 +88,38 @@ func exec(ctx context.Context, preparer Preparer, query NamedQuery) (Result, err
 	return result, err
 }
 
-func prepareQuery(preparer Preparer, query NamedQuery) (*sqlx.NamedStmt, map[string]Param, error) {
-	body, args := query.NamedQuery()
+func prepareNamedQuery(preparer Preparer, provider *sqlexec.Provider, query NamedQuery) (*sqlx.NamedStmt, map[string]Param, error) {
+	var err error
 
-	stmt, err := preparer.PrepareNamed(body)
+	query, err = prepareRoutine(provider, query)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return stmt, args, nil
+	body, args := query.NamedQuery()
+
+	namedStmt, err := preparer.PrepareNamed(body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return namedStmt, args, nil
+}
+
+func prepareRoutine(provider *sqlexec.Provider, query NamedQuery) (NamedQuery, error) {
+	if stmt, ok := query.(*Stmt); ok && stmt.routine != "" {
+		statement, err := provider.Query(stmt.routine)
+
+		if err != nil {
+			return nil, err
+		}
+
+		preparedStmt := *stmt
+		preparedStmt.routine = ""
+		preparedStmt.query = statement
+
+		return &preparedStmt, nil
+	}
+
+	return query, nil
 }

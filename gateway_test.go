@@ -82,71 +82,6 @@ var _ = Describe("Gateway", func() {
 			Expect(db.Close()).To(Succeed())
 		})
 
-		Describe("Routine", func() {
-			var script string
-
-			BeforeEach(func() {
-				script = fmt.Sprintf("%v", time.Now().UnixNano())
-				buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
-				fmt.Fprintln(buffer)
-				fmt.Fprintln(buffer, "SELECT * FROM users")
-				_, err := db.ReadFrom(buffer)
-				Expect(err).To(Succeed())
-			})
-
-			It("returns a command", func() {
-				stmt, err := db.Routine(script)
-				Expect(stmt).NotTo(BeNil())
-				Expect(err).To(BeNil())
-
-				query, params := stmt.NamedQuery()
-				Expect(query).To(Equal("SELECT * FROM users"))
-				Expect(params).To(BeEmpty())
-			})
-
-			Context("when loading a whole directory", func() {
-				BeforeEach(func() {
-					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
-					fmt.Fprintln(buffer)
-					fmt.Fprintln(buffer, "SELECT * FROM categories")
-
-					content := buffer.Bytes()
-
-					node := &parcello.Node{
-						Name:    "script.sql",
-						Content: &content,
-						Mutex:   &sync.RWMutex{},
-					}
-
-					fileSystem := &fake.FileSystem{}
-					fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
-
-					fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-					}
-
-					Expect(db.ReadDir(fileSystem)).To(Succeed())
-				})
-
-				It("returns a command", func() {
-					stmt, err := db.Routine("cmd")
-					Expect(err).To(BeNil())
-					Expect(stmt).NotTo(BeNil())
-
-					query, params := stmt.NamedQuery()
-					Expect(query).To(Equal("SELECT * FROM categories"))
-					Expect(params).To(BeEmpty())
-				})
-			})
-
-			Context("when the statement does not exits", func() {
-				It("does not return a statement", func() {
-					_, err := db.Routine("down")
-					Expect(err).To(MatchError("query 'down' not found"))
-				})
-			})
-		})
-
 		Describe("Select", func() {
 			It("executes a query successfully", func() {
 				query := lk.Select("first_name", "last_name", "email").From("users")
@@ -557,6 +492,76 @@ var _ = Describe("Gateway", func() {
 					_, err := tx.Exec(query)
 					Expect(err).To(Succeed())
 					Expect(tx.Rollback()).To(Succeed())
+				})
+			})
+		})
+
+		Context("when a routine is executed", func() {
+			Context("when loading a singled file", func() {
+				var script string
+
+				BeforeEach(func() {
+					script = fmt.Sprintf("%v", time.Now().UnixNano())
+					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
+					fmt.Fprintln(buffer)
+					fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+					_, err := db.ReadFrom(buffer)
+					Expect(err).To(Succeed())
+				})
+
+				It("returns a command", func() {
+					stmt := oak.Routine(script)
+					query, params := stmt.NamedQuery()
+					Expect(query).To(BeEmpty())
+					Expect(params).To(BeEmpty())
+				})
+
+				It("executes the commands successfully", func() {
+					stmt := oak.Routine(script)
+
+					_, err := db.Exec(stmt)
+					Expect(err).NotTo(HaveOccurred())
+
+					query, params := stmt.NamedQuery()
+					Expect(query).To(BeEmpty())
+					Expect(params).To(BeEmpty())
+				})
+			})
+
+			Context("when loading a whole directory", func() {
+				BeforeEach(func() {
+					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
+					fmt.Fprintln(buffer)
+					fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+
+					content := buffer.Bytes()
+
+					node := &parcello.Node{
+						Name:    "script.sql",
+						Content: &content,
+						Mutex:   &sync.RWMutex{},
+					}
+
+					fileSystem := &fake.FileSystem{}
+					fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+
+					fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+					}
+
+					Expect(db.ReadDir(fileSystem)).To(Succeed())
+				})
+
+				It("returns a command", func() {
+					_, err := db.Exec(oak.Routine("cmd"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when the routine does not exits", func() {
+				It("does not return a statement", func() {
+					_, err := db.Exec(oak.Routine("down"))
+					Expect(err).To(MatchError("query 'down' not found"))
 				})
 			})
 		})
