@@ -38,7 +38,7 @@ func Routine(routine string, params ...Param) NamedQuery {
 }
 
 // NamedQuery prepares prepares the command for execution.
-func (cmd *Stmt) NamedQuery() (string, ParamMap) {
+func (cmd *Stmt) NamedQuery() (string, map[string]Param) {
 	return cmd.prepareQuery(), cmd.prepareParams()
 }
 
@@ -58,7 +58,7 @@ func (cmd *Stmt) prepareParams() map[string]Param {
 		switch arg := param.(type) {
 		case sql.NamedArg:
 			params[arg.Name] = arg.Value
-		case ParamMap:
+		case map[string]interface{}:
 			for key, value := range arg {
 				params[key] = value
 			}

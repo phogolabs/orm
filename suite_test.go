@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/phogolabs/oak"
 )
 
 func TestOAK(t *testing.T) {
@@ -21,8 +20,8 @@ type ObjM struct {
 	Id int
 }
 
-func (m *ObjM) ParamMap() oak.ParamMap {
-	param := make(oak.ParamMap)
+func (m *ObjM) ParamMap() map[string]interface{} {
+	param := make(map[string]interface{})
 	param["id"] = m.Id
 	param["name"] = "jack"
 	return param
