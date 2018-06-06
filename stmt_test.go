@@ -11,14 +11,22 @@ import (
 var _ = Describe("Stmt", func() {
 	Context("when the parameter is struct", func() {
 		It("return the query", func() {
-			type ObjP struct {
-				Id int `db:"id"`
-			}
 			stmt := oak.SQL("SELECT * FROM users WHERE id = :id", &ObjP{Id: 1})
 			query, params := stmt.NamedQuery()
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :id"))
 			Expect(params).To(HaveLen(1))
 			Expect(params).To(HaveKeyWithValue("id", 1))
+		})
+	})
+
+	Context("when the parameter is param mapper", func() {
+		It("return the query", func() {
+			stmt := oak.SQL("SELECT * FROM users WHERE id = :id", &ObjM{Id: 1})
+			query, params := stmt.NamedQuery()
+			Expect(query).To(Equal("SELECT * FROM users WHERE id = :id"))
+			Expect(params).To(HaveLen(2))
+			Expect(params).To(HaveKeyWithValue("id", 1))
+			Expect(params).To(HaveKeyWithValue("name", "jack"))
 		})
 	})
 

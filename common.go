@@ -45,9 +45,15 @@ var ParseURL = prana.ParseURL
 // Param is a command parameter for given query.
 type Param = interface{}
 
-// P is a shortcut to a map. It facilitates passing named params to a named
+// ParamMap is a shortcut to a map. It facilitates passing named params to a named
 // commands and queries
-type P = map[string]Param
+type ParamMap = map[string]Param
+
+// ParamMapper provides a map of parameters
+type ParamMapper interface {
+	// ParamMap returens the parameter map
+	ParamMap() ParamMap
+}
 
 // Preparer prepares query for execution
 type Preparer interface {
@@ -60,7 +66,7 @@ type Preparer interface {
 // NamedQuery returns the underlying query
 type NamedQuery interface {
 	// NamedQuery prepares the query
-	NamedQuery() (string, map[string]Param)
+	NamedQuery() (string, ParamMap)
 }
 
 // Migrate runs all pending migration
