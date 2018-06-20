@@ -1,5 +1,5 @@
 hash: 06c86f1e11cf7384ba352bef3dc9ba33774ce92f6ad16bab8ce465e9728157ff
-updated: 2018-05-19T15:07:43.553706+03:00
+updated: 2018-06-20T18:25:53.98296+03:00
 imports:
 - name: github.com/apex/log
   version: 0296d6eb16bb28f8a0c55668affcf4876dc269be
@@ -27,7 +27,7 @@ imports:
   - util/strutil
   - util/wordwrap
 - name: github.com/jmoiron/sqlx
-  version: 2aeb6a910c2b94f2d5eb53d9895d80e27264ec41
+  version: 0dae4fefe7c0e190f7b5a78dac28a1c82cc8d849
   subpackages:
   - reflectx
 - name: github.com/kardianos/osext
@@ -39,15 +39,15 @@ imports:
 - name: github.com/mattn/go-runewidth
   version: ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb
 - name: github.com/mattn/go-sqlite3
-  version: 6c771bb9887719704b210e87e934f08be014bdb1
+  version: 25ecb14adfc7543176f7d85291ec7dba82c6f7e4
 - name: github.com/Pallinder/go-randomdata
-  version: b073033ef5a7c42a3f188393575a0850919777a6
+  version: 15df0648130a623e418886f81b2aaecd0a00547b
 - name: github.com/phogolabs/parcello
-  version: 48e6cbb8c0d4488dd6a17deca3adf14330cfd381
+  version: bae01a3ceb4170daf3403d471ed6a30b5d0dcebc
   subpackages:
   - fake
 - name: github.com/phogolabs/prana
-  version: 2c7d81aea494a2f2c9e5b40e6ee96a6b74efdd1d
+  version: 824fb55fb1f7f1fa4ff1c0d56a06996618b5f464
   subpackages:
   - sqlexec
   - sqlmigr
@@ -64,7 +64,7 @@ imports:
   - token
   - types
 - name: golang.org/x/sys
-  version: 7c87d13f8e835d2fb3a70a2912c811ed0c1d241b
+  version: ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1
   subpackages:
   - unix
 - name: gopkg.in/go-playground/validator.v9
@@ -75,7 +75,7 @@ imports:
   - convert
 testImports:
 - name: github.com/onsi/ginkgo
-  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
+  version: 000d317071340972710dc1da9ae3c2c016a7a560
   subpackages:
   - config
   - internal/codelocation
@@ -95,7 +95,7 @@ testImports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: 003f63b7f4cff3fc95357005358af2de0f5fe152
+  version: 9be84105672ba4433a3b61f1b4d7f9ff8b022293
   subpackages:
   - format
   - internal/assertion
@@ -109,13 +109,13 @@ testImports:
   - matchers/support/goraph/util
   - types
 - name: golang.org/x/net
-  version: 2491c5de3490fced2f6cff376127c667efeed857
+  version: db08ff08e8622530d9ed3a0e8ac279f6d4c02196
   subpackages:
   - html
   - html/atom
   - html/charset
 - name: golang.org/x/text
-  version: 5c1cf69b5978e5a34c5f9ba09a83e56acc4b7877
+  version: 5cec4b58c438bd98288aeb248bab2c1840713d21
   subpackages:
   - encoding
   - encoding/charmap

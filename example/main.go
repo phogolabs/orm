@@ -35,13 +35,8 @@ func main() {
 		log.WithError(err).Fatal("Failed to load routine")
 	}
 
-	routine, err := gateway.Routine("select-all-users")
-	if err != nil {
-		log.WithError(err).Fatal("Failed to get routine")
-	}
-
 	users := []model.User{}
-	if err = gateway.Select(&users, routine); err != nil {
+	if err = gateway.Select(&users, oak.Routine("select-all-users")); err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
