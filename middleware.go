@@ -2,6 +2,7 @@ package oak
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -33,9 +34,12 @@ func GatewayHandler(gateway *Gateway) func(next http.Handler) http.Handler {
 }
 
 // GetGateway returns the in-context Gateway for a request.
-func GetGateway(r *http.Request) *Gateway {
-	entry, _ := r.Context().Value(GatewayCtxKey).(*Gateway)
-	return entry
+func GetGateway(r *http.Request) (*Gateway, error) {
+	entry, ok := r.Context().Value(GatewayCtxKey).(*Gateway)
+	if !ok {
+		return nil, fmt.Errorf("gateway not found")
+	}
+	return entry, nil
 }
 
 // WithGateway sets the in-context LogEntry for a request.

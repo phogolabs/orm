@@ -22,14 +22,26 @@ var _ = Describe("Middleware", func() {
 
 	It("sets the gateway successfully", func() {
 		r = oak.WithGateway(r, g)
-		Expect(oak.GetGateway(r)).To(Equal(g))
+		gw, err := oak.GetGateway(r)
+		Expect(err).To(BeNil())
+		Expect(gw).To(Equal(g))
+	})
+
+	Context("when the gateway is not presented", func() {
+		It("returns an error", func() {
+			gw, err := oak.GetGateway(r)
+			Expect(gw).To(BeNil())
+			Expect(err).To(MatchError("gateway not found"))
+		})
 	})
 
 	It("sets the middleware successfully", func() {
 		wr := httptest.NewRecorder()
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
-			Expect(oak.GetGateway(r)).To(Equal(g))
+			gw, err := oak.GetGateway(r)
+			Expect(err).To(BeNil())
+			Expect(gw).To(Equal(g))
 		})
 
 		router := oak.GatewayHandler(g)(h)
