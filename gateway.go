@@ -47,6 +47,11 @@ func (g *Gateway) DriverName() string {
 	return g.db.DriverName()
 }
 
+// Ping pins the underlying database
+func (g *Gateway) Ping() error {
+	return g.db.Ping()
+}
+
 // ReadDir loads all script commands from a given directory. Note that all
 // scripts should have .sql extension and support the database driver.
 func (g *Gateway) ReadDir(fileSystem FileSystem) error {
