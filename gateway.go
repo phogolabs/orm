@@ -86,7 +86,11 @@ func (g *Gateway) Transaction(fn TxFunc) error {
 	}
 
 	if fErr := fn(tx); fErr != nil {
-		return tx.Rollback()
+		if tErr := tx.Rollback(); tErr != nil {
+			return tErr
+		}
+
+		return fErr
 	}
 
 	return tx.Commit()
