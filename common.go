@@ -7,6 +7,7 @@
 package oak
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
@@ -38,6 +39,9 @@ type Result = sql.Result
 
 // TxFunc is a transaction function
 type TxFunc func(tx *Tx) error
+
+// TxContextFunc is a transaction function
+type TxContextFunc func(ctx context.Context, tx *Tx) error
 
 // ParseURL parses a URL and returns the database driver and connection string to the database
 var ParseURL = prana.ParseURL

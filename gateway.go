@@ -80,12 +80,21 @@ func (g *Gateway) Begin() (*Tx, error) {
 // Transaction starts a new transaction. It commits the transaction if
 // succeeds, otherwise rollbacks.
 func (g *Gateway) Transaction(fn TxFunc) error {
+	fnCtx := func(ctx context.Context, tx *Tx) error {
+		return fn(tx)
+	}
+	return g.TransactionContext(context.Background(), fnCtx)
+}
+
+// TransactionContext starts a new transaction. It commits the transaction if
+// succeeds, otherwise rollbacks.
+func (g *Gateway) TransactionContext(ctx context.Context, fn TxContextFunc) error {
 	tx, err := g.Begin()
 	if err != nil {
 		return err
 	}
 
-	if fErr := fn(tx); fErr != nil {
+	if fErr := fn(ctx, tx); fErr != nil {
 		if tErr := tx.Rollback(); tErr != nil {
 			return tErr
 		}

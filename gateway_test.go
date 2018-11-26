@@ -350,18 +350,10 @@ var _ = Describe("Gateway", func() {
 				Context("when the function returns an error", func() {
 					It("rollbacks the transaction", func() {
 						err := db.Transaction(func(tx *oak.Tx) error {
-							_, err := tx.Exec(oak.SQL("DELETE FROM users"))
-							Expect(err).NotTo(HaveOccurred())
 							return fmt.Errorf("Oh no!")
 						})
 
-						Expect(err).NotTo(HaveOccurred())
-
-						rows, err := db.Query(oak.SQL("SELECT * FROM users"))
-						Expect(err).To(BeNil())
-						Expect(rows).NotTo(BeNil())
-						Expect(rows.Next()).To(BeTrue())
-						Expect(rows.Close()).To(Succeed())
+						Expect(err).To(MatchError("Oh no!"))
 					})
 				})
 			})
