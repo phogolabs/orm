@@ -5,7 +5,9 @@ import (
 	"io"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/phogolabs/prana"
 	"github.com/phogolabs/prana/sqlexec"
+	"github.com/phogolabs/prana/sqlmigr"
 )
 
 // Gateway is connected to a database and can executes SQL queries against it.
@@ -14,9 +16,9 @@ type Gateway struct {
 	provider *sqlexec.Provider
 }
 
-// OpenURL creates a new gateway connecto to the provided URL.
-func OpenURL(url string) (*Gateway, error) {
-	driver, source, err := ParseURL(url)
+// Connect creates a new gateway connecto to the provided URL.
+func Connect(url string) (*Gateway, error) {
+	driver, source, err := prana.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +52,11 @@ func (g *Gateway) DriverName() string {
 // Ping pins the underlying database
 func (g *Gateway) Ping() error {
 	return g.db.Ping()
+}
+
+// Migrate runs all pending migration
+func (g *Gateway) Migrate(fileSystem FileSystem) error {
+	return sqlmigr.RunAll(g.db, fileSystem)
 }
 
 // ReadDir loads all script commands from a given directory. Note that all

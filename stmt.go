@@ -51,8 +51,8 @@ func (cmd *Stmt) prepareParams() map[string]Param {
 	index := 1
 
 	for _, param := range cmd.params {
-		if mapper, ok := param.(ParamMapper); ok {
-			param = mapper.ParamMap()
+		if mapper, ok := param.(Mapper); ok {
+			param = mapper.Map()
 		}
 
 		switch arg := param.(type) {

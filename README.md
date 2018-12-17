@@ -1,4 +1,4 @@
-# OAK
+# ORM
 
 [![Documentation][godoc-img]][godoc-url]
 ![License][license-img]
@@ -8,11 +8,11 @@
 
 *Golang Query Executor and Database Connector*
 
-[![OAK][orm-img]][orm-url]
+[![ORM][orm-img]][orm-url]
 
 ## Overview
 
-OAK is a package that facilitates execution of [loukoum][loukoum-url] queries
+ORM is a package that facilitates execution of [loukoum][loukoum-url] queries
 as well as migrations and scripts generate by [prana][prana-url].
 
 ## Installation
@@ -23,7 +23,7 @@ $ go get -u github.com/phogolabs/orm
 
 ## Introduction
 
-Note that OAK is in BETA. We may introduce breaking changes until we reach
+Note that ORM is in BETA. We may introduce breaking changes until we reach
 v1.0.
 
 Gateway API facilitates object relation mapping and query building by using
@@ -140,14 +140,14 @@ should load the migration directory by using [Parcello][parcello-url]. You can
 load it from embedded resource or from the local directory:
 
 ```golang
-if err := orm.Migrate(gateway, parcello.Dir("./database/migration")); err != nil {
+if err := gateway.Migrate(parcello.Dir("./database/migration")); err != nil {
 	return err
 }
 ```
 
 ### SQL Scripts and Routines with Prana
 
-OAK provides a way to work with embeddable SQL scripts. It can understand
+ORM provides a way to work with embeddable SQL scripts. It can understand
 [SQL Scripts](https://github.com/phogolabs/prana#sql-scripts-and-commands) from
 file and execute them as standard SQL queries. Let's assume that we have SQL
 query named `show-sqlite-master`.
@@ -155,20 +155,15 @@ query named `show-sqlite-master`.
 Let's first load the SQL script from file:
 
 ```golang
-if err = gateway.LoadRoutinesFromReader(file); err != nil {
-	log.WithError(err).Fatal("Failed to load script")
+if err = gateway.ReadFrom(file); err != nil {
+  log.WithError(err).Fatal("Failed to load script")
 }
 ```
 
 Then you can execute the desired script by just passing its name:
 
 ```golang
-routine, err := gateway.Routine("show-sqlite-master")
-if err != nil {
-  return err
-}
-
-_, err = gateway.Exec(routine)
+_, err = gateway.Exec(orm.Routine("show-sqlite-master"))
 ```
 
 Also you can Raw SQL Scripts from your code, you should follow this
@@ -176,12 +171,6 @@ example:
 
 ```golang
 rows, err := gateway.Query(orm.SQL("SELECT * FROM users WHERE id = ?", 5432))
-```
-
-If you want to execute named queries, you should use the following code snippet:
-
-```golang
-rows, err := gateway.NamedQuery(orm.NamedSQL("SELECT * FROM users WHERE id = :id", orm.P{"id": 5432}))
 ```
 
 ### Example

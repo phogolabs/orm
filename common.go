@@ -12,56 +12,40 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/parcello"
-	"github.com/phogolabs/prana"
-	"github.com/phogolabs/prana/sqlmigr"
 )
 
-// Dir implements FileSystem using the native file system restricted to a
-// specific directory tree.
-type Dir = parcello.Dir
+type (
+	// FileSystem provides with primitives to work with the underlying file system
+	FileSystem = parcello.FileSystem
 
-// FileSystem provides with primitives to work with the underlying file system
-type FileSystem = parcello.FileSystem
+	// Rows is a wrapper around sql.Rows which caches costly reflect operations
+	// during a looped StructScan
+	Rows = sqlx.Rows
 
-// Entity is a destination object for given select operation.
-type Entity = interface{}
+	// Row is a reimplementation of sql.Row in order to gain access to the underlying
+	// sql.Rows.Columns() data, necessary for StructScan.
+	Row = sqlx.Row
 
-// Rows is a wrapper around sql.Rows which caches costly reflect operations
-// during a looped StructScan
-type Rows = sqlx.Rows
+	// A Result summarizes an executed SQL command.
+	Result = sql.Result
 
-// Row is a reimplementation of sql.Row in order to gain access to the underlying
-// sql.Rows.Columns() data, necessary for StructScan.
-type Row = sqlx.Row
+	// TxFunc is a transaction function
+	TxFunc func(tx *Tx) error
 
-// A Result summarizes an executed SQL command.
-type Result = sql.Result
+	// TxContextFunc is a transaction function
+	TxContextFunc func(ctx context.Context, tx *Tx) error
 
-// TxFunc is a transaction function
-type TxFunc func(tx *Tx) error
+	// Entity is a destination object for given select operation.
+	Entity = interface{}
 
-// TxContextFunc is a transaction function
-type TxContextFunc func(ctx context.Context, tx *Tx) error
+	// Param is a command parameter for given query.
+	Param = interface{}
+)
 
-// ParseURL parses a URL and returns the database driver and connection string to the database
-var ParseURL = prana.ParseURL
-
-// Param is a command parameter for given query.
-type Param = interface{}
-
-// ParamMapper provides a map of parameters
-type ParamMapper interface {
-	// ParamMap returens the parameter map
-	ParamMap() map[string]Param
-}
-
-// ParamMap is a shortcut to a map. It facilitates passing named params to a named
-// commands and queries
-type ParamMap map[string]Param
-
-// ParamMap returens the parameter map
-func (m ParamMap) ParamMap() map[string]Param {
-	return m
+// Mapper provides a map of parameters
+type Mapper interface {
+	// Map returens the parameter map
+	Map() map[string]interface{}
 }
 
 // Preparer prepares query for execution
@@ -78,7 +62,11 @@ type NamedQuery interface {
 	NamedQuery() (string, map[string]Param)
 }
 
-// Migrate runs all pending migration
-func Migrate(gateway *Gateway, fileSystem FileSystem) error {
-	return sqlmigr.RunAll(gateway.db, fileSystem)
+// Map is a shortcut to a map. It facilitates passing named params to a named
+// commands and queries
+type Map map[string]interface{}
+
+// Map returens the parameter map
+func (m Map) Map() map[string]interface{} {
+	return m
 }

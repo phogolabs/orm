@@ -19,6 +19,6 @@ var _ = Describe("Migrate", func() {
 		url := filepath.Join(dir, "orm.db")
 		db, err := orm.Open("sqlite3", url)
 		Expect(err).To(BeNil())
-		Expect(orm.Migrate(db, parcello.Dir(dir))).To(Succeed())
+		Expect(db.Migrate(parcello.Dir(dir))).To(Succeed())
 	})
 })

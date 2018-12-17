@@ -31,9 +31,9 @@ var _ = Describe("Gateway", func() {
 		})
 	})
 
-	Describe("OpenURL", func() {
+	Describe("Connect", func() {
 		It("opens the URL successfully", func() {
-			g, err := orm.OpenURL("sqlite3://tmp/orm.db")
+			g, err := orm.Connect("sqlite3://tmp/orm.db")
 			Expect(g).NotTo(BeNil())
 			Expect(err).To(BeNil())
 			Expect(g.Close()).To(Succeed())
@@ -41,7 +41,7 @@ var _ = Describe("Gateway", func() {
 
 		Context("when cannot open the database", func() {
 			It("returns an error", func() {
-				g, err := orm.OpenURL("://www")
+				g, err := orm.Connect("://www")
 				Expect(g).To(BeNil())
 				Expect(err).To(MatchError("parse ://www: missing protocol scheme"))
 			})
