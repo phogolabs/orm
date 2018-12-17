@@ -1,4 +1,4 @@
-package oak
+package orm
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type contextKey struct {
 }
 
 func (k *contextKey) String() string {
-	return "oak/middleware context value " + k.name
+	return "orm/middleware context value " + k.name
 }
 
 // GatewayHandler is a middleware that sets a given gateway in a HTTP context chain.

@@ -8,7 +8,7 @@
 
 *Golang Query Executor and Database Connector*
 
-[![OAK][oak-img]][oak-url]
+[![OAK][orm-img]][orm-url]
 
 ## Overview
 
@@ -18,8 +18,7 @@ as well as migrations and scripts generate by [prana][prana-url].
 ## Installation
 
 ```console
-$ go get -u github.com/phogolabs/oak
-$ go install github.com/phogolabs/oak/cmd/oak
+$ go get -u github.com/phogolabs/orm
 ```
 
 ## Introduction
@@ -35,14 +34,14 @@ Let's first import all required packages:
 ```golang
 import (
   lk "github.com/ulule/loukoum"
-  "github.com/phogolabs/oak"
+  "github.com/phogolabs/orm"
 )
 ```
 
 and then establish the connection:
 
 ```golang
-gateway, err := oak.Open("sqlite3", "example.db")
+gateway, err := orm.Open("sqlite3", "example.db")
 if err != nil {
  return err
 }
@@ -50,7 +49,7 @@ if err != nil {
 
 ### SQL Queries
 
-All [loukoum][loukoum-url] queries are complaint with `oak.Query` interface:
+All [loukoum][loukoum-url] queries are complaint with `orm.Query` interface:
 
 ```golang
 // Query returns the underlying query
@@ -123,7 +122,7 @@ if err := gateway.Select(&users, query); err != nil {
 ```golang
 query := lk.Select("id", "first_name", "last_name").
 	From("users").
-	Where(oak.Condition("first_name").Equal("John"))
+	Where(lk.Condition("first_name").Equal("John"))
 
 user := User{}
 
@@ -141,7 +140,7 @@ should load the migration directory by using [Parcello][parcello-url]. You can
 load it from embedded resource or from the local directory:
 
 ```golang
-if err := oak.Migrate(gateway, parcello.Dir("./database/migration")); err != nil {
+if err := orm.Migrate(gateway, parcello.Dir("./database/migration")); err != nil {
 	return err
 }
 ```
@@ -176,13 +175,13 @@ Also you can Raw SQL Scripts from your code, you should follow this
 example:
 
 ```golang
-rows, err := gateway.Query(oak.SQL("SELECT * FROM users WHERE id = ?", 5432))
+rows, err := gateway.Query(orm.SQL("SELECT * FROM users WHERE id = ?", 5432))
 ```
 
 If you want to execute named queries, you should use the following code snippet:
 
 ```golang
-rows, err := gateway.NamedQuery(oak.NamedSQL("SELECT * FROM users WHERE id = :id", oak.P{"id": 5432}))
+rows, err := gateway.NamedQuery(orm.NamedSQL("SELECT * FROM users WHERE id = :id", orm.P{"id": 5432}))
 ```
 
 ### Example
@@ -195,23 +194,23 @@ help documentation by executing:
 ## Contributing
 
 We are welcome to any contributions. Just fork the
-[project](https://github.com/phogolabs/oak).
+[project](https://github.com/phogolabs/orm).
 
 *logo made by [Free Pik][logo-author-url]*
 
-[report-img]: https://goreportcard.com/badge/github.com/phogolabs/oak
-[report-url]: https://goreportcard.com/report/github.com/phogolabs/oak
+[report-img]: https://goreportcard.com/badge/github.com/phogolabs/orm
+[report-url]: https://goreportcard.com/report/github.com/phogolabs/orm
 [logo-author-url]: https://www.freepik.com/free-photos-vectors/tree
 [logo-license]: http://creativecommons.org/licenses/by/3.0/
-[oak-url]: https://github.com/phogolabs/oak
-[oak-img]: doc/img/logo.png
-[codecov-url]: https://codecov.io/gh/phogolabs/oak
-[codecov-img]: https://codecov.io/gh/phogolabs/oak/branch/master/graph/badge.svg
-[travis-img]: https://travis-ci.org/phogolabs/oak.svg?branch=master
-[travis-url]: https://travis-ci.org/phogolabs/oak
-[oak-url]: https://github.com/phogolabs/oak
-[godoc-url]: https://godoc.org/github.com/phogolabs/oak
-[godoc-img]: https://godoc.org/github.com/phogolabs/oak?status.svg
+[orm-url]: https://github.com/phogolabs/orm
+[orm-img]: doc/img/logo.png
+[codecov-url]: https://codecov.io/gh/phogolabs/orm
+[codecov-img]: https://codecov.io/gh/phogolabs/orm/branch/master/graph/badge.svg
+[travis-img]: https://travis-ci.org/phogolabs/orm.svg?branch=master
+[travis-url]: https://travis-ci.org/phogolabs/orm
+[orm-url]: https://github.com/phogolabs/orm
+[godoc-url]: https://godoc.org/github.com/phogolabs/orm
+[godoc-img]: https://godoc.org/github.com/phogolabs/orm?status.svg
 [license-img]: https://img.shields.io/badge/license-MIT-blue.svg
 [software-license-url]: LICENSE
 [loukoum-url]: https://github.com/ulule/loukoum

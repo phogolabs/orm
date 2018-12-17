@@ -6,24 +6,24 @@ import (
 
 	randomdata "github.com/Pallinder/go-randomdata"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/phogolabs/oak/example/database"
+	_ "github.com/phogolabs/orm/example/database"
 	"github.com/phogolabs/parcello"
 	validator "gopkg.in/go-playground/validator.v9"
 
 	"github.com/apex/log"
-	"github.com/phogolabs/oak"
-	"github.com/phogolabs/oak/example/database/model"
+	"github.com/phogolabs/orm"
+	"github.com/phogolabs/orm/example/database/model"
 	lk "github.com/ulule/loukoum"
 )
 
 func main() {
-	gateway, err := oak.OpenURL("sqlite3://prana.db")
+	gateway, err := orm.OpenURL("sqlite3://prana.db")
 	if err != nil {
 		log.WithError(err).Fatal("Failed to open database connection")
 	}
 	defer gateway.Close()
 
-	if err = oak.Migrate(gateway, parcello.ManagerAt("migration")); err != nil {
+	if err = orm.Migrate(gateway, parcello.ManagerAt("migration")); err != nil {
 		log.WithError(err).Fatal("Failed to setup OAK")
 	}
 
@@ -36,14 +36,14 @@ func main() {
 	}
 
 	users := []model.User{}
-	if err = gateway.Select(&users, oak.Routine("select-all-users")); err != nil {
+	if err = gateway.Select(&users, orm.Routine("select-all-users")); err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
 	show(users)
 }
 
-func create(gateway *oak.Gateway) error {
+func create(gateway *orm.Gateway) error {
 	for i := 0; i < 10; i++ {
 		var lastName interface{}
 

@@ -1,4 +1,4 @@
-package oak_test
+package orm_test
 
 import (
 	"testing"
