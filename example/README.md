@@ -10,7 +10,7 @@ If you want, you can setup the database via Prana CLI:
 $ prana migration run
 ```
 Otherwise when you run the example, it will setup the database programmatically
-by using `oak.Migrate` function.
+by using `orm.Migrate` function.
 
 You can run the project by executing the `main.go`:
 

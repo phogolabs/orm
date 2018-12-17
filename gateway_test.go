@@ -1,4 +1,4 @@
-package oak_test
+package orm_test
 
 import (
 	"bytes"
@@ -13,18 +13,18 @@ import (
 	lk "github.com/ulule/loukoum"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/phogolabs/oak"
-	"github.com/phogolabs/oak/fake"
+	"github.com/phogolabs/orm"
+	"github.com/phogolabs/orm/fake"
 	"github.com/phogolabs/parcello"
 )
 
 var _ = Describe("Gateway", func() {
-	var db *oak.Gateway
+	var db *orm.Gateway
 
 	Describe("Open", func() {
 		Context("when cannot open the database", func() {
 			It("returns an error", func() {
-				g, err := oak.Open("sqlite4", "/tmp/oak.db")
+				g, err := orm.Open("sqlite4", "/tmp/orm.db")
 				Expect(g).To(BeNil())
 				Expect(err).To(MatchError(`sql: unknown driver "sqlite4" (forgotten import?)`))
 			})
@@ -33,7 +33,7 @@ var _ = Describe("Gateway", func() {
 
 	Describe("OpenURL", func() {
 		It("opens the URL successfully", func() {
-			g, err := oak.OpenURL("sqlite3://tmp/oak.db")
+			g, err := orm.OpenURL("sqlite3://tmp/orm.db")
 			Expect(g).NotTo(BeNil())
 			Expect(err).To(BeNil())
 			Expect(g.Close()).To(Succeed())
@@ -41,7 +41,7 @@ var _ = Describe("Gateway", func() {
 
 		Context("when cannot open the database", func() {
 			It("returns an error", func() {
-				g, err := oak.OpenURL("://www")
+				g, err := orm.OpenURL("://www")
 				Expect(g).To(BeNil())
 				Expect(err).To(MatchError("parse ://www: missing protocol scheme"))
 			})
@@ -57,7 +57,7 @@ var _ = Describe("Gateway", func() {
 
 		BeforeEach(func() {
 			var err error
-			db, err = oak.Open("sqlite3", "/tmp/oak.db")
+			db, err = orm.Open("sqlite3", "/tmp/orm.db")
 			Expect(err).To(BeNil())
 			Expect(db.DriverName()).To(Equal("sqlite3"))
 
@@ -69,15 +69,15 @@ var _ = Describe("Gateway", func() {
 			fmt.Fprintln(buffer, ");")
 			fmt.Fprintln(buffer)
 
-			_, err = db.Exec(oak.SQL(buffer.String()))
+			_, err = db.Exec(orm.SQL(buffer.String()))
 			Expect(err).To(BeNil())
 
-			_, err = db.Exec(oak.SQL("INSERT INTO users VALUES(?, ?, ?)", "John", "Doe", "john@example.com"))
+			_, err = db.Exec(orm.SQL("INSERT INTO users VALUES(?, ?, ?)", "John", "Doe", "john@example.com"))
 			Expect(err).To(Succeed())
 		})
 
 		AfterEach(func() {
-			_, err := db.Exec(oak.SQL("DROP TABLE users"))
+			_, err := db.Exec(orm.SQL("DROP TABLE users"))
 			Expect(err).To(BeNil())
 			Expect(db.Close()).To(Succeed())
 		})
@@ -119,7 +119,7 @@ var _ = Describe("Gateway", func() {
 
 			Context("when an embedded statement is used", func() {
 				It("executes a query successfully", func() {
-					query := oak.SQL("SELECT * FROM users WHERE first_name = ?", "John")
+					query := orm.SQL("SELECT * FROM users WHERE first_name = ?", "John")
 
 					persons := []Person{}
 					Expect(db.Select(&persons, query)).To(Succeed())
@@ -131,7 +131,7 @@ var _ = Describe("Gateway", func() {
 
 				Context("when the query does not exist", func() {
 					It("returns an error", func() {
-						query := oak.SQL("SELECT * FROM categories")
+						query := orm.SQL("SELECT * FROM categories")
 
 						persons := []Person{}
 						Expect(db.Select(&persons, query)).To(MatchError("no such table: categories"))
@@ -285,7 +285,7 @@ var _ = Describe("Gateway", func() {
 				_, err := db.Exec(query)
 				Expect(err).To(Succeed())
 
-				rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+				rows, err := db.Query(orm.SQL("SELECT * FROM users"))
 				Expect(err).To(BeNil())
 				Expect(rows).NotTo(BeNil())
 				Expect(rows.Next()).To(BeFalse())
@@ -299,7 +299,7 @@ var _ = Describe("Gateway", func() {
 					_, err := db.ExecContext(context.Background(), query)
 					Expect(err).To(Succeed())
 
-					rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
 					Expect(err).To(BeNil())
 					Expect(rows).NotTo(BeNil())
 					Expect(rows.Next()).To(BeFalse())
@@ -318,11 +318,11 @@ var _ = Describe("Gateway", func() {
 			Describe("Transaction", func() {
 				Context("when the db is closed", func() {
 					It("returns the error", func() {
-						ddb, err := oak.Open("sqlite3", "/tmp/oak.db")
+						ddb, err := orm.Open("sqlite3", "/tmp/orm.db")
 						Expect(err).To(BeNil())
 						Expect(ddb.Close()).To(Succeed())
 
-						terr := ddb.Transaction(func(tx *oak.Tx) error {
+						terr := ddb.Transaction(func(tx *orm.Tx) error {
 							return nil
 						})
 
@@ -331,8 +331,8 @@ var _ = Describe("Gateway", func() {
 				})
 
 				It("start the transaction successfully", func() {
-					err := db.Transaction(func(tx *oak.Tx) error {
-						_, err := tx.Exec(oak.SQL("DELETE FROM users"))
+					err := db.Transaction(func(tx *orm.Tx) error {
+						_, err := tx.Exec(orm.SQL("DELETE FROM users"))
 						Expect(err).NotTo(HaveOccurred())
 						return nil
 
@@ -340,7 +340,7 @@ var _ = Describe("Gateway", func() {
 
 					Expect(err).NotTo(HaveOccurred())
 
-					rows, err := db.Query(oak.SQL("SELECT * FROM users"))
+					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
 					Expect(err).To(BeNil())
 					Expect(rows).NotTo(BeNil())
 					Expect(rows.Next()).To(BeFalse())
@@ -349,7 +349,7 @@ var _ = Describe("Gateway", func() {
 
 				Context("when the function returns an error", func() {
 					It("rollbacks the transaction", func() {
-						err := db.Transaction(func(tx *oak.Tx) error {
+						err := db.Transaction(func(tx *orm.Tx) error {
 							return fmt.Errorf("Oh no!")
 						})
 
@@ -360,7 +360,7 @@ var _ = Describe("Gateway", func() {
 		})
 
 		Describe("Tx", func() {
-			var tx *oak.Tx
+			var tx *orm.Tx
 
 			BeforeEach(func() {
 				var err error
@@ -370,7 +370,7 @@ var _ = Describe("Gateway", func() {
 
 			Context("when the database is not available", func() {
 				It("cannot start a transaction", func() {
-					txDb, err := oak.Open("sqlite3", "/tmp/oak.db")
+					txDb, err := orm.Open("sqlite3", "/tmp/orm.db")
 					Expect(err).To(BeNil())
 					Expect(txDb.DriverName()).To(Equal("sqlite3"))
 					Expect(txDb.Close()).To(Succeed())
@@ -452,7 +452,7 @@ var _ = Describe("Gateway", func() {
 					_, err := tx.Exec(query)
 					Expect(err).To(Succeed())
 
-					rows, err := tx.Query(oak.SQL("SELECT * FROM users"))
+					rows, err := tx.Query(orm.SQL("SELECT * FROM users"))
 					Expect(err).To(BeNil())
 					Expect(rows).NotTo(BeNil())
 					Expect(rows.Next()).To(BeFalse())
@@ -467,7 +467,7 @@ var _ = Describe("Gateway", func() {
 						_, err := tx.ExecContext(context.Background(), query)
 						Expect(err).To(Succeed())
 
-						rows, err := tx.QueryContext(context.Background(), oak.SQL("SELECT * FROM users"))
+						rows, err := tx.QueryContext(context.Background(), orm.SQL("SELECT * FROM users"))
 						Expect(err).To(BeNil())
 						Expect(rows).NotTo(BeNil())
 						Expect(rows.Next()).To(BeFalse())
@@ -502,14 +502,14 @@ var _ = Describe("Gateway", func() {
 				})
 
 				It("returns a command", func() {
-					stmt := oak.Routine(script)
+					stmt := orm.Routine(script)
 					query, params := stmt.NamedQuery()
 					Expect(query).To(BeEmpty())
 					Expect(params).To(BeEmpty())
 				})
 
 				It("executes the commands successfully", func() {
-					stmt := oak.Routine(script)
+					stmt := orm.Routine(script)
 
 					_, err := db.Exec(stmt)
 					Expect(err).NotTo(HaveOccurred())
@@ -545,14 +545,14 @@ var _ = Describe("Gateway", func() {
 				})
 
 				It("returns a command", func() {
-					_, err := db.Exec(oak.Routine("cmd"))
+					_, err := db.Exec(orm.Routine("cmd"))
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
 
 			Context("when the routine does not exits", func() {
 				It("does not return a statement", func() {
-					_, err := db.Exec(oak.Routine("down"))
+					_, err := db.Exec(orm.Routine("down"))
 					Expect(err).To(MatchError("query 'down' not found"))
 				})
 			})
