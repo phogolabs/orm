@@ -17,13 +17,13 @@ import (
 )
 
 func main() {
-	gateway, err := orm.OpenURL("sqlite3://prana.db")
+	gateway, err := orm.Connect("sqlite3://prana.db")
 	if err != nil {
 		log.WithError(err).Fatal("Failed to open database connection")
 	}
 	defer gateway.Close()
 
-	if err = orm.Migrate(gateway, parcello.ManagerAt("migration")); err != nil {
+	if err = gateway.Migrate(parcello.ManagerAt("migration")); err != nil {
 		log.WithError(err).Fatal("Failed to setup OAK")
 	}
 

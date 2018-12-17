@@ -20,7 +20,7 @@ type ObjM struct {
 	Id int
 }
 
-func (m *ObjM) ParamMap() map[string]interface{} {
+func (m *ObjM) Map() map[string]interface{} {
 	param := make(map[string]interface{})
 	param["id"] = m.Id
 	param["name"] = "jack"
