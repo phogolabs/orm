@@ -54,6 +54,11 @@ func (g *Gateway) Ping() error {
 	return g.db.Ping()
 }
 
+// PingContext pins the underlying database
+func (g *Gateway) PingContext(ctx context.Context) error {
+	return g.db.PingContext(ctx)
+}
+
 // Migrate runs all pending migration
 func (g *Gateway) Migrate(fileSystem FileSystem) error {
 	return sqlmigr.RunAll(g.db, fileSystem)
