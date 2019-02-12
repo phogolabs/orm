@@ -10,6 +10,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/a8m/rql"
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/parcello"
 )
@@ -40,6 +41,9 @@ type (
 
 	// Param is a command parameter for given query.
 	Param = interface{}
+
+	// RQLParam is a prameter for RQL query
+	RQLParam = rql.Params
 )
 
 // Mapper provides a map of parameters
@@ -69,4 +73,18 @@ type Map map[string]interface{}
 // Map returens the parameter map
 func (m Map) Map() map[string]interface{} {
 	return m
+}
+
+// UnmarshalRQLParam parses an RQL parameter
+func UnmarshalRQLParam(model Entity, data []byte) (*RQLParam, error) {
+	parser, err := rql.NewParser(rql.Config{
+		Model:    model,
+		FieldSep: ".",
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return parser.Parse(data)
 }

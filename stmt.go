@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -26,6 +27,34 @@ func SQL(query string, params ...Param) NamedQuery {
 	return &Stmt{
 		query:  query,
 		params: params,
+	}
+}
+
+// RQL create a new command from raw query
+func RQL(table string, param *RQLParam) NamedQuery {
+	buffer := &bytes.Buffer{}
+
+	fmt.Fprintf(buffer, "SELECT * FROM %s", table)
+
+	if param.FilterExp != "" {
+		fmt.Fprintf(buffer, " WHERE %v", param.FilterExp)
+	}
+
+	if param.Sort != "" {
+		fmt.Fprintf(buffer, " ORDER BY %s", param.Sort)
+	}
+
+	if param.Limit > 0 {
+		fmt.Fprintf(buffer, " LIMIT %d", param.Limit)
+	}
+
+	if param.Offset > 0 {
+		fmt.Fprintf(buffer, " OFFSET %d", param.Offset)
+	}
+
+	return &Stmt{
+		query:  buffer.String(),
+		params: param.FilterArgs,
 	}
 }
 
