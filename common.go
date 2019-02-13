@@ -74,17 +74,3 @@ type Map map[string]interface{}
 func (m Map) Map() map[string]interface{} {
 	return m
 }
-
-// UnmarshalRQLParam parses an RQL parameter
-func UnmarshalRQLParam(model Entity, data []byte) (*RQLParam, error) {
-	parser, err := rql.NewParser(rql.Config{
-		Model:    model,
-		FieldSep: ".",
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return parser.Parse(data)
-}

@@ -2,6 +2,7 @@ package orm_test
 
 import (
 	"database/sql"
+	"reflect"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,79 +52,102 @@ var _ = Describe("Stmt", func() {
 	})
 
 	Context("when the RQL is used", func() {
-		var param *orm.RQLParam
+		var param orm.Map
+
+		type User struct {
+			Name string `rql:"filter,sort"`
+			Age  int    `rql:"filter,sort"`
+		}
+
+		prepare := func(stmt interface{}) {
+			v := reflect.ValueOf(stmt)
+			method := v.MethodByName("Prepare")
+
+			p := reflect.ValueOf(&User{})
+			values := method.Call([]reflect.Value{p})
+			Expect(values).To(HaveLen(1))
+			Expect(values[0].Interface()).NotTo(HaveOccurred())
+		}
 
 		BeforeEach(func() {
-			param = &orm.RQLParam{
-				Offset:     10,
-				Limit:      10,
-				Sort:       "age asc, name",
-				FilterExp:  "name = ? AND age >= ?",
-				FilterArgs: []interface{}{"John", 22},
+			param = orm.Map{
+				"offset": 10,
+				"limit":  10,
+				"filter": orm.Map{
+					"age": orm.Map{
+						"$gte": 22,
+					},
+				},
+				"sort": []interface{}{"+age", "-name"},
 			}
 		})
 
 		It("returns the query", func() {
 			stmt := orm.RQL("users", param)
+			prepare(stmt)
+
 			query, params := stmt.NamedQuery()
-			Expect(query).To(Equal("SELECT * FROM users WHERE name = :arg1 AND age >= :arg2 ORDER BY age asc, name LIMIT 10 OFFSET 10"))
-			Expect(params).To(HaveKeyWithValue("arg1", "John"))
-			Expect(params).To(HaveKeyWithValue("arg2", 22))
+			Expect(query).To(Equal("SELECT * FROM users WHERE age >= :arg1 ORDER BY age asc, name desc LIMIT 10 OFFSET 10"))
+			Expect(params).To(HaveKeyWithValue("arg1", 22))
 		})
 
 		Context("when the offset is not provided", func() {
 			BeforeEach(func() {
-				param.Offset = 0
+				param["offset"] = 0
 			})
 
 			It("returns the query", func() {
 				stmt := orm.RQL("users", param)
+				prepare(stmt)
+
 				query, params := stmt.NamedQuery()
-				Expect(query).To(Equal("SELECT * FROM users WHERE name = :arg1 AND age >= :arg2 ORDER BY age asc, name LIMIT 10"))
-				Expect(params).To(HaveKeyWithValue("arg1", "John"))
-				Expect(params).To(HaveKeyWithValue("arg2", 22))
+				Expect(query).To(Equal("SELECT * FROM users WHERE age >= :arg1 ORDER BY age asc, name desc LIMIT 10"))
+				Expect(params).To(HaveKeyWithValue("arg1", 22))
 			})
 		})
 
 		Context("when the limit is not provided", func() {
 			BeforeEach(func() {
-				param.Limit = 0
+				param["limit"] = 0
 			})
 
 			It("returns the query", func() {
 				stmt := orm.RQL("users", param)
+				prepare(stmt)
+
 				query, params := stmt.NamedQuery()
-				Expect(query).To(Equal("SELECT * FROM users WHERE name = :arg1 AND age >= :arg2 ORDER BY age asc, name OFFSET 10"))
-				Expect(params).To(HaveKeyWithValue("arg1", "John"))
-				Expect(params).To(HaveKeyWithValue("arg2", 22))
+				Expect(query).To(Equal("SELECT * FROM users WHERE age >= :arg1 ORDER BY age asc, name desc LIMIT 25 OFFSET 10"))
+				Expect(params).To(HaveKeyWithValue("arg1", 22))
 			})
 		})
 
 		Context("when the order is not provided", func() {
 			BeforeEach(func() {
-				param.Sort = ""
+				param["sort"] = []interface{}{}
 			})
 
 			It("returns the query", func() {
 				stmt := orm.RQL("users", param)
+				prepare(stmt)
+
 				query, params := stmt.NamedQuery()
-				Expect(query).To(Equal("SELECT * FROM users WHERE name = :arg1 AND age >= :arg2 LIMIT 10 OFFSET 10"))
-				Expect(params).To(HaveKeyWithValue("arg1", "John"))
-				Expect(params).To(HaveKeyWithValue("arg2", 22))
+				Expect(query).To(Equal("SELECT * FROM users WHERE age >= :arg1 LIMIT 10 OFFSET 10"))
+				Expect(params).To(HaveKeyWithValue("arg1", 22))
 			})
 		})
 
 		Context("when the filter is not provided", func() {
 			BeforeEach(func() {
-				param.FilterExp = ""
+				param["filter"] = nil
 			})
 
 			It("returns the query", func() {
 				stmt := orm.RQL("users", param)
+				prepare(stmt)
+
 				query, params := stmt.NamedQuery()
-				Expect(query).To(Equal("SELECT * FROM users ORDER BY age asc, name LIMIT 10 OFFSET 10"))
-				Expect(params).To(HaveKeyWithValue("arg1", "John"))
-				Expect(params).To(HaveKeyWithValue("arg2", 22))
+				Expect(query).To(Equal("SELECT * FROM users ORDER BY age asc, name desc LIMIT 10 OFFSET 10"))
+				Expect(params).To(HaveLen(0))
 			})
 		})
 	})

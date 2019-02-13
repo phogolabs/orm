@@ -3,83 +3,150 @@ package orm
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/a8m/rql"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/reflectx"
+	"github.com/phogolabs/prana/sqlexec"
 )
 
 var (
-	_ NamedQuery = &Stmt{}
+	_ NamedQuery = &stmt{}
+	_ NamedQuery = &routine{}
+	_ NamedQuery = &query{}
 )
 
-// Stmt represents a single command from SQL sqlexec.
-type Stmt struct {
-	routine string
-	query   string
-	params  []Param
+type stmt struct {
+	query  string
+	params []Param
 }
 
 // SQL create a new command from raw query
 func SQL(query string, params ...Param) NamedQuery {
-	return &Stmt{
+	return &stmt{
 		query:  query,
 		params: params,
 	}
 }
 
-// RQL create a new command from raw query
-func RQL(table string, param *RQLParam) NamedQuery {
-	buffer := &bytes.Buffer{}
+// NamedQuery prepares prepares the command for execution.
+func (cmd *stmt) NamedQuery() (string, map[string]Param) {
+	namedQuery := sqlx.Rebind(sqlx.NAMED, cmd.query)
+	namedParams := prepareParams(cmd.params)
+	return namedQuery, namedParams
+}
 
-	fmt.Fprintf(buffer, "SELECT * FROM %s", table)
-
-	if param.FilterExp != "" {
-		fmt.Fprintf(buffer, " WHERE %v", param.FilterExp)
-	}
-
-	if param.Sort != "" {
-		fmt.Fprintf(buffer, " ORDER BY %s", param.Sort)
-	}
-
-	if param.Limit > 0 {
-		fmt.Fprintf(buffer, " LIMIT %d", param.Limit)
-	}
-
-	if param.Offset > 0 {
-		fmt.Fprintf(buffer, " OFFSET %d", param.Offset)
-	}
-
-	return &Stmt{
-		query:  buffer.String(),
-		params: param.FilterArgs,
-	}
+type routine struct {
+	name   string
+	query  string
+	params []Param
 }
 
 // Routine create a new routine for given name
-func Routine(routine string, params ...Param) NamedQuery {
-	return &Stmt{
-		routine: routine,
-		params:  params,
+func Routine(name string, params ...Param) NamedQuery {
+	return &routine{
+		name:   name,
+		params: params,
 	}
 }
 
 // NamedQuery prepares prepares the command for execution.
-func (cmd *Stmt) NamedQuery() (string, map[string]Param) {
-	return cmd.prepareQuery(), cmd.prepareParams()
+func (cmd *routine) NamedQuery() (string, map[string]Param) {
+	namedQuery := sqlx.Rebind(sqlx.NAMED, cmd.query)
+	namedParams := prepareParams(cmd.params)
+	return namedQuery, namedParams
 }
 
-func (cmd *Stmt) prepareQuery() string {
-	return sqlx.Rebind(sqlx.NAMED, cmd.query)
+func (cmd *routine) Prepare(provider *sqlexec.Provider) error {
+	query, err := provider.Query(cmd.name)
+	if err != nil {
+		return err
+	}
+
+	cmd.query = query
+	return nil
 }
 
-func (cmd *Stmt) prepareParams() map[string]Param {
+type query struct {
+	table  string
+	syntax Mapper
+	param  *rql.Params
+}
+
+// RQL create a new command from raw query
+func RQL(table string, param Mapper) NamedQuery {
+	return &query{
+		table:  table,
+		syntax: param,
+	}
+}
+
+// NamedQuery prepares prepares the command for execution.
+func (cmd *query) NamedQuery() (string, map[string]Param) {
+	if cmd.param == nil {
+		return "", nil
+	}
+
+	namedQuery := sqlx.Rebind(sqlx.NAMED, cmd.build(cmd.param))
+	namedParams := prepareParams(cmd.param.FilterArgs)
+	return namedQuery, namedParams
+}
+
+func (cmd *query) Prepare(model interface{}) error {
+	parser, err := rql.NewParser(rql.Config{
+		Model:    model,
+		FieldSep: ".",
+	})
+
+	if err != nil {
+		return err
+	}
+
+	//TODO: we have to improve this somehow ???
+	body, err := json.Marshal(cmd.syntax)
+	if err != nil {
+		return err
+	}
+
+	cmd.param, err = parser.Parse(body)
+	return err
+}
+
+func (cmd *query) build(param *rql.Params) string {
+	buffer := &bytes.Buffer{}
+
+	fmt.Fprintf(buffer, "SELECT * FROM %s", cmd.table)
+
+	if param != nil {
+		if param.FilterExp != "" {
+			fmt.Fprintf(buffer, " WHERE %v", param.FilterExp)
+		}
+
+		if param.Sort != "" {
+			fmt.Fprintf(buffer, " ORDER BY %s", param.Sort)
+		}
+
+		if param.Limit > 0 {
+			fmt.Fprintf(buffer, " LIMIT %d", param.Limit)
+		}
+
+		if param.Offset > 0 {
+			fmt.Fprintf(buffer, " OFFSET %d", param.Offset)
+		}
+	}
+
+	return buffer.String()
+}
+
+func prepareParams(values []Param) map[string]Param {
 	params := make(map[string]interface{})
 	index := 1
 
-	for _, param := range cmd.params {
+	for _, param := range values {
 		if mapper, ok := param.(Mapper); ok {
 			param = mapper.Map()
 		}
@@ -92,7 +159,7 @@ func (cmd *Stmt) prepareParams() map[string]Param {
 				params[key] = value
 			}
 		default:
-			for key, value := range cmd.bind(arg) {
+			for key, value := range bindParam(arg) {
 				if key == "?" {
 					key = fmt.Sprintf("arg%d", index)
 					index++
@@ -105,7 +172,7 @@ func (cmd *Stmt) prepareParams() map[string]Param {
 	return params
 }
 
-func (cmd *Stmt) bind(param Param) map[string]interface{} {
+func bindParam(param Param) map[string]interface{} {
 	value := reflect.ValueOf(param)
 
 	for value = reflect.ValueOf(param); value.Kind() == reflect.Ptr; {
@@ -114,7 +181,7 @@ func (cmd *Stmt) bind(param Param) map[string]interface{} {
 
 	switch {
 	case value.Kind() == reflect.Struct:
-		return cmd.reflect(value)
+		return reflectMap(value)
 	default:
 		return map[string]interface{}{
 			"?": reflect.ValueOf(param).Interface(),
@@ -122,7 +189,7 @@ func (cmd *Stmt) bind(param Param) map[string]interface{} {
 	}
 }
 
-func (cmd *Stmt) reflect(v reflect.Value) map[string]interface{} {
+func reflectMap(v reflect.Value) map[string]interface{} {
 	params := make(map[string]interface{})
 	mapper := reflectx.NewMapper("db")
 

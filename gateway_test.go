@@ -501,22 +501,11 @@ var _ = Describe("Gateway", func() {
 					Expect(err).To(Succeed())
 				})
 
-				It("returns a command", func() {
-					stmt := orm.Routine(script)
-					query, params := stmt.NamedQuery()
-					Expect(query).To(BeEmpty())
-					Expect(params).To(BeEmpty())
-				})
-
 				It("executes the commands successfully", func() {
 					stmt := orm.Routine(script)
 
 					_, err := db.Exec(stmt)
 					Expect(err).NotTo(HaveOccurred())
-
-					query, params := stmt.NamedQuery()
-					Expect(query).To(BeEmpty())
-					Expect(params).To(BeEmpty())
 				})
 			})
 
