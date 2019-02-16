@@ -10,7 +10,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/a8m/rql"
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/parcello"
 )
@@ -41,9 +40,6 @@ type (
 
 	// Param is a command parameter for given query.
 	Param = interface{}
-
-	// RQLParam is a prameter for RQL query
-	RQLParam = rql.Params
 )
 
 // Mapper provides a map of parameters
