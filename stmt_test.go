@@ -52,7 +52,7 @@ var _ = Describe("Stmt", func() {
 	})
 
 	Context("when the RQL is used", func() {
-		var param orm.Map
+		var param *orm.RQLQuery
 
 		type User struct {
 			Name string `rql:"filter,sort"`
@@ -70,15 +70,15 @@ var _ = Describe("Stmt", func() {
 		}
 
 		BeforeEach(func() {
-			param = orm.Map{
-				"offset": 10,
-				"limit":  10,
-				"filter": orm.Map{
+			param = &orm.RQLQuery{
+				Offset: 10,
+				Limit:  10,
+				Filter: orm.Map{
 					"age": orm.Map{
 						"$gte": 22,
 					},
 				},
-				"sort": []interface{}{"+age", "-name"},
+				Sort: []string{"+age", "-name"},
 			}
 		})
 
@@ -93,7 +93,7 @@ var _ = Describe("Stmt", func() {
 
 		Context("when the offset is not provided", func() {
 			BeforeEach(func() {
-				param["offset"] = 0
+				param.Offset = 0
 			})
 
 			It("returns the query", func() {
@@ -108,7 +108,7 @@ var _ = Describe("Stmt", func() {
 
 		Context("when the limit is not provided", func() {
 			BeforeEach(func() {
-				param["limit"] = 0
+				param.Limit = 0
 			})
 
 			It("returns the query", func() {
@@ -123,7 +123,7 @@ var _ = Describe("Stmt", func() {
 
 		Context("when the order is not provided", func() {
 			BeforeEach(func() {
-				param["sort"] = []interface{}{}
+				param.Sort = []string{}
 			})
 
 			It("returns the query", func() {
@@ -138,7 +138,7 @@ var _ = Describe("Stmt", func() {
 
 		Context("when the filter is not provided", func() {
 			BeforeEach(func() {
-				param["filter"] = nil
+				param.Filter = nil
 			})
 
 			It("returns the query", func() {

@@ -72,16 +72,16 @@ func (cmd *routine) Prepare(provider *sqlexec.Provider) error {
 }
 
 type query struct {
-	table  string
-	syntax Mapper
-	param  *rql.Params
+	table string
+	query *rql.Query
+	param *rql.Params
 }
 
 // RQL create a new command from raw query
-func RQL(table string, param Mapper) NamedQuery {
+func RQL(table string, param *RQLQuery) NamedQuery {
 	return &query{
-		table:  table,
-		syntax: param,
+		table: table,
+		query: param,
 	}
 }
 
@@ -106,8 +106,7 @@ func (cmd *query) Prepare(model interface{}) error {
 		return err
 	}
 
-	//TODO: we have to improve this somehow ???
-	body, err := json.Marshal(cmd.syntax)
+	body, err := json.Marshal(cmd.query)
 	if err != nil {
 		return err
 	}
