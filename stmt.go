@@ -97,10 +97,7 @@ func (cmd *query) NamedQuery() (string, map[string]Param) {
 }
 
 func (cmd *query) Prepare(model interface{}) error {
-	if mType := reflect.TypeOf(model); mType.Kind() == reflect.Slice {
-		mType = mType.Elem()
-		model = reflect.New(mType).Interface()
-	}
+	model = reflectSliceElem(model)
 
 	parser, err := rql.NewParser(rql.Config{
 		Model:    model,
@@ -191,6 +188,24 @@ func bindParam(param Param) map[string]interface{} {
 			"?": reflect.ValueOf(param).Interface(),
 		}
 	}
+}
+
+func reflectSliceElem(v interface{}) interface{} {
+	mType := reflect.TypeOf(v)
+
+	if mType.Kind() == reflect.Ptr {
+		mType = mType.Elem()
+	}
+
+	if mType.Kind() == reflect.Slice {
+		mType = mType.Elem()
+	}
+
+	if mType.Kind() == reflect.Ptr {
+		mType = mType.Elem()
+	}
+
+	return reflect.New(mType).Interface()
 }
 
 func reflectMap(v reflect.Value) map[string]interface{} {

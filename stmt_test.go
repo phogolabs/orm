@@ -63,7 +63,8 @@ var _ = Describe("Stmt", func() {
 			v := reflect.ValueOf(stmt)
 			method := v.MethodByName("Prepare")
 
-			p := reflect.ValueOf(&User{})
+			users := []*User{}
+			p := reflect.ValueOf(&users)
 			values := method.Call([]reflect.Value{p})
 			Expect(values).To(HaveLen(1))
 			Expect(values[0].Interface()).NotTo(HaveOccurred())
