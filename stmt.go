@@ -97,6 +97,11 @@ func (cmd *query) NamedQuery() (string, map[string]Param) {
 }
 
 func (cmd *query) Prepare(model interface{}) error {
+	if mType := reflect.TypeOf(model); mType.Kind() == reflect.Slice {
+		mType = mType.Elem()
+		model = reflect.New(mType).Interface()
+	}
+
 	parser, err := rql.NewParser(rql.Config{
 		Model:    model,
 		FieldSep: ".",
