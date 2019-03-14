@@ -41,6 +41,21 @@ func main() {
 	}
 
 	show(users)
+
+	fmt.Printf("--- Searching for user %q\n", users[0].FirstName)
+	fmt.Println("---")
+
+	search := orm.Map{
+		"name": users[0].FirstName,
+	}
+
+	result := []model.User{}
+
+	if err = gateway.Select(&result, orm.Routine("search-user-by-name", search)); err != nil {
+		log.WithError(err).Fatal("Failed to select all users")
+	}
+
+	show(result)
 }
 
 func create(gateway *orm.Gateway) error {
@@ -86,4 +101,5 @@ func show(users []model.User) {
 
 		fmt.Println("---")
 	}
+
 }

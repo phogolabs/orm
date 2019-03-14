@@ -11,6 +11,12 @@ WHERE id = ?;
 INSERT INTO users (id, first_name, last_name)
 VALUES (?, ?, ?);
 
+-- name: search-user-by-name
+SELECT * FROM users
+{{#if name}}
+WHERE first_name LIKE '%{{name}}%' OR last_name LIKE '%{{name}}%'
+{{/if}};
+
 -- name: update-user
 UPDATE users
 SET first_name = ?, last_name = ?
