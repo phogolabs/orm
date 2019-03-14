@@ -154,6 +154,14 @@ query named `show-sqlite-master`.
 
 Let's first load the SQL script from file:
 
+```
+-- name: show-sqlite-master
+SELECT * FROM sqlite_master;
+
+-- named: show-table
+SELECT * FROM {{table}};
+```
+
 ```golang
 if err = gateway.ReadFrom(file); err != nil {
   log.WithError(err).Fatal("Failed to load script")
@@ -171,6 +179,18 @@ example:
 
 ```golang
 rows, err := gateway.Query(orm.SQL("SELECT * FROM users WHERE id = ?", 5432))
+```
+
+Also you can use [handlerbars](https://handlebarsjs.com) to template your
+query. But be aware how you use it in order not to open possible SQL
+injections:
+
+```golang
+param := orm.Map{
+  "table": "users",
+}
+
+_, err = gateway.Exec(orm.Routine("show-table", param))
 ```
 
 ### Example

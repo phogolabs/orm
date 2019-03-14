@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 
+	"github.com/aymerick/raymond"
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/prana/sqlexec"
 )
@@ -103,6 +104,17 @@ func prepareNamedQuery(preparer Preparer, provider *sqlexec.Provider, nquery Nam
 	}
 
 	body, args := nquery.NamedQuery()
+
+	template, err := raymond.Parse(body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err = template.Exec(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	namedStmt, err := preparer.PrepareNamed(body)
 	if err != nil {
 		return nil, nil, err

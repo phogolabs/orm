@@ -53,6 +53,7 @@ var _ = Describe("Gateway", func() {
 			FirstName string `db:"first_name"`
 			LastName  string `db:"last_name"`
 			Email     string `db:"email"`
+			Custom    string `db:"custom"`
 		}
 
 		BeforeEach(func() {
@@ -95,7 +96,6 @@ var _ = Describe("Gateway", func() {
 			})
 
 			Context("with context", func() {
-
 				It("executes a query successfully", func() {
 					query := lk.Select("first_name", "last_name", "email").From("users")
 					persons := []Person{}
@@ -117,7 +117,7 @@ var _ = Describe("Gateway", func() {
 				})
 			})
 
-			Context("when an embedded statement is used", func() {
+			Context("when an SQL statement is used", func() {
 				It("executes a query successfully", func() {
 					query := orm.SQL("SELECT * FROM users WHERE first_name = ?", "John")
 
@@ -137,6 +137,38 @@ var _ = Describe("Gateway", func() {
 						Expect(db.Select(&persons, query)).To(MatchError("no such table: categories"))
 						Expect(persons).To(BeEmpty())
 					})
+				})
+			})
+		})
+
+		Context("when a templated query is used", func() {
+			It("executes a query successfully", func() {
+				param := orm.Map{
+					"schema": "public",
+					"name":   "John",
+				}
+
+				query := orm.SQL("SELECT *, '{{schema}}' AS custom FROM users WHERE first_name = :name", param)
+
+				persons := []Person{}
+				Expect(db.Select(&persons, query)).To(Succeed())
+				Expect(persons).To(HaveLen(1))
+				Expect(persons[0].FirstName).To(Equal("John"))
+				Expect(persons[0].LastName).To(Equal("Doe"))
+				Expect(persons[0].Email).To(Equal("john@example.com"))
+				Expect(persons[0].Custom).To(Equal("public"))
+			})
+
+			Context("when the template is wrong", func() {
+				It("returns an error", func() {
+					param := orm.Map{
+						"name": "John",
+					}
+
+					query := orm.SQL("SELECT *, '{{schema' AS custom FROM users WHERE first_name = :name", param)
+
+					persons := []Person{}
+					Expect(db.Select(&persons, query).Error()).To(ContainSubstring("Parse error on line 1"))
 				})
 			})
 		})
@@ -290,6 +322,25 @@ var _ = Describe("Gateway", func() {
 				Expect(rows).NotTo(BeNil())
 				Expect(rows.Next()).To(BeFalse())
 				Expect(rows.Close()).To(Succeed())
+			})
+
+			Context("when a template query is used", func() {
+				It("executes a query successfully", func() {
+					param := orm.Map{
+						"table": "users",
+					}
+
+					query := orm.SQL("DELETE FROM {{table}}", param)
+
+					_, err := db.Exec(query)
+					Expect(err).To(Succeed())
+
+					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
+					Expect(err).To(BeNil())
+					Expect(rows).NotTo(BeNil())
+					Expect(rows.Next()).To(BeFalse())
+					Expect(rows.Close()).To(Succeed())
+				})
 			})
 
 			Context("when context", func() {
