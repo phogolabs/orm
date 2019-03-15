@@ -19,6 +19,31 @@ type GatewayPool struct {
 	mu sync.RWMutex
 }
 
+// ReadDir loads all script commands from a given directory. Note that all
+// scripts should have .sql extension and support the database driver.
+func (p *GatewayPool) ReadDir(fileSystem FileSystem, schema ...string) error {
+	var errs ErrorSlice
+
+	for _, name := range schema {
+		gateway, err := p.Get(name)
+
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if err = gateway.ReadDir(fileSystem); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+
+	return nil
+}
+
 // Migrate migrates all gateway
 func (p *GatewayPool) Migrate(fileSystem FileSystem, schema ...string) error {
 	var errs ErrorSlice
@@ -35,7 +60,7 @@ func (p *GatewayPool) Migrate(fileSystem FileSystem, schema ...string) error {
 			errs = append(errs, p.error(name, err))
 		}
 
-		if err := gateway.Migrate(fileSystem); err != nil {
+		if err = gateway.Migrate(fileSystem); err != nil {
 			errs = append(errs, p.error(name, err))
 		}
 	}

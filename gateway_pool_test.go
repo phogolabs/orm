@@ -57,4 +57,13 @@ var _ = Describe("GatewayPool", func() {
 			Expect(pool.Migrate(parcello.Dir(dir), "phogo")).To(Succeed())
 		})
 	})
+
+	Describe("ReadDir", func() {
+		It("migrates successfully", func() {
+			dir, err := ioutil.TempDir("", "orm_generator")
+			Expect(err).To(BeNil())
+
+			Expect(pool.ReadDir(parcello.Dir(dir), "phogo")).To(Succeed())
+		})
+	})
 })
