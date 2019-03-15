@@ -7,8 +7,10 @@
 package orm
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/a8m/rql"
 	"github.com/jmoiron/sqlx"
@@ -73,4 +75,24 @@ type Map map[string]interface{}
 // Map returens the parameter map
 func (m Map) Map() map[string]interface{} {
 	return m
+}
+
+var _ error = ErrorSlice{}
+
+// ErrorSlice is a slice of errors
+type ErrorSlice []error
+
+// Error returns the error
+func (e ErrorSlice) Error() string {
+	buffer := &bytes.Buffer{}
+
+	for index, err := range e {
+		if index > 0 {
+			fmt.Fprint(buffer, "; ")
+		}
+
+		fmt.Fprintf(buffer, err.Error())
+	}
+
+	return buffer.String()
 }

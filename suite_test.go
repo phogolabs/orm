@@ -3,6 +3,7 @@ package orm_test
 import (
 	"testing"
 
+	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
