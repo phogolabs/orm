@@ -10,65 +10,19 @@ import (
 type GatewayPool struct {
 	// URL is the connection string
 	URL string
+
+	// Migrations to be executed on get
+	Migrations FileSystem
+
+	// Routines to be loaded on get
+	Routines FileSystem
+
 	// Isolated for each gateway instance creates a new schema and set the
 	// search path to this schema
 	Isolated bool
 
 	m  map[string]*Gateway
 	mu sync.RWMutex
-}
-
-// ReadDir loads all script commands from a given directory. Note that all
-// scripts should have .sql extension and support the database driver.
-func (p *GatewayPool) ReadDir(fileSystem FileSystem, schema ...string) error {
-	var errs ErrorSlice
-
-	for _, name := range schema {
-		gateway, err := p.Get(name)
-
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		if err = gateway.ReadDir(fileSystem); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if len(errs) > 0 {
-		return errs
-	}
-
-	return nil
-}
-
-// Migrate migrates all gateway
-func (p *GatewayPool) Migrate(fileSystem FileSystem, schema ...string) error {
-	var errs ErrorSlice
-
-	for _, name := range schema {
-		gateway, err := p.Get(name)
-
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		if err = p.schema(gateway, name); err != nil {
-			errs = append(errs, p.error(name, err))
-		}
-
-		if err = gateway.Migrate(fileSystem); err != nil {
-			errs = append(errs, p.error(name, err))
-		}
-	}
-
-	if len(errs) > 0 {
-		return errs
-	}
-
-	return nil
 }
 
 // Get returns a gateway for given key
@@ -92,6 +46,22 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 
 	if gateway, err = Connect(addr); err != nil {
 		return nil, p.error(name, err)
+	}
+
+	if err = p.schema(gateway, name); err != nil {
+		return nil, p.error(name, err)
+	}
+
+	if fileSystem := p.Migrations; fileSystem != nil {
+		if err = gateway.Migrate(fileSystem); err != nil {
+			return nil, p.error(name, err)
+		}
+	}
+
+	if fileSystem := p.Routines; fileSystem != nil {
+		if err = gateway.ReadDir(fileSystem); err != nil {
+			return nil, p.error(name, err)
+		}
 	}
 
 	p.m[name] = gateway
@@ -121,21 +91,6 @@ func (p *GatewayPool) Close() error {
 	return nil
 }
 
-func (p *GatewayPool) schema(gateway *Gateway, name string) error {
-	if !p.Isolated {
-		return nil
-	}
-
-	param := Map{
-		"schema": name,
-	}
-
-	query := SQL("CREATE SCHEMA IF NOT EXISTS {{schema}};", param)
-
-	_, err := gateway.Exec(query)
-	return err
-}
-
 func (p *GatewayPool) url(name string) (string, error) {
 	if !p.Isolated {
 		return p.URL, nil
@@ -157,6 +112,21 @@ func (p *GatewayPool) url(name string) (string, error) {
 	}
 
 	return "", fmt.Errorf("not supported driver %q", addr.Scheme)
+}
+
+func (p *GatewayPool) schema(gateway *Gateway, name string) error {
+	if !p.Isolated {
+		return nil
+	}
+
+	param := Map{
+		"schema": name,
+	}
+
+	query := SQL("CREATE SCHEMA IF NOT EXISTS {{schema}};", param)
+
+	_, err := gateway.Exec(query)
+	return err
 }
 
 func (p *GatewayPool) error(name string, err error) error {
