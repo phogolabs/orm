@@ -41,26 +41,26 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 
 	addr, err := p.url(name)
 	if err != nil {
-		return nil, p.error(name, err)
+		return nil, p.error(name, "parse_url", err)
 	}
 
 	if gateway, err = Connect(addr); err != nil {
-		return nil, p.error(name, err)
+		return nil, p.error(name, "connect", err)
 	}
 
 	if err = p.schema(gateway, name); err != nil {
-		return nil, p.error(name, err)
+		return nil, p.error(name, "schema", err)
 	}
 
 	if fileSystem := p.Migrations; fileSystem != nil {
 		if err = gateway.Migrate(fileSystem); err != nil {
-			return nil, p.error(name, err)
+			return nil, p.error(name, "migrate", err)
 		}
 	}
 
 	if fileSystem := p.Routines; fileSystem != nil {
 		if err = gateway.ReadDir(fileSystem); err != nil {
-			return nil, p.error(name, err)
+			return nil, p.error(name, "routine", err)
 		}
 	}
 
@@ -78,7 +78,7 @@ func (p *GatewayPool) Close() error {
 
 	for key, gateway := range p.m {
 		if err := gateway.Close(); err != nil {
-			errs = append(errs, p.error(key, err))
+			errs = append(errs, p.error(key, "close", err))
 		}
 
 		delete(p.m, key)
@@ -129,6 +129,6 @@ func (p *GatewayPool) schema(gateway *Gateway, name string) error {
 	return err
 }
 
-func (p *GatewayPool) error(name string, err error) error {
-	return fmt.Errorf("name: %v error: %v", name, err)
+func (p *GatewayPool) error(name, op string, err error) error {
+	return fmt.Errorf("name: %v operation: %v error: %v", name, op, err)
 }

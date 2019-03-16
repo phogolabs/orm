@@ -60,7 +60,7 @@ var _ = Describe("GatewayPool", func() {
 
 				It("returns an error", func() {
 					gateway, err := pool.Get("phogo")
-					Expect(err).To(MatchError(`name: phogo error: not supported driver "mongo"`))
+					Expect(err).To(MatchError(`name: phogo operation: parse_url error: not supported driver "mongo"`))
 					Expect(gateway).To(BeNil())
 				})
 			})
