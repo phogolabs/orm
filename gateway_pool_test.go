@@ -1,7 +1,6 @@
 package orm_test
 
 import (
-	"io/ioutil"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -16,8 +15,7 @@ var _ = Describe("GatewayPool", func() {
 
 	BeforeEach(func() {
 		pool = &orm.GatewayPool{
-			URL:       os.Getenv("TEST_PSQL_URL"),
-			Isolation: true,
+			URL: os.Getenv("TEST_PSQL_URL"),
 		}
 
 		if pool.URL == "" {
@@ -36,34 +34,52 @@ var _ = Describe("GatewayPool", func() {
 			Expect(gateway).NotTo(BeNil())
 		})
 
-		Context("when cannot connect to the db", func() {
+		Context("when the pool is isolated", func() {
 			BeforeEach(func() {
-				pool.URL = "mongo://127.0.0.1:5432/foobar?sslmode=disable"
+				pool.Isolated = true
 			})
 
-			It("returns an error", func() {
-				gateway, err := pool.Get("phogo")
-				Expect(err).To(MatchError(`name: phogo error: not supported driver "mongo"`))
-				Expect(gateway).To(BeNil())
+			Context("when cannot connect to the db", func() {
+				BeforeEach(func() {
+					pool.URL = "mongo://127.0.0.1:5432/foobar?sslmode=disable"
+				})
+
+				It("returns an error", func() {
+					gateway, err := pool.Get("phogo")
+					Expect(err).To(MatchError(`name: phogo error: not supported driver "mongo"`))
+					Expect(gateway).To(BeNil())
+				})
 			})
 		})
 	})
 
 	Describe("Migrates", func() {
 		It("migrates successfully", func() {
-			dir, err := ioutil.TempDir("", "orm_generator")
-			Expect(err).To(BeNil())
+			Expect(pool.Migrate(parcello.ManagerAt("migration"), "hippo")).To(Succeed())
 
-			Expect(pool.Migrate(parcello.Dir(dir), "phogo")).To(Succeed())
+			gateway, err := pool.Get("hippo")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gateway).NotTo(BeNil())
+
+			users := []User{}
+			Expect(gateway.Select(&users, orm.SQL("SELECT * FROM users"))).To(Succeed())
 		})
-	})
 
-	Describe("ReadDir", func() {
-		It("migrates successfully", func() {
-			dir, err := ioutil.TempDir("", "orm_generator")
-			Expect(err).To(BeNil())
+		Context("when the pool is isolated", func() {
+			BeforeEach(func() {
+				pool.Isolated = true
+			})
 
-			Expect(pool.ReadDir(parcello.Dir(dir), "phogo")).To(Succeed())
+			It("migrates the schema successfully", func() {
+				Expect(pool.Migrate(parcello.ManagerAt("migration"), "phogo")).To(Succeed())
+
+				gateway, err := pool.Get("phogo")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(gateway).NotTo(BeNil())
+
+				users := []User{}
+				Expect(gateway.Select(&users, orm.SQL("SELECT * FROM phogo.users"))).To(Succeed())
+			})
 		})
 	})
 })

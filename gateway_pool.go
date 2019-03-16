@@ -3,7 +3,6 @@ package orm
 import (
 	"fmt"
 	"net/url"
-	"strings"
 	"sync"
 )
 
@@ -11,9 +10,9 @@ import (
 type GatewayPool struct {
 	// URL is the connection string
 	URL string
-	// Isolation for each gateway instance creates a new schema and set the
+	// Isolated for each gateway instance creates a new schema and set the
 	// search path to this schema
-	Isolation bool
+	Isolated bool
 
 	m  map[string]*Gateway
 	mu sync.RWMutex
@@ -123,7 +122,7 @@ func (p *GatewayPool) Close() error {
 }
 
 func (p *GatewayPool) schema(gateway *Gateway, name string) error {
-	if !p.Isolation {
+	if !p.Isolated {
 		return nil
 	}
 
@@ -138,7 +137,7 @@ func (p *GatewayPool) schema(gateway *Gateway, name string) error {
 }
 
 func (p *GatewayPool) url(name string) (string, error) {
-	if !p.Isolation {
+	if !p.Isolated {
 		return p.URL, nil
 	}
 
@@ -148,11 +147,9 @@ func (p *GatewayPool) url(name string) (string, error) {
 	}
 
 	if addr.Scheme == "postgres" {
-		schema := []string{name, "public"}
-
 		values := addr.Query()
 		values.Set("application_name", name)
-		values.Set("search_path", strings.Join(schema, ","))
+		values.Set("search_path", name)
 
 		addr.RawQuery = values.Encode()
 

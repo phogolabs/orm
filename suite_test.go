@@ -6,6 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	_ "github.com/phogolabs/orm/fixture"
 )
 
 func TestOAK(t *testing.T) {

@@ -10,8 +10,8 @@ addons:
   postgresql: "9.4"
 
 before_script:
-  - mysql -e 'CREATE DATABASE oak;'
-  - psql -c 'CREATE DATABASE oak;' -U postgres
+  - mysql -e 'CREATE DATABASE orm;'
+  - psql -c 'CREATE DATABASE orm;' -U postgres
 
 install:
   - export PATH=$PATH:$HOME/gopath/bin
@@ -22,6 +22,9 @@ install:
   - go install github.com/onsi/ginkgo/ginkgo
   - go mod download
   - go mod verify
+
+env:
+  - TEST_PSQL_URL="postgres://127.0.0.1/orm?sslmode=disable"
 
 script:
   - ginkgo -r -v -covermode=atomic
