@@ -21,22 +21,14 @@ type GatewayPool struct {
 	// search path to this schema
 	Isolated bool
 
-	m  map[string]*Gateway
-	mu sync.RWMutex
+	m sync.Map
 }
 
 // Get returns a gateway for given key
 func (p *GatewayPool) Get(name string) (*Gateway, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if p.m == nil {
-		p.m = make(map[string]*Gateway)
-	}
-
-	gateway, ok := p.m[name]
+	item, ok := p.m.Load(name)
 	if ok {
-		return gateway, nil
+		return item.(*Gateway), nil
 	}
 
 	addr, err := p.url(name)
@@ -44,7 +36,8 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 		return nil, p.error(name, "parse_url", err)
 	}
 
-	if gateway, err = Connect(addr); err != nil {
+	gateway, err := Connect(addr)
+	if err != nil {
 		return nil, p.error(name, "connect", err)
 	}
 
@@ -58,24 +51,24 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 		}
 	}
 
-	p.m[name] = gateway
+	p.m.Store(name, gateway)
 	return gateway, nil
 }
 
 // Close closes all gateways
 func (p *GatewayPool) Close() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	var errs ErrorSlice
 
-	for key, gateway := range p.m {
+	p.m.Range(func(key, value interface{}) bool {
+		gateway := value.(*Gateway)
+
 		if err := gateway.Close(); err != nil {
-			errs = append(errs, p.error(key, "close", err))
+			errs = append(errs, p.error(fmt.Sprintf("%v", key), "close", err))
 		}
 
-		delete(p.m, key)
-	}
+		p.m.Delete(key)
+		return true
+	})
 
 	if len(errs) > 0 {
 		return errs
