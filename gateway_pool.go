@@ -48,14 +48,8 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 		return nil, p.error(name, "connect", err)
 	}
 
-	if err = p.schema(gateway, name); err != nil {
+	if err = p.migrate(gateway, name); err != nil {
 		return nil, p.error(name, "schema", err)
-	}
-
-	if fileSystem := p.Migrations; fileSystem != nil {
-		if err = gateway.Migrate(fileSystem); err != nil {
-			return nil, p.error(name, "migrate", err)
-		}
 	}
 
 	if fileSystem := p.Routines; fileSystem != nil {
@@ -65,7 +59,6 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 	}
 
 	p.m[name] = gateway
-
 	return gateway, nil
 }
 
@@ -114,19 +107,24 @@ func (p *GatewayPool) url(name string) (string, error) {
 	return "", fmt.Errorf("not supported driver %q", addr.Scheme)
 }
 
-func (p *GatewayPool) schema(gateway *Gateway, name string) error {
-	if !p.Isolated {
-		return nil
+func (p *GatewayPool) migrate(gateway *Gateway, name string) error {
+	if p.Isolated {
+		param := Map{
+			"schema": name,
+		}
+
+		if _, err := gateway.Exec(SQL("CREATE SCHEMA IF NOT EXISTS {{schema}};", param)); err != nil {
+			return p.error(name, "migrate", err)
+		}
 	}
 
-	param := Map{
-		"schema": name,
+	if fileSystem := p.Migrations; fileSystem != nil {
+		if err := gateway.Migrate(fileSystem); err != nil {
+			return p.error(name, "migrate", err)
+		}
 	}
 
-	query := SQL("CREATE SCHEMA IF NOT EXISTS {{schema}};", param)
-
-	_, err := gateway.Exec(query)
-	return err
+	return nil
 }
 
 func (p *GatewayPool) error(name, op string, err error) error {
