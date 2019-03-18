@@ -26,6 +26,10 @@ type GatewayPool struct {
 
 // Get returns a gateway for given key
 func (p *GatewayPool) Get(name string) (*Gateway, error) {
+	if name == "" {
+		return nil, fmt.Errorf("orm: the provided key cannot be empty")
+	}
+
 	item, ok := p.m.Load(name)
 	if ok {
 		return item.(*Gateway), nil
@@ -121,5 +125,5 @@ func (p *GatewayPool) migrate(gateway *Gateway, name string) error {
 }
 
 func (p *GatewayPool) error(name, op string, err error) error {
-	return fmt.Errorf("name: %v operation: %v error: %v", name, op, err)
+	return fmt.Errorf("orm: name: %v operation: %v error: %v", name, op, err)
 }

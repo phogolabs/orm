@@ -45,6 +45,14 @@ var _ = Describe("GatewayPool", func() {
 			Expect(gateway).To(Equal(gateway2))
 		})
 
+		Context("when the name is empty", func() {
+			It("returns an error", func() {
+				gateway, err := pool.Get("")
+				Expect(err).To(MatchError("orm: the provided key cannot be empty"))
+				Expect(gateway).To(BeNil())
+			})
+		})
+
 		Context("when the pool is isolated", func() {
 			BeforeEach(func() {
 				pool.Isolated = true
@@ -66,7 +74,7 @@ var _ = Describe("GatewayPool", func() {
 
 				It("returns an error", func() {
 					gateway, err := pool.Get("phogo")
-					Expect(err).To(MatchError(`name: phogo operation: parse_url error: not supported driver "mongo"`))
+					Expect(err).To(MatchError(`orm: name: phogo operation: parse_url error: not supported driver "mongo"`))
 					Expect(gateway).To(BeNil())
 				})
 			})
@@ -79,7 +87,7 @@ var _ = Describe("GatewayPool", func() {
 
 			It("returns an error", func() {
 				gateway, err := pool.Get("phogo")
-				Expect(err).To(MatchError(`name: phogo operation: connect error: parse ://127.0.0.1:5432/foobar?sslmode=disable: missing protocol scheme`))
+				Expect(err).To(MatchError(`orm: name: phogo operation: connect error: parse ://127.0.0.1:5432/foobar?sslmode=disable: missing protocol scheme`))
 				Expect(gateway).To(BeNil())
 			})
 		})
