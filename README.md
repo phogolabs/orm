@@ -137,7 +137,9 @@ You can read more details about [loukoum][loukoum-url] on their repository.
 
 The package support [RQL](https://github.com/a8m/rql) queries. RQL provides a
 simple and light-weight API for adding dynamic querying capabilities to
-web-applications that use SQL-based database:
+web-applications that use SQL-based database.
+
+Let's have the following query that is received via HTTP:
 
 ```json
 {
@@ -147,6 +149,8 @@ web-applications that use SQL-based database:
   ]
 }
 ```
+
+Then we can process it in the following way:
 
 ```golang
 param := &orm.RQLQuery{}
