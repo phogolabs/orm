@@ -12,7 +12,7 @@ type User struct {
 	// ID represents a database column 'id' of type 'INT PRIMARY KEY NOT NULL'
 	ID int `db:"id,primary_key,not_null" validate:"required"`
 	// FirstName represents a database column 'first_name' of type 'TEXT NOT NULL'
-	FirstName string `db:"first_name,not_null" validate:"required,nonblank,gt=0"`
+	FirstName string `db:"first_name,not_null" validate:"required,gt=0"`
 	// LastName represents a database column 'last_name' of type 'TEXT NULL'
 	LastName schema.NullString `db:"last_name,null" validate:"-"`
 }
