@@ -32,6 +32,12 @@ func main() {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
+	validation := validator.New()
+
+	if err := validation.Struct(users[0]); err != nil {
+		panic(err)
+	}
+
 	show(users)
 }
 

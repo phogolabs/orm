@@ -1,4 +1,4 @@
--- Auto-generated at Tue, 02 Apr 2019 10:14:41 CEST
+-- Auto-generated at Thu, 11 Apr 2019 16:15:43 CEST
 
 -- name: select-all-users
 SELECT * FROM users;

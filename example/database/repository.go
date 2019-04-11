@@ -1,5 +1,5 @@
-// Package database contains an object model of database schema 'default'
-// Auto-generated at Tue, 02 Apr 2019 10:26:05 CEST
+// Package database contains an repository of database schema ''
+// Auto-generated at Thu, 11 Apr 2019 16:37:32 CEST
 package database
 
 import (
