@@ -27,7 +27,7 @@ env:
   - TEST_PSQL_URL="postgres://127.0.0.1/orm?sslmode=disable"
 
 script:
-  - ginkgo -r -v -covermode=atomic
+  - ginkgo -r -v -covermode=atomic -skipPackage example
 
 after_success:
   - script/cover.sh
