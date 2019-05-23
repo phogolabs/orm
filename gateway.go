@@ -29,6 +29,9 @@ func Connect(url string) (*Gateway, error) {
 // Open creates a new gateway connected to the provided source.
 func Open(driver, source string) (*Gateway, error) {
 	db, err := sqlx.Open(driver, source)
+	db.SetMaxIdleConns(32)
+	db.SetMaxOpenConns(32)
+
 	if err != nil {
 		return nil, err
 	}
