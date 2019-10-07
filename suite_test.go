@@ -9,9 +9,9 @@ import (
 	_ "github.com/phogolabs/orm/fixture"
 )
 
-func TestOAK(t *testing.T) {
+func TestORM(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "OAK Suite")
+	RunSpecs(t, "ORM Suite")
 }
 
 type ObjP struct {

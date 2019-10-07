@@ -77,16 +77,16 @@ func (m Map) Map() map[string]interface{} {
 	return m
 }
 
-var _ error = ErrorSlice{}
+var _ error = ErrorCollector{}
 
-// ErrorSlice is a slice of errors
-type ErrorSlice []error
+// ErrorCollector is a slice of errors
+type ErrorCollector []error
 
 // Error returns the error
-func (e ErrorSlice) Error() string {
+func (errs ErrorCollector) Error() string {
 	buffer := &bytes.Buffer{}
 
-	for index, err := range e {
+	for index, err := range errs {
 		if index > 0 {
 			fmt.Fprint(buffer, "; ")
 		}
@@ -95,4 +95,17 @@ func (e ErrorSlice) Error() string {
 	}
 
 	return buffer.String()
+}
+
+func (errs ErrorCollector) Unwrap() error {
+	count := len(errs)
+
+	switch {
+	case count == 0:
+		return nil
+	case count == 1:
+		return errs[0]
+	default:
+		return errs
+	}
 }

@@ -61,21 +61,24 @@ func (p *GatewayPool) Get(name string) (*Gateway, error) {
 
 // Close closes all gateways
 func (p *GatewayPool) Close() error {
-	var errs ErrorSlice
+	var errs ErrorCollector
 
 	p.m.Range(func(key, value interface{}) bool {
-		gateway := value.(*Gateway)
+		var (
+			gateway = value.(*Gateway)
+			name    = fmt.Sprintf("%v", key)
+		)
 
 		if err := gateway.Close(); err != nil {
-			errs = append(errs, p.error(fmt.Sprintf("%v", key), "close", err))
+			errs = append(errs, p.error(name, "close", err))
 		}
 
 		p.m.Delete(key)
 		return true
 	})
 
-	if len(errs) > 0 {
-		return errs
+	if err := errs.Unwrap(); err != nil {
+		return err
 	}
 
 	return nil
@@ -125,5 +128,5 @@ func (p *GatewayPool) migrate(gateway *Gateway, name string) error {
 }
 
 func (p *GatewayPool) error(name, op string, err error) error {
-	return fmt.Errorf("orm: name: %v operation: %v error: %v", name, op, err)
+	return fmt.Errorf("orm: gateway '%v' failed on '%v' operation: %w", name, op, err)
 }
