@@ -23,7 +23,7 @@ require (
 	github.com/volatiletech/sqlboiler v3.5.0+incompatible // indirect
 	golang.org/x/sys v0.0.0-20191007092633-5f54ce542709 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gopkg.in/go-playground/validator.v9 v9.30.0
+	gopkg.in/go-playground/validator.v9 v9.30.2
 )
 
 go 1.13
