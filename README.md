@@ -2,7 +2,7 @@
 
 [![Documentation][godoc-img]][godoc-url]
 ![License][license-img]
-[![Build Status][travis-img]][travis-url]
+[![Build Status][action-img]][action-url]
 [![Coverage][codecov-img]][codecov-url]
 [![Go Report Card][report-img]][report-url]
 
@@ -232,7 +232,7 @@ help documentation by executing:
 
 ## Contributing
 
-We are welcome to any contributions. Just fork the
+We are open for any contributions. Just fork the
 [project](https://github.com/phogolabs/orm).
 
 *logo made by [Free Pik][logo-author-url]*
@@ -245,8 +245,8 @@ We are welcome to any contributions. Just fork the
 [orm-img]: doc/img/logo.png
 [codecov-url]: https://codecov.io/gh/phogolabs/orm
 [codecov-img]: https://codecov.io/gh/phogolabs/orm/branch/master/graph/badge.svg
-[travis-img]: https://travis-ci.org/phogolabs/orm.svg?branch=master
-[travis-url]: https://travis-ci.org/phogolabs/orm
+[action-img]: https://github.com/phogolabs/orm/workflows/pipeline/badge.svg
+[action-url]: https://github.com/phogolabs/orm/actions
 [orm-url]: https://github.com/phogolabs/orm
 [godoc-url]: https://godoc.org/github.com/phogolabs/orm
 [godoc-img]: https://godoc.org/github.com/phogolabs/orm?status.svg
