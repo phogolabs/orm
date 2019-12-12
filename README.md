@@ -245,7 +245,7 @@ We are open for any contributions. Just fork the
 [orm-img]: doc/img/logo.png
 [codecov-url]: https://codecov.io/gh/phogolabs/orm
 [codecov-img]: https://codecov.io/gh/phogolabs/orm/branch/master/graph/badge.svg
-[action-img]: https://github.com/phogolabs/orm/workflows/pipeline/badge.svg
+[action-img]: https://github.com/phogolabs/orm/workflows/main/badge.svg
 [action-url]: https://github.com/phogolabs/orm/actions
 [orm-url]: https://github.com/phogolabs/orm
 [godoc-url]: https://godoc.org/github.com/phogolabs/orm
