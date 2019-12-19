@@ -14,7 +14,7 @@ require (
 	github.com/lib/pq v1.2.0
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.5.0
 	github.com/phogolabs/parcello v0.8.1
 	github.com/phogolabs/prana v0.0.0-20191007115605-282b624acbe2
