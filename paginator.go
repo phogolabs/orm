@@ -181,22 +181,25 @@ func (pq *Paginator) build(index int) string {
 	)
 
 	var (
-		order  = pq.positions[index].Order
-		column = pq.positions[index].Column
-		value  = pq.positions[index].Value
+		order     = pq.positions[index].Order
+		value     = pq.positions[index].Value
+		column    = pq.positions[index].Column
+		columnArg = fmt.Sprintf("pg_%s", column)
 	)
 
 	if value != nil {
-		predicateEqual = fmt.Sprintf("%s = :%s", column, column)
+		predicateEqual = fmt.Sprintf("%s = :%s", column, columnArg)
 
 		switch order {
 		case "+":
-			predicateCompare = fmt.Sprintf("%s > :%s", column, column)
+			predicateCompare = fmt.Sprintf("%s > :%s", column, columnArg)
 		case "-":
-			predicateCompare = fmt.Sprintf("%s < :%s", column, column)
+			predicateCompare = fmt.Sprintf("%s < :%s", column, columnArg)
 		default:
-			predicateCompare = fmt.Sprintf("%s > :%s", column, column)
+			predicateCompare = fmt.Sprintf("%s > :%s", column, columnArg)
 		}
+
+		pq.params[columnArg] = value
 	}
 
 	predicate = predicateCompare
