@@ -72,6 +72,12 @@ type NamedQuery interface {
 // commands and queries
 type Map map[string]interface{}
 
+// MapOf creates a map from struct that matches the provided keys. If the key
+// list is empty it will use all keys.
+func MapOf(v interface{}, k ...string) Map {
+	return nil
+}
+
 // Map returens the parameter map
 func (m Map) Map() map[string]interface{} {
 	return m
@@ -97,6 +103,7 @@ func (errs ErrorCollector) Error() string {
 	return buffer.String()
 }
 
+// Unwrap unwrapps the collector
 func (errs ErrorCollector) Unwrap() error {
 	count := len(errs)
 

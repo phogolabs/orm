@@ -14,6 +14,8 @@ import (
 	"github.com/phogolabs/prana/sqlexec"
 )
 
+var mapper = reflectx.NewMapper("db")
+
 var (
 	_ NamedQuery = &stmt{}
 	_ NamedQuery = &routine{}
@@ -210,7 +212,6 @@ func reflectSliceElem(v interface{}) interface{} {
 
 func reflectMap(v reflect.Value) map[string]interface{} {
 	params := make(map[string]interface{})
-	mapper := reflectx.NewMapper("db")
 
 	for key, value := range mapper.FieldMap(v) {
 		key = strings.ToLower(key)

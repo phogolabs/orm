@@ -28,3 +28,9 @@ func (m *ObjM) Map() map[string]interface{} {
 	param["name"] = "jack"
 	return param
 }
+
+type Student struct {
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Category string `db:"category"`
+}

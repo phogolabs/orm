@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aymerick/raymond"
 	"github.com/jmoiron/sqlx"
@@ -121,4 +122,28 @@ func prepareNamedQuery(preparer Preparer, provider *sqlexec.Provider, nquery Nam
 	}
 
 	return namedStmt, args, nil
+}
+
+func or(x, y string) string {
+	if x == "" {
+		return y
+	}
+
+	if y == "" {
+		return x
+	}
+
+	return fmt.Sprintf("(%s OR %s)", x, y)
+}
+
+func and(x, y string) string {
+	if x == "" {
+		return y
+	}
+
+	if y == "" {
+		return x
+	}
+
+	return fmt.Sprintf("(%s AND %s)", x, y)
 }

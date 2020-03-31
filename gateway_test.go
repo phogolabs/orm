@@ -43,7 +43,7 @@ var _ = Describe("Gateway", func() {
 			It("returns an error", func() {
 				g, err := orm.Connect("://www")
 				Expect(g).To(BeNil())
-				Expect(err).To(MatchError("parse ://www: missing protocol scheme"))
+				Expect(err).To(MatchError("parse \"://www\": missing protocol scheme"))
 			})
 		})
 	})
