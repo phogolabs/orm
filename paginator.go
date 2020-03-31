@@ -89,7 +89,9 @@ func (pq *Paginator) Limit(value int) *Paginator {
 
 // Start the pagination from a given start
 func (pq *Paginator) Start(cursor *Cursor) *Paginator {
-	pq.append(*cursor)
+	if cursor != nil {
+		pq.append(*cursor)
+	}
 	return pq
 }
 
