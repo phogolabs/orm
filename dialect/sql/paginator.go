@@ -1,0 +1,269 @@
+package sql
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
+)
+
+// Paginator paginates a given selector
+type Paginator struct {
+	selector *Selector
+	unique   string
+}
+
+// PaginateBy a unique column
+func (s *Selector) PaginateBy(order string) *Paginator {
+	return &Paginator{
+		selector: s,
+		unique:   order,
+	}
+}
+
+// SetDialect sets the dialect
+func (pq *Paginator) SetDialect(dialect string) {
+	pq.selector.SetDialect(dialect)
+}
+
+// Seek seeks the paginator
+func (pq *Paginator) Seek(cursor *Cursor) (*Paginator, error) {
+	if cursor == nil {
+		return pq, nil
+	}
+
+	if err := pq.order(*cursor); err != nil {
+		return nil, err
+	}
+
+	if predicate := pq.where(*cursor); predicate != nil {
+		pq.selector = pq.selector.Where(predicate)
+	}
+
+	return pq, nil
+}
+
+// Query returns the query
+func (pq *Paginator) Query() (string, []interface{}) {
+	return pq.selector.Query()
+}
+
+// Cursor returns the next cursor
+func (pq *Paginator) Cursor(v interface{}) *Cursor {
+	var (
+		value  = reflect.Indirect(reflect.ValueOf(v))
+		kind   = value.Kind()
+		cursor = Cursor{}
+	)
+
+	switch kind {
+	case reflect.Map:
+	case reflect.Struct:
+	case reflect.Slice:
+		count := value.Len()
+		if count == 0 {
+			return &cursor
+		}
+		value = value.Index(count - 1)
+	default:
+		err := fmt.Errorf("sql/cursor: invalid type %s. expected map, struct or slice as an argument", kind)
+		panic(err)
+	}
+
+	kv := bindParam(value.Interface())
+
+	for _, position := range pq.positions() {
+		index := &CursorPosition{
+			Column: position.Column,
+			Order:  position.Order,
+		}
+
+		if value, ok := kv[position.Column]; ok {
+			index.Value = value
+		}
+
+		cursor = append(cursor, index)
+	}
+
+	return &cursor
+}
+
+func (pq *Paginator) order(cursor []*CursorPosition) error {
+	var (
+		positions = pq.positions()
+		pcount    = len(positions)
+		pindex    = 0
+		ccount    = len(cursor)
+		unique    = CursorPositionFrom(pq.unique)
+	)
+
+	if unique == nil {
+		return fmt.Errorf("sql: pagination column not provided")
+	}
+
+	for cindex, candidate := range cursor {
+		switch {
+		case pcount == 0, cindex > pindex:
+			pq.selector = pq.selector.OrderBy(candidate.String())
+		case !candidate.Equal(positions[pindex]):
+			return fmt.Errorf("sql: pagination cursor position mismatch")
+		}
+
+		if pindex+1 < pcount {
+			pindex++
+		}
+
+		if cindex != ccount-1 {
+			continue
+		}
+
+		if !candidate.Equal(unique) {
+			return fmt.Errorf("sql: pagination column should be placed at the end")
+		}
+	}
+
+	switch {
+	case ccount == 0 && pcount == 0:
+		pq.selector = pq.selector.OrderBy(unique.String())
+	case ccount == 0 && pcount != 0:
+		if candidate := positions[pindex]; !candidate.Equal(unique) {
+			pq.selector = pq.selector.OrderBy(unique.String())
+		}
+	}
+
+	return nil
+}
+
+func (pq *Paginator) where(cursor []*CursorPosition) *Predicate {
+	if count := len(cursor); count == 0 {
+		return nil
+	}
+
+	var (
+		position     = cursor[0]
+		predicateCmp *Predicate
+		predicateEQ  = EQ(position.Column, position.Value)
+	)
+
+	switch position.Order {
+	case "asc":
+		predicateCmp = GT(position.Column, position.Value)
+	case "desc":
+		predicateCmp = LT(position.Column, position.Value)
+	}
+
+	predicate := pq.where(cursor[1:])
+
+	switch {
+	case predicate != nil:
+		predicate = Or(predicateCmp, And(predicateEQ, predicate))
+	case predicate == nil:
+		predicate = predicateCmp
+	}
+
+	return predicate
+}
+
+func (pq *Paginator) positions() []*CursorPosition {
+	const separator = ","
+
+	positions := []*CursorPosition{}
+
+	for _, descriptor := range pq.selector.order {
+		for _, order := range strings.Split(descriptor, separator) {
+			position := CursorPositionFrom(order)
+
+			if position == nil {
+				continue
+			}
+
+			positions = append(positions, position)
+		}
+	}
+
+	return positions
+}
+
+// Cursor represents a cursor
+type Cursor []*CursorPosition
+
+// DecodeCursor decodes the cursor
+func DecodeCursor(token string) (*Cursor, error) {
+	cursor := &Cursor{}
+
+	if token == "" {
+		return cursor, nil
+	}
+
+	if n := len(token) % 4; n != 0 {
+		token += strings.Repeat("=", 4-n)
+	}
+
+	data, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, cursor); err != nil {
+		return nil, err
+	}
+
+	return cursor, nil
+}
+
+// String returns the cursor as a string
+func (c *Cursor) String() string {
+	if len(*c) == 0 {
+		return ""
+	}
+
+	data, err := json.Marshal(c)
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
+}
+
+// CursorPosition represents an order position
+type CursorPosition struct {
+	Column string      `json:"column"`
+	Order  string      `json:"order"`
+	Value  interface{} `json:"value"`
+}
+
+// CursorPositionFrom returns a positions
+func CursorPositionFrom(order string) *CursorPosition {
+	var (
+		position *CursorPosition
+		parts    = strings.Fields(order)
+	)
+
+	switch len(parts) {
+	case 0:
+		return nil
+	case 1:
+		position = &CursorPosition{
+			Column: strings.ToLower(parts[0]),
+			Order:  "asc",
+		}
+	default:
+		position = &CursorPosition{
+			Column: strings.ToLower(parts[0]),
+			Order:  strings.ToLower(parts[1]),
+		}
+	}
+
+	return position
+}
+
+// Equal return true if the positions are equal
+func (p *CursorPosition) Equal(pp *CursorPosition) bool {
+	return strings.EqualFold(p.Column, pp.Column) && strings.EqualFold(p.Order, pp.Order)
+}
+
+// String returns the position as string
+func (p *CursorPosition) String() string {
+	return fmt.Sprintf("%v %v", p.Column, strings.ToUpper(p.Order))
+}

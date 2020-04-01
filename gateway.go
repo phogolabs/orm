@@ -2,10 +2,13 @@ package orm
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/phogolabs/orm/dialect"
+	"github.com/phogolabs/orm/dialect/sql"
 	"github.com/phogolabs/prana"
 	"github.com/phogolabs/prana/sqlexec"
 	"github.com/phogolabs/prana/sqlmigr"
@@ -13,7 +16,7 @@ import (
 
 // Gateway is connected to a database and can executes SQL queries against it.
 type Gateway struct {
-	db       *sqlx.DB
+	driver   *sql.Driver
 	provider *sqlexec.Provider
 }
 
@@ -24,38 +27,56 @@ func Connect(url string) (*Gateway, error) {
 		return nil, err
 	}
 
-	return Open(driver, source)
-}
-
-// Open creates a new gateway connected to the provided source.
-func Open(driver, source string) (*Gateway, error) {
-	db, err := sqlx.Open(driver, source)
+	gateway, err := Open(driver, source)
 	if err != nil {
 		return nil, err
 	}
 
-	db.SetMaxIdleConns(32)
-	db.SetMaxOpenConns(32)
+	if err = gateway.Ping(); err != nil {
+		return nil, err
+	}
+
+	return gateway, nil
+}
+
+// Open creates a new gateway connected to the provided source.
+func Open(driver, source string) (*Gateway, error) {
+	var (
+		drv *sql.Driver
+		err error
+	)
+
+	switch driver {
+	case dialect.MySQL, dialect.Postgres, dialect.SQLite:
+		if drv, err = sql.Open(driver, source); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("orm: unsupported driver: %q", driver)
+	}
+
+	drv.DB().SetMaxIdleConns(32)
+	drv.DB().SetMaxOpenConns(32)
 
 	return &Gateway{
 		provider: &sqlexec.Provider{DriverName: driver},
-		db:       db,
+		driver:   drv,
 	}, nil
-}
-
-// Close closes the connection to underlying database.
-func (g *Gateway) Close() error {
-	return g.db.Close()
-}
-
-// DriverName returns the driverName passed to the Open function for this DB.
-func (g *Gateway) DriverName() string {
-	return g.db.DriverName()
 }
 
 // Ping pins the underlying database
 func (g *Gateway) Ping() error {
-	return g.db.Ping()
+	return g.driver.DB().Ping()
+}
+
+// Close closes the connection to the  database.
+func (g *Gateway) Close() error {
+	return g.driver.Close()
+}
+
+// Dialect returns the driver's dialect
+func (g *Gateway) Dialect() string {
+	return g.driver.Dialect()
 }
 
 // SetMaxIdleConns sets the maximum number of connections in the idle
@@ -69,7 +90,7 @@ func (g *Gateway) Ping() error {
 // The default max idle connections is currently 2. This may change in
 // a future release.
 func (g *Gateway) SetMaxIdleConns(value int) {
-	g.db.SetMaxIdleConns(value)
+	g.driver.DB().SetMaxIdleConns(value)
 }
 
 // SetMaxOpenConns sets the maximum number of open connections to the database.
@@ -81,7 +102,7 @@ func (g *Gateway) SetMaxIdleConns(value int) {
 // If n <= 0, then there is no limit on the number of open connections.
 // The default is 0 (unlimited).
 func (g *Gateway) SetMaxOpenConns(value int) {
-	g.db.SetMaxOpenConns(value)
+	g.driver.DB().SetMaxOpenConns(value)
 }
 
 // SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
@@ -90,120 +111,111 @@ func (g *Gateway) SetMaxOpenConns(value int) {
 //
 // If d <= 0, connections are reused forever.
 func (g *Gateway) SetConnMaxLifetime(duration time.Duration) {
-	g.db.SetConnMaxLifetime(duration)
-}
-
-// PingContext pins the underlying database
-func (g *Gateway) PingContext(ctx context.Context) error {
-	return g.db.PingContext(ctx)
+	g.driver.DB().SetConnMaxLifetime(duration)
 }
 
 // Migrate runs all pending migration
 func (g *Gateway) Migrate(fileSystem FileSystem) error {
-	return sqlmigr.RunAll(g.db, fileSystem)
+	db := sqlx.NewDb(g.driver.DB(), g.driver.Dialect())
+	return sqlmigr.RunAll(db, fileSystem)
 }
 
 // ReadDir loads all script commands from a given directory. Note that all
 // scripts should have .sql extension and support the database driver.
-func (g *Gateway) ReadDir(fileSystem FileSystem) error {
-	return g.provider.ReadDir(fileSystem)
+func (g *Gateway) ReadDir(fs FileSystem) error {
+	return g.provider.ReadDir(fs)
 }
 
 // ReadFrom loads all script commands from a given directory. Note that all
 // scripts should have .sql extension.
-func (g *Gateway) ReadFrom(reader io.Reader) (int64, error) {
-	return g.provider.ReadFrom(reader)
+func (g *Gateway) ReadFrom(r io.Reader) (int64, error) {
+	return g.provider.ReadFrom(r)
 }
 
 // Begin begins a transaction and returns an *Tx
-func (g *Gateway) Begin() (*Tx, error) {
-	tx, err := g.db.Beginx()
+func (g *Gateway) Begin(ctx context.Context) (*TxGateway, error) {
+	tx, err := g.driver.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tx{
-		tx:       tx,
-		provider: g.provider,
-	}, nil
+	return g.begin(tx), nil
 }
 
-// Transaction starts a new transaction. It commits the transaction if
-// succeeds, otherwise rollbacks.
-func (g *Gateway) Transaction(fn TxFunc) error {
-	fnCtx := func(ctx context.Context, tx *Tx) error {
-		return fn(tx)
+// BeginTx begins a transaction and returns an *Tx
+func (g *Gateway) BeginTx(ctx context.Context, opts *sql.TxOptions) (*TxGateway, error) {
+	tx, err := g.driver.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
-	return g.TransactionContext(context.Background(), fnCtx)
+
+	return g.begin(tx), nil
 }
 
-// TransactionContext starts a new transaction. It commits the transaction if
-// succeeds, otherwise rollbacks.
-func (g *Gateway) TransactionContext(ctx context.Context, fn TxContextFunc) error {
-	tx, err := g.Begin()
+// RunInTx runs a callback function within a transaction. It commits the
+// transaction if succeeds, otherwise rollbacks.
+func (g *Gateway) RunInTx(ctx context.Context, fn RunTxFunc) error {
+	tx, err := g.driver.Tx(ctx)
 	if err != nil {
 		return err
 	}
 
-	if fErr := fn(ctx, tx); fErr != nil {
-		if tErr := tx.Rollback(); tErr != nil {
-			return tErr
-		}
+	txg := g.begin(tx)
 
-		return fErr
+	if err := fn(txg); err != nil {
+		txg.Rollback()
+		return err
 	}
 
-	return tx.Commit()
+	return txg.Commit()
 }
 
-// Select executes a given query and maps the result to the provided slice of entities.
-func (g *Gateway) Select(dest Entity, query NamedQuery) error {
-	return namedSelectMany(context.Background(), g.db, g.provider, dest, query)
+// All executes the query and returns a list of entities.
+func (g *Gateway) All(ctx context.Context, q sql.Querier, v interface{}) error {
+	return g.exec().All(ctx, q, v)
 }
 
-// SelectContext executes a given query and maps the result to the provided slice of entities.
-func (g *Gateway) SelectContext(ctx context.Context, dest Entity, query NamedQuery) error {
-	return namedSelectMany(ctx, g.db, g.provider, dest, query)
+// Only returns the only entity in the query, returns an error if not
+// exactly one entity was returned.
+func (g *Gateway) Only(ctx context.Context, q sql.Querier, v interface{}) error {
+	return g.exec().Only(ctx, q, v)
 }
 
-// SelectOne executes a given query and maps a single result to the provided entity.
-func (g *Gateway) SelectOne(dest Entity, query NamedQuery) error {
-	return namedSelectOne(context.Background(), g.db, g.provider, dest, query)
+// First returns the first entity in the query. Returns *NotFoundError
+// when no records were found.
+func (g *Gateway) First(ctx context.Context, q sql.Querier, v interface{}) error {
+	return g.exec().First(ctx, q, v)
 }
 
-// SelectOneContext executes a given query and maps a single result to the provided entity.
-func (g *Gateway) SelectOneContext(ctx context.Context, dest Entity, query NamedQuery) error {
-	return namedSelectOne(ctx, g.db, g.provider, dest, query)
+// Query executes a query that returns rows, typically a SELECT in SQL.
+// It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
+func (g *Gateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, error) {
+	return g.exec().Query(ctx, q)
 }
 
-// Query executes a given query and returns an instance of rows cursor.
-func (g *Gateway) Query(query NamedQuery) (*Rows, error) {
-	return namedQueryRows(context.Background(), g.db, g.provider, query)
+// Exec executes a query that doesn't return rows. For example, in SQL, INSERT
+// or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
+// sql.Result.
+func (g *Gateway) Exec(ctx context.Context, q sql.Querier) (sql.Result, error) {
+	return g.exec().Exec(ctx, q)
 }
 
-// QueryContext executes a given query and returns an instance of rows cursor.
-func (g *Gateway) QueryContext(ctx context.Context, query NamedQuery) (*Rows, error) {
-	return namedQueryRows(ctx, g.db, g.provider, query)
+func (g *Gateway) exec() *ExecGateway {
+	execer := &ExecGateway{
+		driver:   g.driver,
+		dialect:  g.driver.Dialect(),
+		provider: g.provider,
+	}
+
+	return execer
 }
 
-// QueryRow executes a given query and returns an instance of row.
-func (g *Gateway) QueryRow(query NamedQuery) (*Row, error) {
-	return namedQueryRow(context.Background(), g.db, g.provider, query)
-}
+func (g *Gateway) begin(tx dialect.Tx) *TxGateway {
+	execer := &TxGateway{
+		tx:       tx,
+		provider: g.provider,
+		dialect:  g.driver.Dialect(),
+	}
 
-// QueryRowContext executes a given query and returns an instance of row.
-func (g *Gateway) QueryRowContext(ctx context.Context, query NamedQuery) (*Row, error) {
-	return namedQueryRow(ctx, g.db, g.provider, query)
-}
-
-// Exec executes a given query. It returns a result that provides information
-// about the affected rows.
-func (g *Gateway) Exec(query NamedQuery) (Result, error) {
-	return namedExec(context.Background(), g.db, g.provider, query)
-}
-
-// ExecContext executes a given query. It returns a result that provides information
-// about the affected rows.
-func (g *Gateway) ExecContext(ctx context.Context, query NamedQuery) (Result, error) {
-	return namedExec(ctx, g.db, g.provider, query)
+	return execer
 }

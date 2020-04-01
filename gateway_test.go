@@ -8,593 +8,443 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	lk "github.com/ulule/loukoum"
-
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/bxcodec/faker/v3"
 	"github.com/phogolabs/orm"
+	"github.com/phogolabs/orm/dialect/sql"
 	"github.com/phogolabs/orm/fake"
 	"github.com/phogolabs/parcello"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
+var _ = Describe("Open", func() {
+	Context("when cannot open the database", func() {
+		It("returns an error", func() {
+			gateway, err := orm.Open("sqlite4", "/tmp/orm.db")
+			Expect(gateway).To(BeNil())
+			Expect(err).To(MatchError(`orm: unsupported driver: "sqlite4"`))
+		})
+	})
+
+	Context("when the dns is not wrong", func() {
+		It("returns an error", func() {
+			gateway, err := orm.Open("mysql", "localhost")
+			Expect(gateway).To(BeNil())
+			Expect(err).To(MatchError(`invalid DSN: missing the slash separating the database name`))
+		})
+	})
+})
+
+var _ = Describe("Connect", func() {
+	It("opens the URL successfully", func() {
+		gateway, err := orm.Connect("sqlite3://orm.db")
+		Expect(err).To(BeNil())
+		Expect(gateway).NotTo(BeNil())
+		Expect(gateway.Close()).To(Succeed())
+	})
+
+	Context("when cannot open the database", func() {
+		It("returns an error", func() {
+			gateway, err := orm.Connect(":::::")
+			Expect(err).To(MatchError("parse \":::::\": missing protocol scheme"))
+			Expect(gateway).To(BeNil())
+		})
+	})
+
+	Context("when the dns is not wrong", func() {
+		It("returns an error", func() {
+			gateway, err := orm.Connect("sqlite3://localhost:5430/db")
+			Expect(gateway).To(BeNil())
+			Expect(err).To(MatchError("unable to open database file"))
+		})
+	})
+})
+
 var _ = Describe("Gateway", func() {
-	var db *orm.Gateway
+	var (
+		ctx     context.Context
+		gateway *orm.Gateway
+	)
 
-	Describe("Open", func() {
-		Context("when cannot open the database", func() {
-			It("returns an error", func() {
-				g, err := orm.Open("sqlite4", "/tmp/orm.db")
-				Expect(g).To(BeNil())
-				Expect(err).To(MatchError(`sql: unknown driver "sqlite4" (forgotten import?)`))
-			})
-		})
-	})
+	BeforeEach(func() {
+		var err error
 
-	Describe("Connect", func() {
-		It("opens the URL successfully", func() {
-			g, err := orm.Connect("sqlite3://tmp/orm.db")
-			Expect(g).NotTo(BeNil())
-			Expect(err).To(BeNil())
-			Expect(g.Close()).To(Succeed())
-		})
+		gateway, err = orm.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
+		Expect(err).To(BeNil())
 
-		Context("when cannot open the database", func() {
-			It("returns an error", func() {
-				g, err := orm.Connect("://www")
-				Expect(g).To(BeNil())
-				Expect(err).To(MatchError("parse \"://www\": missing protocol scheme"))
-			})
-		})
-	})
+		ctx = context.TODO()
 
-	Describe("API", func() {
-		type Person struct {
-			FirstName string `db:"first_name"`
-			LastName  string `db:"last_name"`
-			Email     string `db:"email"`
-			Custom    string `db:"custom"`
+		query :=
+			sql.CreateTable("users").IfNotExists().
+				Columns(
+					sql.Column("id").Type("int"),
+					sql.Column("first_name").Type("varchar(255)").Attr("NOT NULL"),
+					sql.Column("last_name").Type("varchar(255)").Attr("NOT NULL"),
+					sql.Column("email").Type("varchar(255)").Attr("NULL"),
+					sql.Column("created_at").Type("timestamp").Attr("NULL"),
+				).
+				PrimaryKey("id")
+
+		_, err = gateway.Exec(ctx, query)
+		Expect(err).To(Succeed())
+
+		for i := 0; i < 10; i++ {
+			query :=
+				sql.Insert("users").
+					Columns("id", "first_name", "last_name", "email").
+					Values(i, faker.FirstName(), faker.LastName(), faker.Email()).
+					Returning("id")
+
+			result, err := gateway.Exec(ctx, query)
+			Expect(err).To(Succeed())
+
+			affected, err := result.RowsAffected()
+			Expect(err).To(Succeed())
+			Expect(affected).To(BeNumerically("==", 1))
 		}
+	})
+
+	AfterEach(func() {
+		_, err := gateway.Exec(ctx, sql.Raw("DELETE FROM users"))
+		Expect(err).To(Succeed())
+
+		Expect(gateway.Close()).To(Succeed())
+	})
+
+	Describe("SetMaxIdleConns", func() {
+		It("sets the value", func() {
+			Expect(func() { gateway.SetMaxIdleConns(10) }).NotTo(Panic())
+		})
+	})
+
+	Describe("SetMaxOpenConns", func() {
+		It("sets the value", func() {
+			Expect(func() { gateway.SetMaxOpenConns(10) }).NotTo(Panic())
+		})
+	})
+
+	Describe("SetMaxLifetime", func() {
+		It("sets the value", func() {
+			Expect(func() { gateway.SetConnMaxLifetime(10 * time.Minute) }).NotTo(Panic())
+		})
+	})
+
+	Describe("ReadDir", func() {
+		var fileSystem *fake.FileSystem
 
 		BeforeEach(func() {
-			var err error
-			db, err = orm.Open("sqlite3", "/tmp/orm.db")
-			Expect(err).To(BeNil())
-			Expect(db.DriverName()).To(Equal("sqlite3"))
-
-			buffer := &bytes.Buffer{}
-			fmt.Fprintln(buffer, "CREATE TABLE users (")
-			fmt.Fprintln(buffer, "  first_name text,")
-			fmt.Fprintln(buffer, "  last_name text,")
-			fmt.Fprintln(buffer, "  email text")
-			fmt.Fprintln(buffer, ");")
+			buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
 			fmt.Fprintln(buffer)
+			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
 
-			_, err = db.Exec(orm.SQL(buffer.String()))
-			Expect(err).To(BeNil())
+			content := buffer.Bytes()
 
-			_, err = db.Exec(orm.SQL("INSERT INTO users VALUES(?, ?, ?)", "John", "Doe", "john@example.com"))
+			node := &parcello.Node{
+				Name:    "script.sql",
+				Content: &content,
+				Mutex:   &sync.RWMutex{},
+			}
+
+			fileSystem = &fake.FileSystem{}
+			fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+
+			fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+				return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+			}
+		})
+
+		It("reads the directory", func() {
+			Expect(gateway.ReadDir(fileSystem)).To(Succeed())
+		})
+
+		Context("when the routine is executed", func() {
+			It("execs the routine", func() {
+				Expect(gateway.ReadDir(fileSystem)).To(Succeed())
+				_, err := gateway.Query(ctx, orm.Routine("cmd"))
+				Expect(err).To(Succeed())
+			})
+		})
+	})
+
+	Describe("ReadFrom", func() {
+		It("reads the routines from file", func() {
+			script := fmt.Sprintf("%v", time.Now().UnixNano())
+			buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
+			fmt.Fprintln(buffer)
+			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+			_, err := gateway.ReadFrom(buffer)
+			Expect(err).To(Succeed())
+		})
+	})
+
+	Describe("Migrate", func() {
+		var fileSystem *fake.FileSystem
+
+		BeforeEach(func() {
+			buffer := bytes.NewBufferString("-- name: up")
+
+			fmt.Fprintln(buffer)
+			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+
+			content := buffer.Bytes()
+
+			node := &parcello.Node{
+				Name:    "00060524000000_setup.sql",
+				Content: &content,
+				Mutex:   &sync.RWMutex{},
+			}
+
+			fileSystem = &fake.FileSystem{}
+			fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+
+			fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+				return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+			}
+
+			query :=
+				sql.CreateTable("migrations").IfNotExists().
+					Columns(
+						sql.Column("id").Type("varchar(15)"),
+						sql.Column("description").Type("text").Attr("NOT NULL"),
+						sql.Column("created_at").Type("timestamp").Attr("NOT NULL"),
+					).
+					PrimaryKey("id")
+
+			_, err := gateway.Exec(ctx, query)
 			Expect(err).To(Succeed())
 		})
 
-		AfterEach(func() {
-			_, err := db.Exec(orm.SQL("DROP TABLE users"))
-			Expect(err).To(BeNil())
-			Expect(db.Close()).To(Succeed())
+		It("executes the migration successfully", func() {
+			Expect(gateway.Migrate(fileSystem)).To(Succeed())
+		})
+	})
+
+	Describe("Begin", func() {
+		It("starts new transaction", func() {
+			tx, err := gateway.Begin(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tx).NotTo(BeNil())
 		})
 
-		Describe("Select", func() {
-			It("executes a query successfully", func() {
-				query := lk.Select("first_name", "last_name", "email").From("users")
-
-				persons := []Person{}
-				Expect(db.Select(&persons, query)).To(Succeed())
-				Expect(persons).To(HaveLen(1))
-				Expect(persons[0].FirstName).To(Equal("John"))
-				Expect(persons[0].LastName).To(Equal("Doe"))
-				Expect(persons[0].Email).To(Equal("john@example.com"))
-			})
-
-			Context("with context", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-					persons := []Person{}
-					Expect(db.SelectContext(context.Background(), &persons, query)).To(Succeed())
-					Expect(persons).To(HaveLen(1))
-					Expect(persons[0].FirstName).To(Equal("John"))
-					Expect(persons[0].LastName).To(Equal("Doe"))
-					Expect(persons[0].Email).To(Equal("john@example.com"))
-				})
-			})
-
-			Context("when the query fails", func() {
-				It("returns an error", func() {
-					query := lk.Select("name").From("categories")
-
-					persons := []Person{}
-					Expect(db.Select(&persons, query)).To(MatchError("no such table: categories"))
-					Expect(persons).To(BeEmpty())
-				})
-			})
-
-			Context("when an SQL statement is used", func() {
-				It("executes a query successfully", func() {
-					query := orm.SQL("SELECT * FROM users WHERE first_name = ?", "John")
-
-					persons := []Person{}
-					Expect(db.Select(&persons, query)).To(Succeed())
-					Expect(persons).To(HaveLen(1))
-					Expect(persons[0].FirstName).To(Equal("John"))
-					Expect(persons[0].LastName).To(Equal("Doe"))
-					Expect(persons[0].Email).To(Equal("john@example.com"))
-				})
-
-				Context("when the query does not exist", func() {
-					It("returns an error", func() {
-						query := orm.SQL("SELECT * FROM categories")
-
-						persons := []Person{}
-						Expect(db.Select(&persons, query)).To(MatchError("no such table: categories"))
-						Expect(persons).To(BeEmpty())
-					})
-				})
-			})
-		})
-
-		Context("when a templated query is used", func() {
-			It("executes a query successfully", func() {
-				param := orm.Map{
-					"schema": "public",
-					"name":   "John",
-				}
-
-				query := orm.SQL("SELECT *, '{{schema}}' AS custom FROM users WHERE first_name = :name", param)
-
-				persons := []Person{}
-				Expect(db.Select(&persons, query)).To(Succeed())
-				Expect(persons).To(HaveLen(1))
-				Expect(persons[0].FirstName).To(Equal("John"))
-				Expect(persons[0].LastName).To(Equal("Doe"))
-				Expect(persons[0].Email).To(Equal("john@example.com"))
-				Expect(persons[0].Custom).To(Equal("public"))
-			})
-
-			Context("when the template is wrong", func() {
-				It("returns an error", func() {
-					param := orm.Map{
-						"name": "John",
-					}
-
-					query := orm.SQL("SELECT *, '{{schema' AS custom FROM users WHERE first_name = :name", param)
-
-					persons := []Person{}
-					Expect(db.Select(&persons, query).Error()).To(ContainSubstring("Parse error on line 1"))
-				})
-			})
-		})
-
-		Describe("SelectOne", func() {
-			It("executes a query successfully", func() {
-				query := lk.Select("first_name", "last_name", "email").From("users")
-
-				person := Person{}
-				Expect(db.SelectOne(&person, query)).To(Succeed())
-			})
-
-			Context("with context", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-
-					person := Person{}
-					Expect(db.SelectOneContext(context.Background(), &person, query)).To(Succeed())
-				})
-			})
-
-			Context("when the query fails", func() {
-				It("returns an error", func() {
-					query := lk.Select("name").From("categories")
-
-					person := Person{}
-					Expect(db.SelectOne(&person, query)).To(MatchError("no such table: categories"))
-				})
-			})
-		})
-
-		Describe("Query", func() {
-			It("executes a query successfully", func() {
-				query := lk.Select("first_name", "last_name", "email").From("users")
-
-				var (
-					firstName string
-					lastName  string
-					email     string
-				)
-
-				rows, err := db.Query(query)
+		Context("when the gateway is closed", func() {
+			It("returns an error", func() {
+				gateway, err := orm.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
 				Expect(err).To(BeNil())
-				Expect(rows.Next()).To(BeTrue())
+				Expect(gateway.Close()).To(Succeed())
 
-				Expect(rows.Scan(&firstName, &lastName, &email)).To(Succeed())
-				Expect(firstName).To(Equal("John"))
-				Expect(lastName).To(Equal("Doe"))
-				Expect(email).To(Equal("john@example.com"))
-
-				Expect(rows.Next()).To(BeFalse())
-				Expect(rows.Close()).To(Succeed())
-			})
-
-			Context("with context", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-
-					var (
-						firstName string
-						lastName  string
-						email     string
-					)
-
-					rows, err := db.QueryContext(context.Background(), query)
-					Expect(err).To(BeNil())
-					Expect(rows.Next()).To(BeTrue())
-
-					Expect(rows.Scan(&firstName, &lastName, &email)).To(Succeed())
-					Expect(firstName).To(Equal("John"))
-					Expect(lastName).To(Equal("Doe"))
-					Expect(email).To(Equal("john@example.com"))
-
-					Expect(rows.Next()).To(BeFalse())
-					Expect(rows.Close()).To(Succeed())
-				})
-			})
-
-			Context("when the query fails", func() {
-				It("returns an error", func() {
-					query := lk.Select("name").From("categories")
-
-					rows, err := db.Query(query)
-					Expect(err).To(MatchError("no such table: categories"))
-					Expect(rows).To(BeNil())
-				})
+				tx, err := gateway.Begin(ctx)
+				Expect(err).To(MatchError("sql: database is closed"))
+				Expect(tx).To(BeNil())
 			})
 		})
+	})
 
-		Describe("QueryRow", func() {
-			It("executes a query successfully", func() {
-				query := lk.Select("first_name", "last_name", "email").From("users")
+	Describe("BeginTx", func() {
+		It("starts new transaction", func() {
+			tx, err := gateway.BeginTx(ctx, &sql.TxOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tx).NotTo(BeNil())
+		})
 
-				row, err := db.QueryRow(query)
+		Context("when the gateway is closed", func() {
+			It("returns an error", func() {
+				gateway, err := orm.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
 				Expect(err).To(BeNil())
-				Expect(row).NotTo(BeNil())
+				Expect(gateway.Close()).To(Succeed())
 
-				var (
-					firstName string
-					lastName  string
-					email     string
-				)
-
-				Expect(row.Scan(&firstName, &lastName, &email)).To(Succeed())
-				Expect(firstName).To(Equal("John"))
-				Expect(lastName).To(Equal("Doe"))
-				Expect(email).To(Equal("john@example.com"))
-			})
-
-			Context("with context", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-
-					row, err := db.QueryRowContext(context.Background(), query)
-					Expect(err).To(BeNil())
-					Expect(row).NotTo(BeNil())
-
-					var (
-						firstName string
-						lastName  string
-						email     string
-					)
-
-					Expect(row.Scan(&firstName, &lastName, &email)).To(Succeed())
-					Expect(firstName).To(Equal("John"))
-					Expect(lastName).To(Equal("Doe"))
-					Expect(email).To(Equal("john@example.com"))
-				})
-			})
-
-			Context("when the query fails", func() {
-				It("returns an error", func() {
-					query := lk.Select("name").From("categories")
-
-					row, err := db.QueryRow(query)
-					Expect(err).To(MatchError("no such table: categories"))
-					Expect(row).To(BeNil())
-				})
+				tx, err := gateway.BeginTx(ctx, &sql.TxOptions{})
+				Expect(err).To(MatchError("sql: database is closed"))
+				Expect(tx).To(BeNil())
 			})
 		})
+	})
 
-		Describe("Exec", func() {
-			It("executes a query successfully", func() {
-				query := lk.Delete("users")
+	Describe("RunInTx", func() {
+		It("starts new transaction", func() {
+			err := gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+				entities := []*User{}
+				Expect(tx.All(ctx, sql.Raw("SELECT * FROM users"), &entities)).To(Succeed())
 
-				_, err := db.Exec(query)
+				entity := &User{}
+				Expect(tx.Only(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(Succeed())
+				Expect(tx.First(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(Succeed())
+
+				_, err := tx.Exec(ctx, sql.Raw("UPDATE users SET created_at = strftime()"))
 				Expect(err).To(Succeed())
 
-				rows, err := db.Query(orm.SQL("SELECT * FROM users"))
-				Expect(err).To(BeNil())
-				Expect(rows).NotTo(BeNil())
-				Expect(rows.Next()).To(BeFalse())
-				Expect(rows.Close()).To(Succeed())
-			})
-
-			Context("when a template query is used", func() {
-				It("executes a query successfully", func() {
-					param := orm.Map{
-						"table": "users",
-					}
-
-					query := orm.SQL("DELETE FROM {{table}}", param)
-
-					_, err := db.Exec(query)
-					Expect(err).To(Succeed())
-
-					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
-					Expect(err).To(BeNil())
-					Expect(rows).NotTo(BeNil())
-					Expect(rows.Next()).To(BeFalse())
-					Expect(rows.Close()).To(Succeed())
-				})
-			})
-
-			Context("when context", func() {
-				It("executes a query successfully", func() {
-					query := lk.Delete("users")
-
-					_, err := db.ExecContext(context.Background(), query)
-					Expect(err).To(Succeed())
-
-					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
-					Expect(err).To(BeNil())
-					Expect(rows).NotTo(BeNil())
-					Expect(rows.Next()).To(BeFalse())
-					Expect(rows.Close()).To(Succeed())
-				})
-			})
-
-			Context("when the query fails", func() {
-				It("returns an error", func() {
-					query := lk.Delete("categories")
-					_, err := db.Exec(query)
-					Expect(err).To(MatchError("no such table: categories"))
-				})
-			})
-
-			Describe("Transaction", func() {
-				Context("when the db is closed", func() {
-					It("returns the error", func() {
-						ddb, err := orm.Open("sqlite3", "/tmp/orm.db")
-						Expect(err).To(BeNil())
-						Expect(ddb.Close()).To(Succeed())
-
-						terr := ddb.Transaction(func(tx *orm.Tx) error {
-							return nil
-						})
-
-						Expect(terr).To(MatchError("sql: database is closed"))
-					})
-				})
-
-				It("start the transaction successfully", func() {
-					err := db.Transaction(func(tx *orm.Tx) error {
-						_, err := tx.Exec(orm.SQL("DELETE FROM users"))
-						Expect(err).NotTo(HaveOccurred())
-						return nil
-
-					})
-
-					Expect(err).NotTo(HaveOccurred())
-
-					rows, err := db.Query(orm.SQL("SELECT * FROM users"))
-					Expect(err).To(BeNil())
-					Expect(rows).NotTo(BeNil())
-					Expect(rows.Next()).To(BeFalse())
-					Expect(rows.Close()).To(Succeed())
-				})
-
-				Context("when the function returns an error", func() {
-					It("rollbacks the transaction", func() {
-						err := db.Transaction(func(tx *orm.Tx) error {
-							return fmt.Errorf("Oh no!")
-						})
-
-						Expect(err).To(MatchError("Oh no!"))
-					})
-				})
-			})
-		})
-
-		Describe("Tx", func() {
-			var tx *orm.Tx
-
-			BeforeEach(func() {
-				var err error
-				tx, err = db.Begin()
+				rows, err := tx.Query(ctx, sql.Raw("UPDATE users SET created_at = strftime()"))
 				Expect(err).To(Succeed())
+				Expect(rows.Close()).To(Succeed())
+
+				return nil
 			})
 
-			Context("when the database is not available", func() {
-				It("cannot start a transaction", func() {
-					txDb, err := orm.Open("sqlite3", "/tmp/orm.db")
-					Expect(err).To(BeNil())
-					Expect(txDb.DriverName()).To(Equal("sqlite3"))
-					Expect(txDb.Close()).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-					anotherTx, err := txDb.Begin()
-					Expect(err).To(MatchError("sql: database is closed"))
-					Expect(anotherTx).To(BeNil())
-				})
-			})
+		Context("when the gateway is closed", func() {
+			It("returns an error", func() {
+				gateway, err := orm.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
+				Expect(err).To(BeNil())
+				Expect(gateway.Close()).To(Succeed())
 
-			Describe("Select", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-
-					persons := []Person{}
-					Expect(tx.Select(&persons, query)).To(Succeed())
-					Expect(persons).To(HaveLen(1))
-					Expect(persons[0].FirstName).To(Equal("John"))
-					Expect(persons[0].LastName).To(Equal("Doe"))
-					Expect(persons[0].Email).To(Equal("john@example.com"))
-					Expect(tx.Commit()).To(Succeed())
+				err = gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+					return nil
 				})
 
-				Context("with context", func() {
-					It("executes a query successfully", func() {
-						query := lk.Select("first_name", "last_name", "email").From("users")
-
-						persons := []Person{}
-						Expect(tx.SelectContext(context.Background(), &persons, query)).To(Succeed())
-						Expect(persons).To(HaveLen(1))
-						Expect(persons[0].FirstName).To(Equal("John"))
-						Expect(persons[0].LastName).To(Equal("Doe"))
-						Expect(persons[0].Email).To(Equal("john@example.com"))
-						Expect(tx.Commit()).To(Succeed())
-					})
-				})
-			})
-
-			Describe("SelectOne", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-
-					person := Person{}
-					Expect(tx.SelectOne(&person, query)).To(Succeed())
-					Expect(tx.Commit()).To(Succeed())
-				})
-
-				Context("with context", func() {
-					It("executes a query successfully", func() {
-						query := lk.Select("first_name", "last_name", "email").From("users")
-
-						person := Person{}
-						Expect(tx.SelectOneContext(context.Background(), &person, query)).To(Succeed())
-						Expect(tx.Commit()).To(Succeed())
-					})
-				})
-			})
-
-			Describe("QueryRow", func() {
-				It("executes a query successfully", func() {
-					query := lk.Select("first_name", "last_name", "email").From("users")
-					_, err := tx.QueryRow(query)
-					Expect(err).To(Succeed())
-				})
-
-				Context("with context", func() {
-					It("executes a query successfully", func() {
-						query := lk.Select("first_name", "last_name", "email").From("users")
-						_, err := tx.QueryRowContext(context.Background(), query)
-						Expect(err).To(Succeed())
-					})
-				})
-			})
-
-			Describe("Exec", func() {
-				It("executes a query successfully", func() {
-					query := lk.Delete("users")
-
-					_, err := tx.Exec(query)
-					Expect(err).To(Succeed())
-
-					rows, err := tx.Query(orm.SQL("SELECT * FROM users"))
-					Expect(err).To(BeNil())
-					Expect(rows).NotTo(BeNil())
-					Expect(rows.Next()).To(BeFalse())
-					Expect(rows.Close()).To(Succeed())
-					Expect(tx.Commit()).To(Succeed())
-				})
-
-				Context("with context", func() {
-					It("executes a query successfully", func() {
-						query := lk.Delete("users")
-
-						_, err := tx.ExecContext(context.Background(), query)
-						Expect(err).To(Succeed())
-
-						rows, err := tx.QueryContext(context.Background(), orm.SQL("SELECT * FROM users"))
-						Expect(err).To(BeNil())
-						Expect(rows).NotTo(BeNil())
-						Expect(rows.Next()).To(BeFalse())
-						Expect(rows.Close()).To(Succeed())
-						Expect(tx.Commit()).To(Succeed())
-					})
-				})
-			})
-
-			Describe("Rollback", func() {
-				It("rollbacks the transaction successfully", func() {
-					query := lk.Delete("users")
-
-					_, err := tx.Exec(query)
-					Expect(err).To(Succeed())
-					Expect(tx.Rollback()).To(Succeed())
-				})
+				Expect(err).To(MatchError("sql: database is closed"))
 			})
 		})
 
-		Context("when a routine is executed", func() {
-			Context("when loading a singled file", func() {
-				var script string
-
-				BeforeEach(func() {
-					script = fmt.Sprintf("%v", time.Now().UnixNano())
-					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
-					fmt.Fprintln(buffer)
-					fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
-					_, err := db.ReadFrom(buffer)
-					Expect(err).To(Succeed())
+		Context("when the transaction fails", func() {
+			It("returns an error", func() {
+				err := gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+					Expect(tx).NotTo(BeNil())
+					return fmt.Errorf("oh no")
 				})
 
-				It("executes the commands successfully", func() {
-					stmt := orm.Routine(script)
-
-					_, err := db.Exec(stmt)
-					Expect(err).NotTo(HaveOccurred())
-				})
+				Expect(err).To(MatchError("oh no"))
 			})
+		})
+	})
 
-			Context("when loading a whole directory", func() {
-				BeforeEach(func() {
-					buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
-					fmt.Fprintln(buffer)
-					fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+	Describe("Dialect", func() {
+		It("returns the dialect", func() {
+			Expect(gateway.Dialect()).To(Equal("sqlite3"))
+		})
+	})
 
-					content := buffer.Bytes()
+	Describe("All", func() {
+		It("returns all entities", func() {
+			entities := []*User{}
 
-					node := &parcello.Node{
-						Name:    "script.sql",
-						Content: &content,
-						Mutex:   &sync.RWMutex{},
-					}
+			Expect(gateway.All(ctx, sql.Raw("SELECT * FROM users"), &entities)).To(Succeed())
+			Expect(entities).To(HaveLen(10))
 
-					fileSystem := &fake.FileSystem{}
-					fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+			Expect(entities[0].ID).To(Equal(0))
+			Expect(entities[0].Email).NotTo(BeNil())
 
-					fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-						return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-					}
+			Expect(entities[1].ID).To(Equal(1))
+			Expect(entities[1].Email).NotTo(BeNil())
+		})
 
-					Expect(db.ReadDir(fileSystem)).To(Succeed())
-				})
+		Context("when the database operation fail", func() {
+			It("returns an error", func() {
+				entities := []*User{}
 
-				It("returns a command", func() {
-					_, err := db.Exec(orm.Routine("cmd"))
-					Expect(err).NotTo(HaveOccurred())
-				})
+				Expect(gateway.All(ctx, sql.Raw("SELECT * FROM unknown.users"), &entities)).To(MatchError("no such table: unknown.users"))
+				Expect(entities).To(HaveLen(0))
 			})
+		})
 
-			Context("when the routine does not exits", func() {
-				It("does not return a statement", func() {
-					_, err := db.Exec(orm.Routine("down"))
-					Expect(err).To(MatchError("query 'down' not found"))
-				})
+		Context("when the routine is unknown", func() {
+			It("returns an error", func() {
+				entities := []*User{}
+
+				err := gateway.All(ctx, sql.Routine("my-unknown-routine"), entities)
+				Expect(err).To(MatchError("query 'my-unknown-routine' not found"))
+			})
+		})
+	})
+
+	Describe("Only", func() {
+		It("returns the first entity", func() {
+			entity := &User{}
+			Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(Succeed())
+
+			Expect(entity.ID).To(Equal(0))
+			Expect(entity.Email).NotTo(BeNil())
+		})
+
+		Context("when the provided type is not compatible", func() {
+			It("returns an error", func() {
+				entity := "root"
+				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
+			})
+		})
+
+		Context("when there are more than one entities", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users"), entity)).To(MatchError("orm: user not singular"))
+			})
+		})
+
+		Context("when there are not entities", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users WHERE id > 1000"), entity)).To(MatchError("orm: user not found"))
+			})
+		})
+
+		Context("when the database operation fail", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM unknown.users"), entity)).To(MatchError("no such table: unknown.users"))
+			})
+		})
+
+		Context("when the routine is unknown", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				err := gateway.Only(ctx, sql.Routine("my-unknown-routine"), entity)
+				Expect(err).To(MatchError("query 'my-unknown-routine' not found"))
+			})
+		})
+	})
+
+	Describe("First", func() {
+		It("returns the first entity", func() {
+			entity := &User{}
+			Expect(gateway.First(ctx, sql.Raw("SELECT * FROM users"), entity)).To(Succeed())
+
+			Expect(entity.ID).To(Equal(0))
+			Expect(entity.Email).NotTo(BeNil())
+		})
+
+		Context("when the provided type is not compatible", func() {
+			It("returns an error", func() {
+				entity := "root"
+				Expect(gateway.First(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
+			})
+		})
+
+		Context("when there are not entities", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				Expect(gateway.First(ctx, sql.Raw("SELECT * FROM users WHERE id > 1000"), entity)).To(MatchError("orm: user not found"))
+			})
+		})
+
+		Context("when the database operation fail", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				Expect(gateway.First(ctx, sql.Raw("SELECT * FROM unknown.users"), entity)).To(MatchError("no such table: unknown.users"))
+			})
+		})
+
+		Context("when the routine is unknown", func() {
+			It("returns an error", func() {
+				entity := &User{}
+				err := gateway.First(ctx, sql.Routine("my-unknown-routine"), entity)
+				Expect(err).To(MatchError("query 'my-unknown-routine' not found"))
+			})
+		})
+	})
+
+	Describe("Exec", func() {
+		Context("when the query has wrong syntax", func() {
+			It("returns an error", func() {
+				_, err := gateway.Exec(ctx, sql.Raw("SELECT * FROM unknown.users"))
+				Expect(err).To(MatchError("no such table: unknown.users"))
+			})
+		})
+
+		Context("when the routine is unknown", func() {
+			It("returns an error", func() {
+				_, err := gateway.Exec(ctx, sql.Routine("my-unknown-routine"))
+				Expect(err).To(MatchError("query 'my-unknown-routine' not found"))
 			})
 		})
 	})

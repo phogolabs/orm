@@ -1,42 +1,42 @@
 package orm_test
 
 import (
-	"net/http"
-	"net/http/httptest"
+	"context"
+
+	"github.com/phogolabs/orm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/phogolabs/orm"
 )
 
-var _ = Describe("Middleware", func() {
-	var (
-		r *http.Request
-		g *orm.Gateway
-	)
-
-	BeforeEach(func() {
-		g = &orm.Gateway{}
-		r = httptest.NewRequest("GET", "http://example.com", nil)
+var _ = Describe("Context", func() {
+	Describe("NewGatewayContext", func() {
+		It("creates a new context", func() {
+			gateway := &orm.Gateway{}
+			ctx := orm.NewGatewayContext(context.TODO(), gateway)
+			Expect(ctx.Value(orm.GatewayCtxKey)).To(Equal(gateway))
+		})
 	})
 
-	It("sets the gateway successfully", func() {
-		ctx := orm.SetContext(r.Context(), g)
-		r = r.WithContext(ctx)
+	Describe("GetewayContextFrom", func() {
+		It("returns the gateway", func() {
+			gateway := &orm.Gateway{}
+			ctx := orm.NewGatewayContext(context.TODO(), gateway)
 
-		gw := orm.GetContext(r.Context())
-		Expect(gw).To(Equal(g))
-	})
+			injected := orm.GatewayFromContext(ctx)
+			Expect(injected).To(Equal(gateway))
+			Expect(injected).NotTo(BeNil())
+		})
 
-	Context("when the gateway is not presented", func() {
-		It("returns an error", func() {
-			gw := orm.GetContext(r.Context())
-			Expect(gw).To(BeNil())
+		Context("when the gateway is not set", func() {
+			It("returns nil gateway", func() {
+				gateway := orm.GatewayFromContext(context.TODO())
+				Expect(gateway).To(BeNil())
+			})
 		})
 	})
 
 	It("formats the key correctly", func() {
-		Expect(orm.GatewayCtxKey.String()).To(Equal("orm/middleware context value Gateway"))
+		Expect(orm.GatewayCtxKey.String()).To(Equal("orm: context value gateway"))
 	})
 })

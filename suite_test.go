@@ -2,8 +2,9 @@ package orm_test
 
 import (
 	"testing"
+	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	_ "github.com/phogolabs/orm/fixture"
@@ -14,23 +15,11 @@ func TestORM(t *testing.T) {
 	RunSpecs(t, "ORM Suite")
 }
 
-type ObjP struct {
-	Id int `db:"id"`
-}
-
-type ObjM struct {
-	Id int
-}
-
-func (m *ObjM) Map() map[string]interface{} {
-	param := make(map[string]interface{})
-	param["id"] = m.Id
-	param["name"] = "jack"
-	return param
-}
-
-type Student struct {
-	ID       string `db:"id"`
-	Name     string `db:"name"`
-	Category string `db:"category"`
+// User represents a user
+type User struct {
+	ID        int        `db:"id,primary_key,not_null,read_only"`
+	FirstName string     `db:"first_name,not_null"`
+	LastName  string     `db:"last_name,not_null"`
+	Email     *string    `db:"email"`
+	CreatedAt *time.Time `db:"created_at"`
 }
