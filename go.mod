@@ -3,7 +3,6 @@ module github.com/phogolabs/orm
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/bxcodec/faker/v3 v3.3.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/mattn/go-sqlite3 v1.11.0
