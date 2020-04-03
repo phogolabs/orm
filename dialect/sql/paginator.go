@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
 // Paginator paginates a given selector
@@ -50,40 +52,49 @@ func (pq *Paginator) Query() (string, []interface{}) {
 }
 
 // Cursor returns the next cursor
-func (pq *Paginator) Cursor(v interface{}) *Cursor {
+func (pq *Paginator) Cursor(src interface{}) *Cursor {
 	var (
-		value  = reflect.Indirect(reflect.ValueOf(v))
-		kind   = value.Kind()
 		cursor = Cursor{}
+		value  = reflect.Indirect(reflect.ValueOf(src))
 	)
 
-	switch kind {
-	case reflect.Map:
-	case reflect.Struct:
-	case reflect.Slice:
+	if value.Kind() == reflect.Slice {
 		count := value.Len()
+
 		if count == 0 {
 			return &cursor
 		}
+
 		value = value.Index(count - 1)
-	default:
-		err := fmt.Errorf("sql/cursor: invalid type %s. expected map, struct or slice as an argument", kind)
+		src = value.Interface()
+	}
+
+	var (
+		positions = pq.positions()
+		columns   = []string{}
+	)
+
+	for _, position := range positions {
+		columns = append(columns, position.Column)
+	}
+
+	values, err := scan.Values(src, columns...)
+	if err != nil {
 		panic(err)
 	}
 
-	kv := bindParam(value.Interface())
+	for index, position := range pq.positions() {
+		if index >= len(values) {
+			panic("the order clauses should have valid cursor positions")
+		}
 
-	for _, position := range pq.positions() {
-		index := &CursorPosition{
+		nextPosition := &CursorPosition{
 			Column: position.Column,
 			Order:  position.Order,
+			Value:  values[index],
 		}
 
-		if value, ok := kv[position.Column]; ok {
-			index.Value = value
-		}
-
-		cursor = append(cursor, index)
+		cursor = append(cursor, nextPosition)
 	}
 
 	return &cursor

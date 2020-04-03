@@ -7,17 +7,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Routine", func() {
+var _ = Describe("RoutineQuerier", func() {
 	It("creates new routine successfully", func() {
-		type Namer interface {
-			Name() string
-		}
-
 		routine := sql.Routine("my-test-routine", 5432)
-
-		namer, ok := routine.(Namer)
-		Expect(ok).To(BeTrue())
-		Expect(namer.Name()).To(Equal("my-test-routine"))
+		Expect(routine.Name()).To(Equal("my-test-routine"))
 
 		query, params := routine.Query()
 		Expect(query).To(Equal("my-test-routine"))
@@ -26,31 +19,44 @@ var _ = Describe("Routine", func() {
 	})
 })
 
-var _ = Describe("Command", func() {
+var _ = Describe("NamedQuerier", func() {
 	Context("when the provided argument is single", func() {
 		It("creates new command successfully", func() {
-			routine := sql.Command("SELECT * FROM users WHERE id = ?", 5432)
+			routine := sql.NamedQuery("SELECT * FROM users WHERE id = ?", 5432)
 
 			query, params := routine.Query()
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :arg0"))
 			Expect(params).To(HaveLen(1))
-			Expect(params).To(ContainElement(5432))
+
+			namedArg, ok := params[0].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("arg0"))
+			Expect(namedArg.Value).To(Equal(5432))
 		})
 	})
 
 	Context("when the provided argument is a slice", func() {
 		It("creates new command successfully", func() {
-			routine := sql.Command("SELECT * FROM users WHERE id = ? AND category_id > ? AND category_name = ?", 1, 77, "fruits")
+			routine := sql.NamedQuery("SELECT * FROM users WHERE id = ? AND category_id > ? AND category_name = ?", 1, 77, "fruits")
 			query, params := routine.Query()
 
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :arg0 AND category_id > :arg1 AND category_name = :arg2"))
 			Expect(params).To(HaveLen(3))
-			Expect(params).To(ContainElement(1))
-			Expect(params).To(ContainElement(77))
-			Expect(params).To(ContainElement("fruits"))
-		})
 
-		Context("when the query is named", func() {
+			namedArg, ok := params[0].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("arg0"))
+			Expect(namedArg.Value).To(Equal(1))
+
+			namedArg, ok = params[1].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("arg1"))
+			Expect(namedArg.Value).To(Equal(77))
+
+			namedArg, ok = params[2].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("arg2"))
+			Expect(namedArg.Value).To(Equal("fruits"))
 		})
 	})
 
@@ -62,14 +68,26 @@ var _ = Describe("Command", func() {
 				"id":            1234,
 			}
 
-			routine := sql.Command("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", param)
+			routine := sql.NamedQuery("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", param)
 			query, params := routine.Query()
 
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name"))
 			Expect(params).To(HaveLen(3))
-			Expect(params).To(ContainElement(1234))
-			Expect(params).To(ContainElement(99))
-			Expect(params).To(ContainElement("nuts"))
+
+			namedArg, ok := params[0].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("id"))
+			Expect(namedArg.Value).To(Equal(1234))
+
+			namedArg, ok = params[1].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("category_id"))
+			Expect(namedArg.Value).To(Equal(99))
+
+			namedArg, ok = params[2].(sql.NamedArg)
+			Expect(ok).To(BeTrue())
+			Expect(namedArg.Name).To(Equal("category_name"))
+			Expect(namedArg.Value).To(Equal("nuts"))
 		})
 	})
 
@@ -81,23 +99,37 @@ var _ = Describe("Command", func() {
 		}
 
 		It("creates new command successfully", func() {
-			u := &User{
+			user := &User{
 				ID:           1234,
 				CategoryID:   99,
 				CategoryName: "nuts",
 			}
 
-			routine := sql.Command("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", u)
-
-			SetDialect("postgres", routine)
+			routine := sql.NamedQuery("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", user)
+			routine.SetDialect("postgres")
 
 			query, params := routine.Query()
-
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = $1 AND category_id > $2 AND category_name = $3"))
+
 			Expect(params).To(HaveLen(3))
 			Expect(params).To(ContainElement(1234))
 			Expect(params).To(ContainElement(99))
 			Expect(params).To(ContainElement("nuts"))
+
+			routine.SetDialect("sqlite")
+			query, params = routine.Query()
+			Expect(query).To(Equal("SELECT * FROM users WHERE id = ? AND category_id > ? AND category_name = ?"))
+			Expect(params).To(HaveLen(3))
+
+			routine.SetDialect("oci8")
+			query, params = routine.Query()
+			Expect(query).To(Equal("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name"))
+			Expect(params).To(HaveLen(3))
+
+			routine.SetDialect("sqlserver")
+			query, params = routine.Query()
+			Expect(query).To(Equal("SELECT * FROM users WHERE id = @id AND category_id > @category_id AND category_name = @category_name"))
+			Expect(params).To(HaveLen(3))
 		})
 	})
 })

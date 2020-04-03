@@ -144,6 +144,8 @@ type (
 	NullString = sql.NullString
 	// NullFloat64 is an alias to sql.NullFloat64.
 	NullFloat64 = sql.NullFloat64
+	// NullTime represents a time.Time that may be null.
+	NullTime = sql.NullTime
 	// TxOptions holds the transaction options to be used in DB.BeginTx.
 	TxOptions = sql.TxOptions
 )

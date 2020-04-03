@@ -7,8 +7,11 @@ import (
 
 	"github.com/phogolabs/orm/dialect"
 	"github.com/phogolabs/orm/dialect/sql"
+	"github.com/phogolabs/orm/dialect/sql/scan"
 	"github.com/phogolabs/prana/sqlexec"
 )
+
+var _ GatewayQuerier = &ExecGateway{}
 
 // ExecGateway is connected to a database and can executes SQL queries against it.
 type ExecGateway struct {
@@ -24,7 +27,7 @@ func (g *ExecGateway) All(ctx context.Context, q sql.Querier, v interface{}) err
 		return err
 	}
 
-	return sql.ScanSlice(rows, v)
+	return scan.Rows(rows, v)
 }
 
 // Only returns the only entity in the query, returns an error if not
@@ -39,7 +42,7 @@ func (g *ExecGateway) Only(ctx context.Context, q sql.Querier, v interface{}) er
 		return err
 	}
 
-	if err := sql.ScanSlice(rows, value.Interface()); err != nil {
+	if err := scan.Rows(rows, value.Interface()); err != nil {
 		return err
 	}
 
@@ -69,7 +72,7 @@ func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) e
 		return err
 	}
 
-	if err := sql.ScanSlice(rows, value.Interface()); err != nil {
+	if err := scan.Rows(rows, value.Interface()); err != nil {
 		return err
 	}
 
@@ -130,7 +133,7 @@ func (g *ExecGateway) compile(querier sql.Querier) (string, []interface{}, error
 			return "", nil, err
 		}
 
-		querier = sql.Command(query, params...)
+		querier = sql.NamedQuery(query, params...)
 	}
 
 	// set the dialect

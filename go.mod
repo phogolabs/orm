@@ -1,9 +1,13 @@
 module github.com/phogolabs/orm
 
 require (
+	github.com/AlekSi/pointer v1.1.0
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/bxcodec/faker/v3 v3.3.0
+	github.com/davecgh/go-spew v1.1.1
+	github.com/facebookincubator/ent v0.1.4
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae // indirect
+	github.com/google/uuid v1.1.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/onsi/ginkgo v1.8.0
@@ -11,6 +15,7 @@ require (
 	github.com/phogolabs/parcello v0.8.1
 	github.com/phogolabs/prana v0.0.0-20191007115605-282b624acbe2
 	github.com/stretchr/testify v1.4.0
+	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
 	golang.org/x/mod v0.2.0 // indirect
 	golang.org/x/sys v0.0.0-20191007092633-5f54ce542709 // indirect
 	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect

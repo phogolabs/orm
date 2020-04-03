@@ -14,6 +14,8 @@ import (
 	"github.com/phogolabs/prana/sqlmigr"
 )
 
+var _ GatewayQuerier = &Gateway{}
+
 // Gateway is connected to a database and can executes SQL queries against it.
 type Gateway struct {
 	driver   *sql.Driver
@@ -77,6 +79,17 @@ func (g *Gateway) Close() error {
 // Dialect returns the driver's dialect
 func (g *Gateway) Dialect() string {
 	return g.driver.Dialect()
+}
+
+// Debug sets the debug logging
+func (g *Gateway) Debug() *ExecGateway {
+	execer := &ExecGateway{
+		driver:   dialect.Debug(g.driver),
+		dialect:  g.driver.Dialect(),
+		provider: g.provider,
+	}
+
+	return execer
 }
 
 // SetMaxIdleConns sets the maximum number of connections in the idle

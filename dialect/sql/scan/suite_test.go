@@ -1,0 +1,28 @@
+package scan_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func TestScan(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Scan Suite")
+}
+
+type User struct {
+	ID        uuid.UUID  `db:"id,primary_key"`
+	Name      string     `db:"name"`
+	Email     *string    `db:"email"`
+	DeletedAt *time.Time `db:"deleted_at"`
+	CreatedAt time.Time  `db:"created_at,read_only"`
+}
+
+func String(v string) *string {
+	return &v
+}

@@ -1,119 +1,128 @@
 package sql
 
 import (
-	"bytes"
+	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
-var _ Querier = &routine{}
+var _ Querier = &RoutineQuerier{}
 
-// routine represents a named routine
-type routine struct {
-	name   string
-	params []interface{}
+// RoutineQuerier represents a named routine
+type RoutineQuerier struct {
+	name string
+	args []interface{}
 }
 
 // Routine create a new routine for given name
-func Routine(name string, params ...interface{}) Querier {
-	return &routine{
-		name:   name,
-		params: params,
+func Routine(name string, args ...interface{}) *RoutineQuerier {
+	return &RoutineQuerier{
+		name: name,
+		args: args,
 	}
 }
 
 // Name returns the name of the routine
-func (r *routine) Name() string {
+func (r *RoutineQuerier) Name() string {
 	return r.name
 }
 
 // Query returns the routine
 // Query returns the query representation of the element
 // and its arguments (if any).
-func (r *routine) Query() (string, []interface{}) {
-	return r.name, r.params
+func (r *RoutineQuerier) Query() (string, []interface{}) {
+	return r.name, r.args
 }
 
-var _ Querier = &command{}
+// A NamedArg is a named argument. NamedArg values may be used as
+// arguments to Query or Exec and bind to the corresponding named
+// parameter in the SQL statement.
+//
+// For a more concise way to create NamedArg values, see
+// the Named function.
+type NamedArg = sql.NamedArg
 
-type command struct {
+// Named provides a more concise way to create NamedArg values.
+var Named = sql.Named
+
+var _ Querier = &NamedQuerier{}
+
+// A NamedQuerier is a named query that uses named arguments
+type NamedQuerier struct {
 	query   string
+	args    []sql.NamedArg
 	dialect string
-	params  []interface{}
-	err     error
 }
 
-// Command create a new command from raw query
-func Command(query string, params ...interface{}) Querier {
-	stmt := &command{
-		query:  query,
-		params: params,
+// NamedQuery create a new named query
+func NamedQuery(query string, params ...interface{}) *NamedQuerier {
+	query, columns := scan.NamedQuery(query)
+
+	args, err := scan.Args(params, columns...)
+	if err != nil {
+		args = params
 	}
 
-	stmt.rename()
-	return stmt
+	querier := &NamedQuerier{
+		query: query,
+	}
+
+	for index, name := range columns {
+		param := sql.Named(name, args[index])
+		querier.args = append(querier.args, param)
+	}
+
+	return querier
+}
+
+// Dialect returns the dialect
+func (r *NamedQuerier) Dialect() string {
+	return r.dialect
 }
 
 // SetDialect sets the dialect
-func (r *command) SetDialect(dialect string) {
+func (r *NamedQuerier) SetDialect(dialect string) {
 	r.dialect = dialect
+}
+
+// Total returns the total count of parameters
+func (r *NamedQuerier) Total() int {
+	return len(r.args)
 }
 
 // Query returns the routine
 // Query returns the query representation of the element
 // and its arguments (if any).
-func (r *command) Query() (string, []interface{}) {
+func (r *NamedQuerier) Query() (string, []interface{}) {
 	var (
-		query, names = r.compile()
-		params       = r.bind(names)
+		query = r.query
+		args  = make([]interface{}, 0)
 	)
 
-	return query, params
-}
+	for index, param := range r.args {
+		target := fmt.Sprintf(":%v", param.Name)
 
-func (r *command) rename() {
-	var (
-		query  = r.query
-		buffer = &bytes.Buffer{}
-		next   int
-	)
-
-	for index := strings.Index(query, "?"); index != -1; index = strings.Index(query, "?") {
-		fmt.Fprintf(buffer, query[:index])
-		fmt.Fprintf(buffer, ":arg%d", next)
-
-		query = query[index+1:]
-		next++
-	}
-
-	fmt.Fprintf(buffer, query)
-	r.query = buffer.String()
-}
-
-func (r *command) compile() (query string, columns []string) {
-	query, columns, err := compile(r.dialect, r.query)
-	if err != nil {
-		r.err = err
-	}
-
-	return query, columns
-}
-
-func (r *command) bind(columns []string) []interface{} {
-	if len(columns) == 0 {
-		return r.params
-	}
-
-	var (
-		kv     = bindParam(r.params)
-		params = []interface{}{}
-	)
-
-	for _, name := range columns {
-		if v, ok := kv[name]; ok {
-			params = append(params, v)
+		switch r.dialect {
+		case "postgres":
+			name := fmt.Sprintf("$%d", index+1)
+			query = strings.Replace(query, target, name, 1)
+			args = append(args, param.Value)
+		case "mysql", "sqlite":
+			name := "?"
+			query = strings.Replace(query, target, name, 1)
+			args = append(args, param.Value)
+		case "oci8", "ora", "goracle", "godror":
+			args = append(args, param)
+		case "sqlserver":
+			name := fmt.Sprintf("@%v", param.Name)
+			query = strings.Replace(query, target, name, 1)
+			args = append(args, param)
+		default:
+			args = append(args, param)
 		}
 	}
 
-	return params
+	return query, args
 }

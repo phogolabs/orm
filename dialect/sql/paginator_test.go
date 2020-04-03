@@ -30,11 +30,11 @@ var _ = Describe("Paginator", func() {
 		query, _ := paginator.Query()
 		Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name ASC`, `id ASC` LIMIT ?"))
 
-		kv := make(map[string]interface{})
-		kv["id"] = 1
-		kv["name"] = "John"
+		params := make(map[string]interface{})
+		params["id"] = 1
+		params["name"] = "John"
 
-		cursor = paginator.Cursor(kv)
+		cursor = paginator.Cursor(&params)
 
 		paginator, err = selector.Clone().PaginateBy("id ASC").Seek(cursor)
 		Expect(err).NotTo(HaveOccurred())
@@ -86,12 +86,12 @@ var _ = Describe("Paginator", func() {
 				Name string `db:"name"`
 			}
 
-			u := &User{ID: 1, Name: "John"}
+			user := &User{ID: 1, Name: "John"}
 
 			paginator, err := selector.Clone().PaginateBy("id DESC").Seek(&sql.Cursor{})
 			Expect(err).NotTo(HaveOccurred())
 
-			cursor := paginator.Cursor(u)
+			cursor := paginator.Cursor(user)
 			positions := *cursor
 
 			Expect(positions).To(HaveLen(2))
