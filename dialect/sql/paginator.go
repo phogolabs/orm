@@ -276,5 +276,9 @@ func (p *CursorPosition) Equal(pp *CursorPosition) bool {
 
 // String returns the position as string
 func (p *CursorPosition) String() string {
-	return fmt.Sprintf("%v %v", p.Column, strings.ToUpper(p.Order))
+	if p.Order == "asc" {
+		return Asc(p.Column)
+	}
+
+	return Desc(p.Column)
 }
