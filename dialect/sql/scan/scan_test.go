@@ -14,9 +14,9 @@ var _ = Describe("Scan", func() {
 	var db *sql.DB
 
 	type User struct {
-		ID       int    `db:"id"`
-		Name     string `db:"name"`
-		Password string `db:"password"`
+		ID       int     `db:"id"`
+		Name     *string `db:"name"`
+		Password string  `db:"password"`
 	}
 
 	BeforeEach(func() {
@@ -48,7 +48,7 @@ var _ = Describe("Scan", func() {
 
 			Expect(scan.Row(rows, user)).To(Succeed())
 			Expect(user.ID).To(Equal(1))
-			Expect(user.Name).To(Equal("root"))
+			Expect(*user.Name).To(Equal("root"))
 			Expect(user.Password).To(Equal("swordfish"))
 		})
 	})
@@ -72,11 +72,11 @@ var _ = Describe("Scan", func() {
 			Expect(users).To(HaveLen(2))
 
 			Expect(users[0].ID).To(Equal(1))
-			Expect(users[0].Name).To(Equal("root"))
+			Expect(*users[0].Name).To(Equal("root"))
 			Expect(users[0].Password).To(Equal("swordfish"))
 
 			Expect(users[1].ID).To(Equal(0))
-			Expect(users[1].Name).To(Equal("admin"))
+			Expect(*users[1].Name).To(Equal("admin"))
 			Expect(users[1].Password).To(Equal("qwerty"))
 		})
 	})

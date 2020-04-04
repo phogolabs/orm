@@ -35,6 +35,7 @@ func (r *Allocator) Set(value, next reflect.Value, columns []string) {
 		r.Set(value.Elem(), next.Elem(), columns)
 	case value.Kind() == reflect.Struct:
 		meta := mapper.TypeMap(value.Type())
+
 		for _, name := range columns {
 			field, _ := meta.Names[name]
 			source := next.FieldByIndex(field.Index)
