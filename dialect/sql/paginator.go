@@ -266,6 +266,7 @@ func CursorPositionFrom(order string) *CursorPosition {
 		}
 	}
 
+	position.Column = strings.Replace(position.Column, "`", "", -1)
 	return position
 }
 
