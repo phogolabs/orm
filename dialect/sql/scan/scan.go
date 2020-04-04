@@ -35,13 +35,17 @@ func Row(scanner Scanner, src interface{}) error {
 		return err
 	}
 
+	if expected, actual := len(columns), len(allocator.types); expected > actual {
+		return fmt.Errorf("sql/scan: columns do not match (%d > %d)", expected, actual)
+	}
+
 	values := allocator.Allocate()
 	if err := scanner.Scan(values...); err != nil {
 		return fmt.Errorf("sql/scan: failed scanning rows: %v", err)
 	}
 
-	next := allocator.Set(values...)
-	value.Set(next)
+	next := allocator.Create(values)
+	allocator.Set(value, next, columns)
 
 	if scanner.Next() {
 		return fmt.Errorf("sql/scan: expect exactly one row in result set")
@@ -75,6 +79,11 @@ func Rows(scanner Scanner, src interface{}) error {
 		return fmt.Errorf("sql/scan: columns do not match (%d > %d)", expected, actual)
 	}
 
+	var (
+		count = value.Len()
+		index = 0
+	)
+
 	for scanner.Next() {
 		values := allocator.Allocate()
 
@@ -82,8 +91,14 @@ func Rows(scanner Scanner, src interface{}) error {
 			return fmt.Errorf("sql/scan: failed scanning rows: %v", err)
 		}
 
-		next := reflect.Append(value, allocator.Set(values...))
-		value.Set(next)
+		switch {
+		case index < count:
+			allocator.Set(value.Index(index), allocator.Create(values), columns)
+			index++
+		default:
+			next := reflect.Append(value, allocator.Create(values))
+			value.Set(next)
+		}
 	}
 
 	return nil

@@ -1,40 +1,22 @@
 package sql
 
 import (
-	"strings"
-
 	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
 // NewDelete creates a Mutation that deletes the entity with given primary key.
 func NewDelete(table string, src interface{}) *DeleteBuilder {
-	keys, err := scan.Columns(src)
-	if err != nil {
-		panic(err)
-	}
-
 	var (
-		deleter = Delete(table)
-		columns = []string{}
+		deleter  = Delete(table)
+		iterator = scan.IteratorOf(src)
 	)
 
-	for _, key := range keys {
-		columns = append(columns, key.Name)
-	}
+	for iterator.Next() {
+		column := iterator.Column()
 
-	values, err := scan.Values(src, columns...)
-	if err != nil {
-		panic(err)
-	}
-
-	for index, key := range keys {
-		if key.HasOption("primary_key") {
-			deleter.Where(EQ(key.Name, values[index]))
+		if column.HasOption("primary_key") {
+			deleter.Where(EQ(column.Name, iterator.Value().Interface()))
 		}
-	}
-
-	if deleter.where == nil {
-		return nil
 	}
 
 	return deleter
@@ -42,23 +24,17 @@ func NewDelete(table string, src interface{}) *DeleteBuilder {
 
 // NewInsert creates a Mutation that will save the entity src into the db
 func NewInsert(table string, src interface{}) *InsertBuilder {
-	keys, err := scan.Columns(src)
-	if err != nil {
-		panic(err)
-	}
-
 	var (
 		inserter = Insert(table)
-		columns  = []string{}
+		iterator = scan.IteratorOf(src)
+		columns  = make([]string, 0)
+		values   = make([]interface{}, 0)
 	)
 
-	for _, key := range keys {
-		columns = append(columns, key.Name)
-	}
-
-	values, err := scan.Values(src, columns...)
-	if err != nil {
-		panic(err)
+	for iterator.Next() {
+		column := iterator.Column()
+		columns = append(columns, column.Name)
+		values = append(values, iterator.Value().Interface())
 	}
 
 	inserter = inserter.
@@ -72,53 +48,35 @@ func NewInsert(table string, src interface{}) *InsertBuilder {
 // NewUpdate creates a Mutation that updates the entity into the db
 func NewUpdate(table string, src interface{}, columns ...string) *UpdateBuilder {
 	var (
-		updater   = Update(table)
-		meta, err = scan.Columns(src)
+		empty      = len(columns) == 0
+		updater    = Update(table)
+		iterator   = scan.IteratorOf(src)
+		updateable = make(map[string]interface{})
 	)
 
-	if err != nil {
-		panic(err)
-	}
-
-	if len(columns) == 0 {
-		for _, column := range meta {
+	for iterator.Next() {
+		column := iterator.Column()
+		if empty {
 			columns = append(columns, column.Name)
 		}
-	}
 
-	hasOption := func(name string, option string) bool {
-		for _, column := range meta {
-			if strings.EqualFold(column.Name, name) {
-				return column.HasOption(option)
-			}
+		if !column.HasOption("read_only") {
+			updateable[column.Name] = iterator.Value().Interface()
 		}
 
-		return false
+		if column.HasOption("primary_key") {
+			updater.Where(EQ(column.Name, iterator.Value().Interface()))
+		}
 	}
 
-	values, err := scan.Values(src, columns...)
-	if err != nil {
-		panic(err)
-	}
-
-	for index, name := range columns {
-		value := values[index]
-
-		if !hasOption(name, "read_only") {
+	for _, name := range columns {
+		if value, ok := updateable[name]; ok {
 			if scan.IsNil(value) {
 				updater.SetNull(name)
 			} else {
 				updater.Set(name, value)
 			}
 		}
-
-		if hasOption(name, "primary_key") {
-			updater.Where(EQ(name, value))
-		}
-	}
-
-	if updater.Empty() {
-		return nil
 	}
 
 	updater = updater.Returning("*")

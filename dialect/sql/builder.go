@@ -811,6 +811,11 @@ func (d *DeleteBuilder) Query() (string, []interface{}) {
 	return d.String(), d.args
 }
 
+// Empty reports whether this builder does not contain update changes.
+func (d *DeleteBuilder) Empty() bool {
+	return d.where == nil
+}
+
 // Predicate is a where predicate.
 type Predicate struct {
 	Builder

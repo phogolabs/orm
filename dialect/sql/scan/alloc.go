@@ -9,27 +9,41 @@ import (
 // Allocator allocates values
 type Allocator struct {
 	types  []reflect.Type
-	setter func(values []interface{}) reflect.Value
+	create func(values []interface{}) reflect.Value
 }
 
-// Set sets the given values
-func (r *Allocator) Set(values ...interface{}) reflect.Value {
-	if r.setter != nil {
-		return r.setter(values)
-	}
-
-	return reflect.Value{}
+// Create sets the given values
+func (r *Allocator) Create(values []interface{}) reflect.Value {
+	return r.create(values)
 }
 
 // Allocate allocates values
 func (r *Allocator) Allocate() []interface{} {
 	values := make([]interface{}, len(r.types))
 
-	for i := range r.types {
-		values[i] = reflect.New(r.types[i]).Interface()
+	for index := range r.types {
+		values[index] = reflect.New(r.types[index]).Interface()
 	}
 
 	return values
+}
+
+// Set sets the values
+func (r *Allocator) Set(value, next reflect.Value, columns []string) {
+	switch {
+	case value.Kind() == reflect.Ptr:
+		r.Set(value.Elem(), next.Elem(), columns)
+	case value.Kind() == reflect.Struct:
+		meta := mapper.TypeMap(value.Type())
+		for _, name := range columns {
+			field, _ := meta.Names[name]
+			source := next.FieldByIndex(field.Index)
+			target := value.FieldByIndex(field.Index)
+			target.Set(source)
+		}
+	default:
+		value.Set(next)
+	}
 }
 
 // NewAllocator returns allocator  for the given reflect.Type.
@@ -52,7 +66,7 @@ func NewAllocator(typ reflect.Type, columns []string) (*Allocator, error) {
 func NewAllocatorPrimitive(typ reflect.Type) *Allocator {
 	return &Allocator{
 		types: []reflect.Type{typ},
-		setter: func(v []interface{}) reflect.Value {
+		create: func(v []interface{}) reflect.Value {
 			return reflect.Indirect(reflect.ValueOf(v[0]))
 		},
 	}
@@ -61,9 +75,9 @@ func NewAllocatorPrimitive(typ reflect.Type) *Allocator {
 // NewAllocatorStruct returns the a configuration for scanning an sql.Row into a struct.
 func NewAllocatorStruct(typ reflect.Type, columns []string) (*Allocator, error) {
 	var (
-		allocator = &Allocator{}
-		meta      = mapper.TypeMap(typ)
-		indices   = make([][]int, 0, typ.NumField())
+		meta    = mapper.TypeMap(typ)
+		types   = []reflect.Type{}
+		indices = make([][]int, 0, typ.NumField())
 	)
 
 	for _, name := range columns {
@@ -75,17 +89,20 @@ func NewAllocatorStruct(typ reflect.Type, columns []string) (*Allocator, error) 
 		}
 
 		indices = append(indices, field.Index)
-		allocator.types = append(allocator.types, field.Field.Type)
+		types = append(types, field.Field.Type)
 	}
 
-	allocator.setter = func(values []interface{}) reflect.Value {
-		value := reflect.New(typ).Elem()
+	allocator := &Allocator{
+		types: types,
+		create: func(values []interface{}) reflect.Value {
+			value := reflect.New(typ).Elem()
 
-		for index, field := range values {
-			value.FieldByIndex(indices[index]).Set(reflect.Indirect(reflect.ValueOf(field)))
-		}
+			for index, field := range values {
+				value.FieldByIndex(indices[index]).Set(reflect.Indirect(reflect.ValueOf(field)))
+			}
 
-		return value
+			return value
+		},
 	}
 
 	return allocator, nil
@@ -100,10 +117,10 @@ func NewAllocatorPtr(typ reflect.Type, columns []string) (*Allocator, error) {
 		return nil, err
 	}
 
-	wrap := allocator.setter
+	create := allocator.create
 
-	allocator.setter = func(vs []interface{}) reflect.Value {
-		value := wrap(vs)
+	allocator.create = func(vs []interface{}) reflect.Value {
+		value := create(vs)
 		ptrTyp := reflect.PtrTo(value.Type())
 		ptr := reflect.New(ptrTyp.Elem())
 		ptr.Elem().Set(value)

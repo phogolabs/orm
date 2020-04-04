@@ -15,6 +15,10 @@ var (
 
 // IsNil returns true if the value is nil
 func IsNil(src interface{}) bool {
+	if src == nil {
+		return true
+	}
+
 	value := reflect.ValueOf(src)
 
 	switch value.Kind() {
@@ -36,26 +40,30 @@ func IsNil(src interface{}) bool {
 }
 
 // Args returns the arguments
-func Args(args []interface{}, columns ...string) ([]interface{}, error) {
+func Args(src []interface{}, columns ...string) ([]interface{}, error) {
 	if len(columns) == 0 {
-		return args, nil
+		return src, nil
 	}
 
-	values := make([]interface{}, 0)
+	args := make([]interface{}, 0)
 
-	for _, arg := range args {
+	for _, arg := range src {
 		param := reflect.ValueOf(arg)
 		param = reflect.Indirect(param)
 
-		paramValues, err := valuesOf(param, columns)
-		if err != nil {
-			return nil, err
+		switch k := param.Type().Kind(); {
+		case k == reflect.String || k >= reflect.Bool && k <= reflect.Float64:
+			args = append(args, arg)
+		default:
+			values, err := valuesOf(param, columns)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, values...)
 		}
-
-		values = append(values, paramValues...)
 	}
 
-	return values, nil
+	return args, nil
 }
 
 // Values scans a struct and returns the values associated with the columns

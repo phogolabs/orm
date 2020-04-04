@@ -61,9 +61,11 @@ var _ = Describe("Scan", func() {
 			_, err = db.Exec("INSERT INTO users VALUES(2, 'admin', 'qwerty')")
 			Expect(err).To(BeNil())
 
-			users := []*User{}
+			users := []*User{
+				&User{ID: 1},
+			}
 
-			rows, err := db.Query("SELECT * FROM users")
+			rows, err := db.Query("SELECT name,password FROM users")
 			Expect(err).To(BeNil())
 
 			Expect(scan.Rows(rows, &users)).To(Succeed())
@@ -73,7 +75,7 @@ var _ = Describe("Scan", func() {
 			Expect(users[0].Name).To(Equal("root"))
 			Expect(users[0].Password).To(Equal("swordfish"))
 
-			Expect(users[1].ID).To(Equal(2))
+			Expect(users[1].ID).To(Equal(0))
 			Expect(users[1].Name).To(Equal("admin"))
 			Expect(users[1].Password).To(Equal("qwerty"))
 		})

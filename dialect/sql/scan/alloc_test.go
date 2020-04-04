@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/phogolabs/orm/dialect/sql/scan"
 
 	. "github.com/onsi/ginkgo"
@@ -12,13 +11,18 @@ import (
 )
 
 var _ = Describe("Allocator", func() {
+	type User struct {
+		ID        string    `db:"id"`
+		Name      string    `db:"name"`
+		CreatedAt time.Time `db:"created_at"`
+	}
+
 	Describe("Allocate", func() {
 		It("allocates new values", func() {
-			type User struct {
-				ID        string    `db:"id"`
-				Name      string    `db:"name"`
-				CreatedAt time.Time `db:"created_at"`
-			}
+			var (
+				id   = "007"
+				name = "John"
+			)
 
 			columns := []string{"id", "name", "created_at"}
 			allocator, err := scan.NewAllocator(reflect.TypeOf(&User{}), columns)
@@ -27,11 +31,14 @@ var _ = Describe("Allocator", func() {
 			values := allocator.Allocate()
 			Expect(values).To(HaveLen(3))
 
-			value := allocator.Set("007", "John", time.Now())
+			values[0] = &id
+			values[1] = &name
+
+			value := allocator.Create(values)
 			user, ok := value.Interface().(*User)
 			Expect(ok).To(BeTrue())
-			Expect(user.ID).To(Equal("007"))
-			Expect(user.Name).To(Equal("John"))
+			Expect(user.ID).To(Equal(id))
+			Expect(user.Name).To(Equal(name))
 		})
 	})
 })

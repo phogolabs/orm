@@ -45,7 +45,7 @@ var _ = Describe("DeleteMutation", func() {
 			}
 
 			mutation := sql.NewDelete("users", user)
-			Expect(mutation).To(BeNil())
+			Expect(mutation.Empty()).To(BeTrue())
 		})
 	})
 })

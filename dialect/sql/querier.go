@@ -62,7 +62,7 @@ func NamedQuery(query string, params ...interface{}) *NamedQuerier {
 
 	args, err := scan.Args(params, columns...)
 	if err != nil {
-		args = params
+		panic(err)
 	}
 
 	querier := &NamedQuerier{
