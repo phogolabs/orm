@@ -6,6 +6,9 @@ import (
 	"reflect"
 )
 
+// ErrOneRow is returned by Row scan when the query returns more than one row
+var ErrOneRow = fmt.Errorf("sql/scan: expect exactly one row in result set")
+
 // Scanner is the interface that wraps the
 // three sql.Rows methods used for scanning.
 type Scanner interface {
@@ -48,7 +51,7 @@ func Row(scanner Scanner, src interface{}) error {
 	allocator.Set(value, next, columns)
 
 	if scanner.Next() {
-		return fmt.Errorf("sql/scan: expect exactly one row in result set")
+		return ErrOneRow
 	}
 
 	return nil
@@ -94,11 +97,11 @@ func Rows(scanner Scanner, src interface{}) error {
 		switch {
 		case index < count:
 			allocator.Set(value.Index(index), allocator.Create(values), columns)
-			index++
 		default:
-			next := reflect.Append(value, allocator.Create(values))
-			value.Set(next)
+			value.Set(reflect.Append(value, allocator.Create(values)))
 		}
+
+		index++
 	}
 
 	return nil

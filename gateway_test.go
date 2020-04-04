@@ -360,7 +360,7 @@ var _ = Describe("Gateway", func() {
 		Context("when the provided type is not compatible", func() {
 			It("returns an error", func() {
 				entity := "root"
-				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
+				Expect(gateway.Only(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), &entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
 			})
 		})
 
@@ -406,7 +406,7 @@ var _ = Describe("Gateway", func() {
 		Context("when the provided type is not compatible", func() {
 			It("returns an error", func() {
 				entity := "root"
-				Expect(gateway.First(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
+				Expect(gateway.First(ctx, sql.Raw("SELECT * FROM users WHERE id = 0"), &entity)).To(MatchError("sql/scan: columns do not match (5 > 1)"))
 			})
 		})
 

@@ -149,3 +149,8 @@ type (
 	// TxOptions holds the transaction options to be used in DB.BeginTx.
 	TxOptions = sql.TxOptions
 )
+
+// ErrNoRows is returned by Scan when QueryRow doesn't return a
+// row. In such a case, QueryRow returns a placeholder *Row value that
+// defers this error until a Scan.
+var ErrNoRows = sql.ErrNoRows
