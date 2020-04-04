@@ -24,7 +24,7 @@ var _ = Describe("Paginator", func() {
 	})
 
 	It("creates new routine successfully", func() {
-		paginator, err := selector.Clone().PaginateBy("id ASC").Seek(cursor)
+		paginator, err := selector.Clone().PaginateBy("id ASC").Seek(nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		query, _ := paginator.Query()

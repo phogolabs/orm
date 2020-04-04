@@ -32,7 +32,7 @@ func (pq *Paginator) SetDialect(dialect string) {
 // Seek seeks the paginator
 func (pq *Paginator) Seek(cursor *Cursor) (*Paginator, error) {
 	if cursor == nil {
-		return pq, nil
+		cursor = &Cursor{}
 	}
 
 	if err := pq.order(*cursor); err != nil {
