@@ -703,6 +703,9 @@ func (u *UpdateBuilder) SetNull(column string) *UpdateBuilder {
 
 // Where adds a where predicate for update statement.
 func (u *UpdateBuilder) Where(p *Predicate) *UpdateBuilder {
+	if p == nil {
+		return u
+	}
 	if u.where != nil {
 		u.where.merge(p)
 	} else {
@@ -1462,6 +1465,9 @@ func (s *Selector) Offset(offset int) *Selector {
 
 // Where sets or appends the given predicate to the statement.
 func (s *Selector) Where(p *Predicate) *Selector {
+	if p == nil {
+		return s
+	}
 	if s.not {
 		p = Not(p)
 		s.not = false
