@@ -1,7 +1,6 @@
 module github.com/phogolabs/orm
 
 require (
-	github.com/AlekSi/pointer v1.1.0
 	github.com/bxcodec/faker/v3 v3.3.0
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae // indirect
 	github.com/google/uuid v1.1.1

@@ -13,14 +13,14 @@ import (
 // Paginator paginates a given selector
 type Paginator struct {
 	selector *Selector
-	unique   string
+	key      string
 }
 
 // PaginateBy a unique column
-func (s *Selector) PaginateBy(order string) *Paginator {
+func (s *Selector) PaginateBy(key string) *Paginator {
 	return &Paginator{
 		selector: s,
-		unique:   order,
+		key:      key,
 	}
 }
 
@@ -106,10 +106,10 @@ func (pq *Paginator) order(cursor []*CursorPosition) error {
 		pcount    = len(positions)
 		pindex    = 0
 		ccount    = len(cursor)
-		unique    = CursorPositionFrom(pq.unique)
+		pagingKey = CursorPositionFrom(pq.key)
 	)
 
-	if unique == nil {
+	if pagingKey == nil {
 		return fmt.Errorf("sql: pagination column not provided")
 	}
 
@@ -129,17 +129,17 @@ func (pq *Paginator) order(cursor []*CursorPosition) error {
 			continue
 		}
 
-		if !candidate.Equal(unique) {
+		if !candidate.Equal(pagingKey) {
 			return fmt.Errorf("sql: pagination column should be placed at the end")
 		}
 	}
 
 	switch {
 	case ccount == 0 && pcount == 0:
-		pq.selector = pq.selector.OrderBy(unique.String())
+		pq.selector = pq.selector.OrderBy(pagingKey.String())
 	case ccount == 0 && pcount != 0:
-		if candidate := positions[pindex]; !candidate.Equal(unique) {
-			pq.selector = pq.selector.OrderBy(unique.String())
+		if candidate := positions[pindex]; !candidate.Equal(pagingKey) {
+			pq.selector = pq.selector.OrderBy(pagingKey.String())
 		}
 	}
 
@@ -256,17 +256,16 @@ func CursorPositionFrom(order string) *CursorPosition {
 		return nil
 	case 1:
 		position = &CursorPosition{
-			Column: strings.ToLower(parts[0]),
+			Column: strings.ToLower(Unident(parts[0])),
 			Order:  "asc",
 		}
 	default:
 		position = &CursorPosition{
-			Column: strings.ToLower(parts[0]),
+			Column: strings.ToLower(Unident(parts[0])),
 			Order:  strings.ToLower(parts[1]),
 		}
 	}
 
-	position.Column = strings.Replace(position.Column, "`", "", -1)
 	return position
 }
 
@@ -282,4 +281,9 @@ func (p *CursorPosition) String() string {
 	}
 
 	return Desc(p.Column)
+}
+
+// Unident return the string unidented
+func Unident(v string) string {
+	return strings.Replace(v, "`", "", -1)
 }

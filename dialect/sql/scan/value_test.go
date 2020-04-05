@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/AlekSi/pointer"
-	"github.com/google/uuid"
 	"github.com/phogolabs/orm/dialect/sql/scan"
 
 	. "github.com/onsi/ginkgo"
@@ -15,9 +13,9 @@ import (
 var _ = Describe("Values", func() {
 	Context("when the source is struct", func() {
 		user := &User{
-			ID:        uuid.New(),
+			ID:        "007",
 			Name:      "John Doe",
-			Email:     pointer.ToString("john.doe@example.com"),
+			Email:     StringToPtr("john.doe@example.com"),
 			DeletedAt: nil,
 			CreatedAt: time.Now(),
 		}
@@ -85,9 +83,9 @@ var _ = Describe("Values", func() {
 
 	Context("when the source is a map", func() {
 		kv := map[string]interface{}{
-			"id":         uuid.New(),
+			"id":         "007",
 			"name":       "John Doe",
-			"email":      pointer.ToString("john.doe@example.com"),
+			"email":      StringToPtr("john.doe@example.com"),
 			"deleted_at": nil,
 			"created_at": time.Now(),
 		}
