@@ -112,24 +112,6 @@ var _ = Describe("Gateway", func() {
 		Expect(gateway.Close()).To(Succeed())
 	})
 
-	Describe("SetMaxIdleConns", func() {
-		It("sets the value", func() {
-			Expect(func() { gateway.SetMaxIdleConns(10) }).NotTo(Panic())
-		})
-	})
-
-	Describe("SetMaxOpenConns", func() {
-		It("sets the value", func() {
-			Expect(func() { gateway.SetMaxOpenConns(10) }).NotTo(Panic())
-		})
-	})
-
-	Describe("SetMaxLifetime", func() {
-		It("sets the value", func() {
-			Expect(func() { gateway.SetConnMaxLifetime(10 * time.Minute) }).NotTo(Panic())
-		})
-	})
-
 	Describe("ReadDir", func() {
 		var fileSystem *fake.FileSystem
 
@@ -234,26 +216,6 @@ var _ = Describe("Gateway", func() {
 				Expect(gateway.Close()).To(Succeed())
 
 				tx, err := gateway.Begin(ctx)
-				Expect(err).To(MatchError("sql: database is closed"))
-				Expect(tx).To(BeNil())
-			})
-		})
-	})
-
-	Describe("BeginTx", func() {
-		It("starts new transaction", func() {
-			tx, err := gateway.BeginTx(ctx, &sql.TxOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tx).NotTo(BeNil())
-		})
-
-		Context("when the gateway is closed", func() {
-			It("returns an error", func() {
-				gateway, err := orm.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
-				Expect(err).To(BeNil())
-				Expect(gateway.Close()).To(Succeed())
-
-				tx, err := gateway.BeginTx(ctx, &sql.TxOptions{})
 				Expect(err).To(MatchError("sql: database is closed"))
 				Expect(tx).To(BeNil())
 			})

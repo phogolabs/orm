@@ -60,6 +60,7 @@ func Open(name, source string, opts ...Option) (*Gateway, error) {
 	gateway := &Gateway{
 		provider: &sqlexec.Provider{DriverName: name},
 		driver:   driver,
+		db:       driver.DB(),
 	}
 
 	for _, opt := range opts {

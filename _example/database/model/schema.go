@@ -5,8 +5,6 @@
 
 package model
 
-import "github.com/phogolabs/schema"
-
 // User represents a data base table 'users'
 type User struct {
 	// ID represents a database column 'id' of type 'INT PRIMARY KEY NOT NULL'
@@ -14,5 +12,5 @@ type User struct {
 	// FirstName represents a database column 'first_name' of type 'TEXT NOT NULL'
 	FirstName string `db:"first_name,not_null" validate:"required,gt=0" json:"first_name"`
 	// LastName represents a database column 'last_name' of type 'TEXT NULL'
-	LastName schema.NullString `db:"last_name,null" validate:"-" json:"last_name"`
+	LastName *string `db:"last_name,null" validate:"-" json:"last_name"`
 }

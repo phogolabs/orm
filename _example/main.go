@@ -1,19 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"time"
 
 	randomdata "github.com/Pallinder/go-randomdata"
+	"github.com/davecgh/go-spew/spew"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/phogolabs/orm/example/database"
 	"github.com/phogolabs/parcello"
-	"github.com/phogolabs/schema"
-	validator "gopkg.in/go-playground/validator.v9"
 
 	"github.com/apex/log"
 	"github.com/phogolabs/orm"
-	"github.com/phogolabs/orm/example/database/model"
+	"github.com/phogolabs/orm/_example/database"
+	"github.com/phogolabs/orm/_example/database/model"
 )
 
 func main() {
@@ -27,18 +26,12 @@ func main() {
 		log.WithError(err).Fatal("Failed to generate users")
 	}
 
-	users, err := repository.SelectAll()
+	users, err := repository.AllUsers(context.TODO())
 	if err != nil {
 		log.WithError(err).Fatal("Failed to select all users")
 	}
 
-	validation := validator.New()
-
-	if err := validation.Struct(users[0]); err != nil {
-		panic(err)
-	}
-
-	show(users)
+	spew.Dump(users)
 }
 
 func connect() (*database.UserRepository, error) {
@@ -64,45 +57,21 @@ func connect() (*database.UserRepository, error) {
 
 func random(repository *database.UserRepository) error {
 	for i := 0; i < 10; i++ {
-		var lastName string
-
-		if i%2 == 0 {
-			lastName = randomdata.LastName()
-		}
+		var (
+			firstName = randomdata.FirstName(randomdata.Male)
+			lastName  = randomdata.LastName()
+		)
 
 		user := &model.User{
 			ID:        int(time.Now().UnixNano()),
-			FirstName: randomdata.FirstName(randomdata.Male),
-			LastName:  schema.NullStringFrom(lastName),
+			FirstName: firstName,
+			LastName:  &lastName,
 		}
 
-		if err := repository.Insert(user); err != nil {
+		if err := repository.InsertUser(context.TODO(), user); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func show(users []*model.User) {
-	validate := validator.New()
-
-	for _, user := range users {
-		if err := validate.Struct(user); err != nil {
-			log.WithError(err).Error("Failed to validate user")
-			continue
-		}
-
-		fmt.Printf("User ID: %v\n", user.ID)
-		fmt.Printf("First Name: %v\n", user.FirstName)
-
-		if user.LastName.Valid {
-			fmt.Printf("Last Name: %v\n", user.LastName.String)
-		} else {
-			fmt.Println("Last Name: null")
-		}
-
-		fmt.Println("---")
-	}
-
 }

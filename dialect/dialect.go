@@ -99,7 +99,7 @@ func (d *LoggerDriver) Tx(ctx context.Context) (Tx, error) {
 	}
 	id := time.Now().Unix()
 	d.logger.Infof("driver.Tx(%d): started", id)
-	return &LoggerTx{tx, id, d.Logger, ctx}, nil
+	return &LoggerTx{tx, id, d.logger, ctx}, nil
 }
 
 // LoggerTx is a transaction implementation that logs all transaction operations.
