@@ -132,6 +132,9 @@ func (c *conn) Query(ctx context.Context, query string, args, v interface{}) err
 var _ dialect.Driver = (*Driver)(nil)
 
 type (
+	// DB is a database handle representing a pool of zero or more
+	// underlying connections.
+	DB = sql.DB
 	// Rows wraps the sql.Rows to avoid locks copy.
 	Rows struct{ *sql.Rows }
 	// Result is an alias to sql.Result.

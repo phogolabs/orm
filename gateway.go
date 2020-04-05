@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/orm/dialect"
@@ -18,23 +17,24 @@ var _ GatewayQuerier = &Gateway{}
 
 // Gateway is connected to a database and can executes SQL queries against it.
 type Gateway struct {
-	driver   *sql.Driver
+	db       *sql.DB
 	provider *sqlexec.Provider
+	driver   dialect.Driver
 }
 
 // Connect creates a new gateway connecto to the provided URL.
-func Connect(url string) (*Gateway, error) {
+func Connect(url string, opts ...Option) (*Gateway, error) {
 	driver, source, err := prana.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}
 
-	gateway, err := Open(driver, source)
+	gateway, err := Open(driver, source, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = gateway.Ping(); err != nil {
+	if err = gateway.Ping(context.TODO()); err != nil {
 		return nil, err
 	}
 
@@ -42,33 +42,36 @@ func Connect(url string) (*Gateway, error) {
 }
 
 // Open creates a new gateway connected to the provided source.
-func Open(driver, source string) (*Gateway, error) {
+func Open(name, source string, opts ...Option) (*Gateway, error) {
 	var (
-		drv *sql.Driver
-		err error
+		driver *sql.Driver
+		err    error
 	)
 
-	switch driver {
+	switch name {
 	case dialect.MySQL, dialect.Postgres, dialect.SQLite:
-		if drv, err = sql.Open(driver, source); err != nil {
+		if driver, err = sql.Open(name, source); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("orm: unsupported driver: %q", driver)
+		return nil, fmt.Errorf("orm: unsupported driver: %q", name)
 	}
 
-	drv.DB().SetMaxIdleConns(32)
-	drv.DB().SetMaxOpenConns(32)
+	gateway := &Gateway{
+		provider: &sqlexec.Provider{DriverName: name},
+		driver:   driver,
+	}
 
-	return &Gateway{
-		provider: &sqlexec.Provider{DriverName: driver},
-		driver:   drv,
-	}, nil
+	for _, opt := range opts {
+		opt.Apply(gateway)
+	}
+
+	return gateway, nil
 }
 
 // Ping pins the underlying database
-func (g *Gateway) Ping() error {
-	return g.driver.DB().Ping()
+func (g *Gateway) Ping(ctx context.Context) error {
+	return g.db.PingContext(ctx)
 }
 
 // Close closes the connection to the  database.
@@ -81,55 +84,9 @@ func (g *Gateway) Dialect() string {
 	return g.driver.Dialect()
 }
 
-// Debug sets the debug logging
-func (g *Gateway) Debug() *ExecGateway {
-	execer := &ExecGateway{
-		driver:   dialect.Debug(g.driver),
-		dialect:  g.driver.Dialect(),
-		provider: g.provider,
-	}
-
-	return execer
-}
-
-// SetMaxIdleConns sets the maximum number of connections in the idle
-// connection pool.
-//
-// If MaxOpenConns is greater than 0 but less than the new MaxIdleConns,
-// then the new MaxIdleConns will be reduced to match the MaxOpenConns limit.
-//
-// If n <= 0, no idle connections are retained.
-//
-// The default max idle connections is currently 2. This may change in
-// a future release.
-func (g *Gateway) SetMaxIdleConns(value int) {
-	g.driver.DB().SetMaxIdleConns(value)
-}
-
-// SetMaxOpenConns sets the maximum number of open connections to the database.
-//
-// If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
-// MaxIdleConns, then MaxIdleConns will be reduced to match the new
-// MaxOpenConns limit.
-//
-// If n <= 0, then there is no limit on the number of open connections.
-// The default is 0 (unlimited).
-func (g *Gateway) SetMaxOpenConns(value int) {
-	g.driver.DB().SetMaxOpenConns(value)
-}
-
-// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-//
-// Expired connections may be closed lazily before reuse.
-//
-// If d <= 0, connections are reused forever.
-func (g *Gateway) SetConnMaxLifetime(duration time.Duration) {
-	g.driver.DB().SetConnMaxLifetime(duration)
-}
-
 // Migrate runs all pending migration
 func (g *Gateway) Migrate(fileSystem FileSystem) error {
-	db := sqlx.NewDb(g.driver.DB(), g.driver.Dialect())
+	db := sqlx.NewDb(g.db, g.driver.Dialect())
 	return sqlmigr.RunAll(db, fileSystem)
 }
 
@@ -148,16 +105,6 @@ func (g *Gateway) ReadFrom(r io.Reader) (int64, error) {
 // Begin begins a transaction and returns an *Tx
 func (g *Gateway) Begin(ctx context.Context) (*TxGateway, error) {
 	tx, err := g.driver.Tx(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return g.begin(tx), nil
-}
-
-// BeginTx begins a transaction and returns an *Tx
-func (g *Gateway) BeginTx(ctx context.Context, opts *sql.TxOptions) (*TxGateway, error) {
-	tx, err := g.driver.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
