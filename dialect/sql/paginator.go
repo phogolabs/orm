@@ -331,3 +331,16 @@ func (p *CursorPosition) String() string {
 func Unident(v string) string {
 	return strings.Replace(v, "`", "", -1)
 }
+
+// Combine combines pedicates
+func Combine(fn func(...*Predicate) *Predicate, preds ...*Predicate) *Predicate {
+	predicates := []*Predicate{}
+
+	for _, predicate := range preds {
+		if predicate != nil {
+			predicates = append(predicates, predicate)
+		}
+	}
+
+	return fn(predicates...)
+}
