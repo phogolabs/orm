@@ -24,6 +24,21 @@ func (s *Selector) PaginateBy(key string) *Paginator {
 	}
 }
 
+// SortBy parses the given parts as asc and desc clauses
+func (s *Selector) SortBy(parts ...string) *Selector {
+	for _, order := range parts {
+		position := CursorPositionFrom(order)
+
+		if position == nil {
+			continue
+		}
+
+		s = s.OrderBy(position.String())
+	}
+
+	return s
+}
+
 // SetDialect sets the dialect
 func (pq *Paginator) SetDialect(dialect string) {
 	pq.selector.SetDialect(dialect)
@@ -255,15 +270,44 @@ func CursorPositionFrom(order string) *CursorPosition {
 	case 0:
 		return nil
 	case 1:
-		position = &CursorPosition{
-			Column: strings.ToLower(Unident(parts[0])),
-			Order:  "asc",
+		name := strings.ToLower(Unident(parts[0]))
+
+		switch name[0] {
+		case '-':
+			position = &CursorPosition{
+				Column: name[1:],
+				Order:  "desc",
+			}
+		case '+':
+			position = &CursorPosition{
+				Column: name[1:],
+				Order:  "asc",
+			}
+		default:
+			position = &CursorPosition{
+				Column: name,
+				Order:  "asc",
+			}
+		}
+	case 2:
+		name := strings.ToLower(Unident(parts[0]))
+
+		switch strings.ToLower(parts[1]) {
+		case "asc":
+			position = &CursorPosition{
+				Column: name,
+				Order:  "asc",
+			}
+		case "desc":
+			position = &CursorPosition{
+				Column: name,
+				Order:  "desc",
+			}
+		default:
+			return nil
 		}
 	default:
-		position = &CursorPosition{
-			Column: strings.ToLower(Unident(parts[0])),
-			Order:  strings.ToLower(parts[1]),
-		}
+		return nil
 	}
 
 	return position

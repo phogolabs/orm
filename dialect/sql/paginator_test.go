@@ -20,7 +20,8 @@ var _ = Describe("Paginator", func() {
 
 		selector = sql.Select().From(sql.Table("users")).
 			Where(sql.Like("name", "john")).
-			OrderBy(sql.Asc("name")).Limit(100)
+			SortBy("+name").
+			Limit(100)
 	})
 
 	It("creates new routine successfully", func() {
