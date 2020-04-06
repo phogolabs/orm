@@ -17,24 +17,11 @@ type Paginator struct {
 }
 
 // PaginateBy a unique column
-func (s *Selector) PaginateBy(key string) *Paginator {
+func (selector *Selector) PaginateBy(key string) *Paginator {
 	return &Paginator{
-		selector: s,
+		selector: selector,
 		key:      key,
 	}
-}
-
-// OrderFrom parses the given parts as asc and desc clauses
-func (s *Selector) OrderFrom(orderBy ...*Order) *Selector {
-	for _, order := range orderBy {
-		if order == nil {
-			continue
-		}
-
-		s = s.OrderBy(order.String())
-	}
-
-	return s
 }
 
 // SetDialect sets the dialect
@@ -242,8 +229,8 @@ func (v *Vector) OrderBy() *Order {
 // Cursor represents a cursor
 type Cursor []*Vector
 
-// DecodeCursor decodes the cursor
-func DecodeCursor(token string) (*Cursor, error) {
+// CursorFrom decodes the cursor
+func CursorFrom(token string) (*Cursor, error) {
 	cursor := &Cursor{}
 
 	if token == "" {
@@ -278,83 +265,4 @@ func (c *Cursor) String() string {
 	}
 
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
-}
-
-// Order represents a order
-type Order struct {
-	Column    string `json:"column"`
-	Direction string `json:"direction"`
-}
-
-// OrderFrom returns an order
-func OrderFrom(value string) (*Order, error) {
-	var (
-		order *Order
-		parts = strings.Fields(value)
-	)
-
-	switch len(parts) {
-	case 0:
-		return nil, nil
-	case 1:
-		name := strings.ToLower(Unident(parts[0]))
-
-		switch name[0] {
-		case '-':
-			order = &Order{
-				Column:    name[1:],
-				Direction: "desc",
-			}
-		case '+':
-			order = &Order{
-				Column:    name[1:],
-				Direction: "asc",
-			}
-		default:
-			order = &Order{
-				Column:    name,
-				Direction: "asc",
-			}
-		}
-	case 2:
-		name := strings.ToLower(Unident(parts[0]))
-
-		switch strings.ToLower(parts[1]) {
-		case "asc":
-			order = &Order{
-				Column:    name,
-				Direction: "asc",
-			}
-		case "desc":
-			order = &Order{
-				Column:    name,
-				Direction: "desc",
-			}
-		default:
-			return nil, fmt.Errorf("sql: unexpected order: %v", order)
-		}
-	default:
-		return nil, fmt.Errorf("sql: unexepcted syntax: %v", order)
-	}
-
-	return order, nil
-}
-
-// Equal return true if the positions are equal
-func (p *Order) Equal(pp *Order) bool {
-	return strings.EqualFold(p.Column, pp.Column) && strings.EqualFold(p.Direction, pp.Direction)
-}
-
-// String returns the position as string
-func (p *Order) String() string {
-	if p.Direction == "asc" {
-		return Asc(p.Column)
-	}
-
-	return Desc(p.Column)
-}
-
-// Unident return the string unidented
-func Unident(v string) string {
-	return strings.Replace(v, "`", "", -1)
 }
