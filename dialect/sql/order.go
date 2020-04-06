@@ -24,6 +24,24 @@ func (selector *Selector) OrderOf(orderBy ...*Order) *Selector {
 	return selector
 }
 
+// OrderOf returns a order list
+func OrderOf(value ...string) ([]*Order, error) {
+	orders := []*Order{}
+
+	for _, part := range value {
+		order, err := OrderFrom(part)
+		if err != nil {
+			return nil, err
+		}
+
+		if order != nil {
+			orders = append(orders, order)
+		}
+	}
+
+	return orders, nil
+}
+
 // OrderFrom returns an order
 func OrderFrom(value string) (*Order, error) {
 	var (
