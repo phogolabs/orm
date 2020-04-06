@@ -10,17 +10,12 @@ import (
 )
 
 var _ = Describe("Paginator", func() {
-	var (
-		cursor   *sql.Cursor
-		selector *sql.Selector
-	)
+	var selector *sql.Selector
 
 	BeforeEach(func() {
-		cursor = &sql.Cursor{}
-
 		selector = sql.Select().From(sql.Table("users")).
 			Where(sql.Like("name", "john")).
-			SortBy("+name").
+			OrderFrom(&sql.Order{Column: "name", Direction: "asc"}).
 			Limit(100)
 	})
 
@@ -35,7 +30,8 @@ var _ = Describe("Paginator", func() {
 		params["id"] = 1
 		params["name"] = "John"
 
-		cursor = paginator.Cursor(&params)
+		cursor, err := paginator.Cursor(&params)
+		Expect(err).NotTo(HaveOccurred())
 
 		paginator, err = selector.Clone().PaginateBy(sql.Asc("id")).Seek(cursor)
 		Expect(err).NotTo(HaveOccurred())
@@ -60,7 +56,7 @@ var _ = Describe("Paginator", func() {
 		Context("when the cursor is mismatched", func() {
 			It("returns an error", func() {
 				cursor := &sql.Cursor{
-					&sql.CursorPosition{Column: "category", Order: "asc", Value: 1},
+					&sql.Vector{Column: "category", Order: "asc", Value: 1},
 				}
 
 				paginator, err := selector.Clone().PaginateBy(sql.Asc("id")).Seek(cursor)
@@ -70,7 +66,7 @@ var _ = Describe("Paginator", func() {
 
 			It("returns an error", func() {
 				cursor := &sql.Cursor{
-					&sql.CursorPosition{Column: "name", Order: "asc", Value: "John"},
+					&sql.Vector{Column: "name", Order: "asc", Value: "John"},
 				}
 
 				paginator, err := selector.Clone().PaginateBy("id ASC").Seek(cursor)
@@ -92,7 +88,9 @@ var _ = Describe("Paginator", func() {
 			paginator, err := selector.Clone().PaginateBy(sql.Desc("id")).Seek(&sql.Cursor{})
 			Expect(err).NotTo(HaveOccurred())
 
-			cursor := paginator.Cursor(user)
+			cursor, err := paginator.Cursor(user)
+			Expect(err).NotTo(HaveOccurred())
+
 			positions := *cursor
 
 			Expect(positions).To(HaveLen(2))
@@ -120,7 +118,8 @@ var _ = Describe("Paginator", func() {
 				paginator, err := selector.Clone().PaginateBy(sql.Desc("id")).Seek(&sql.Cursor{})
 				Expect(err).NotTo(HaveOccurred())
 
-				cursor := paginator.Cursor(&u)
+				cursor, err := paginator.Cursor(&u)
+				Expect(err).NotTo(HaveOccurred())
 				positions := *cursor
 
 				Expect(positions).To(HaveLen(2))
@@ -196,7 +195,7 @@ var _ = Describe("Cursor", func() {
 	Describe("String", func() {
 		It("returns a string", func() {
 			cursor := &sql.Cursor{
-				&sql.CursorPosition{Column: "id", Order: "asc", Value: 1},
+				&sql.Vector{Column: "id", Order: "asc", Value: 1},
 			}
 
 			Expect(cursor.String()).To(Equal("W3siY29sdW1uIjoiaWQiLCJvcmRlciI6ImFzYyIsInZhbHVlIjoxfV0"))
@@ -209,41 +208,42 @@ var _ = Describe("Cursor", func() {
 			})
 		})
 	})
-
-	Describe("", func() {
-	})
 })
 
-var _ = Describe("CursorPosition", func() {
-	Describe("CursorPositionFrom", func() {
+var _ = Describe("Order", func() {
+	Describe("OrderFrom", func() {
 		It("returns the position from a given string", func() {
-			position := sql.CursorPositionFrom("ID ASC")
+			position, err := sql.OrderFrom("ID ASC")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(position).NotTo(BeNil())
 			Expect(position.Column).To(Equal("id"))
-			Expect(position.Order).To(Equal("asc"))
+			Expect(position.Direction).To(Equal("asc"))
 		})
 
 		Context("when the order is sanizied", func() {
 			It("returns the position from a given string", func() {
-				position := sql.CursorPositionFrom(sql.Asc("ID"))
+				position, err := sql.OrderFrom(sql.Asc("ID"))
+				Expect(err).NotTo(HaveOccurred())
 				Expect(position).NotTo(BeNil())
 				Expect(position.Column).To(Equal("id"))
-				Expect(position.Order).To(Equal("asc"))
+				Expect(position.Direction).To(Equal("asc"))
 			})
 		})
 
 		Context("when the order is not provided", func() {
 			It("returns the position from a given string", func() {
-				position := sql.CursorPositionFrom("ID")
+				position, err := sql.OrderFrom("ID")
+				Expect(err).NotTo(HaveOccurred())
 				Expect(position).NotTo(BeNil())
 				Expect(position.Column).To(Equal("id"))
-				Expect(position.Order).To(Equal("asc"))
+				Expect(position.Direction).To(Equal("asc"))
 			})
 		})
 
 		Context("when the string is empty", func() {
 			It("returns the position from a given string", func() {
-				position := sql.CursorPositionFrom("")
+				position, err := sql.OrderFrom("")
+				Expect(err).NotTo(HaveOccurred())
 				Expect(position).To(BeNil())
 			})
 		})
@@ -251,29 +251,29 @@ var _ = Describe("CursorPosition", func() {
 
 	Describe("Equal", func() {
 		It("returns true", func() {
-			position := &sql.CursorPosition{
-				Column: "id",
-				Order:  "asc",
+			position := &sql.Order{
+				Column:    "id",
+				Direction: "asc",
 			}
 
 			Expect(position.Equal(position)).To(BeTrue())
 		})
 
 		It("returns false", func() {
-			position := &sql.CursorPosition{
-				Column: "id",
-				Order:  "asc",
+			position := &sql.Order{
+				Column:    "id",
+				Direction: "asc",
 			}
 
-			Expect(position.Equal(&sql.CursorPosition{})).To(BeFalse())
+			Expect(position.Equal(&sql.Order{})).To(BeFalse())
 		})
 	})
 
 	Describe("String", func() {
 		It("returns the position as a string", func() {
-			position := &sql.CursorPosition{
-				Column: "id",
-				Order:  "asc",
+			position := &sql.Order{
+				Column:    "id",
+				Direction: "asc",
 			}
 
 			Expect(position.String()).To(Equal("`id` ASC"))

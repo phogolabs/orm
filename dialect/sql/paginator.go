@@ -24,16 +24,14 @@ func (s *Selector) PaginateBy(key string) *Paginator {
 	}
 }
 
-// SortBy parses the given parts as asc and desc clauses
-func (s *Selector) SortBy(parts ...string) *Selector {
-	for _, order := range parts {
-		position := CursorPositionFrom(order)
-
-		if position == nil {
+// OrderFrom parses the given parts as asc and desc clauses
+func (s *Selector) OrderFrom(orderBy ...*Order) *Selector {
+	for _, order := range orderBy {
+		if order == nil {
 			continue
 		}
 
-		s = s.OrderBy(position.String())
+		s = s.OrderBy(order.String())
 	}
 
 	return s
@@ -67,7 +65,7 @@ func (pq *Paginator) Query() (string, []interface{}) {
 }
 
 // Cursor returns the next cursor
-func (pq *Paginator) Cursor(src interface{}) *Cursor {
+func (pq *Paginator) Cursor(src interface{}) (*Cursor, error) {
 	var (
 		cursor = Cursor{}
 		value  = reflect.Indirect(reflect.ValueOf(src))
@@ -77,7 +75,7 @@ func (pq *Paginator) Cursor(src interface{}) *Cursor {
 		count := value.Len()
 
 		if count == 0 {
-			return &cursor
+			return &cursor, nil
 		}
 
 		value = value.Index(count - 1)
@@ -85,54 +83,67 @@ func (pq *Paginator) Cursor(src interface{}) *Cursor {
 	}
 
 	var (
-		positions = pq.positions()
-		columns   = []string{}
+		columns     = []string{}
+		orders, err = pq.orderBy()
 	)
 
-	for _, position := range positions {
-		columns = append(columns, position.Column)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, order := range orders {
+		columns = append(columns, order.Column)
 	}
 
 	values, err := scan.Values(src, columns...)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	for index, position := range pq.positions() {
+	for index, position := range orders {
 		if index >= len(values) {
-			panic("the order clauses should have valid cursor positions")
+			return nil, fmt.Errorf("sql: the order clauses should have valid cursor vector")
 		}
 
-		nextPosition := &CursorPosition{
+		nextPosition := &Vector{
 			Column: position.Column,
-			Order:  position.Order,
+			Order:  position.Direction,
 			Value:  values[index],
 		}
 
 		cursor = append(cursor, nextPosition)
 	}
 
-	return &cursor
+	return &cursor, nil
 }
 
-func (pq *Paginator) order(cursor []*CursorPosition) error {
+func (pq *Paginator) order(cursor []*Vector) error {
+	orders, err := pq.orderBy()
+	if err != nil {
+		return err
+	}
+
 	var (
-		positions = pq.positions()
-		pcount    = len(positions)
-		pindex    = 0
-		ccount    = len(cursor)
-		pagingKey = CursorPositionFrom(pq.key)
+		ccount = len(cursor)
+		pcount = len(orders)
+		pindex = 0
 	)
 
-	if pagingKey == nil {
+	pagingKey, err := OrderFrom(pq.key)
+	switch {
+	case err != nil:
+		return err
+	case pagingKey == nil:
 		return fmt.Errorf("sql: pagination column not provided")
 	}
 
-	for cindex, candidate := range cursor {
+	for cindex, vector := range cursor {
+		candidate := vector.OrderBy()
+
 		switch {
 		case pcount == 0, cindex > pindex:
 			pq.selector = pq.selector.OrderBy(candidate.String())
-		case !candidate.Equal(positions[pindex]):
+		case !candidate.Equal(orders[pindex]):
 			return fmt.Errorf("sql: pagination cursor position mismatch")
 		}
 
@@ -153,7 +164,7 @@ func (pq *Paginator) order(cursor []*CursorPosition) error {
 	case ccount == 0 && pcount == 0:
 		pq.selector = pq.selector.OrderBy(pagingKey.String())
 	case ccount == 0 && pcount != 0:
-		if candidate := positions[pindex]; !candidate.Equal(pagingKey) {
+		if candidate := orders[pindex]; !candidate.Equal(pagingKey) {
 			pq.selector = pq.selector.OrderBy(pagingKey.String())
 		}
 	}
@@ -161,22 +172,22 @@ func (pq *Paginator) order(cursor []*CursorPosition) error {
 	return nil
 }
 
-func (pq *Paginator) where(cursor []*CursorPosition) *Predicate {
+func (pq *Paginator) where(cursor []*Vector) *Predicate {
 	if count := len(cursor); count == 0 {
 		return nil
 	}
 
 	var (
-		position     = cursor[0]
+		vector       = cursor[0]
 		predicateCmp *Predicate
-		predicateEQ  = EQ(position.Column, position.Value)
+		predicateEQ  = EQ(vector.Column, vector.Value)
 	)
 
-	switch position.Order {
+	switch vector.Order {
 	case "asc":
-		predicateCmp = GT(position.Column, position.Value)
+		predicateCmp = GT(vector.Column, vector.Value)
 	case "desc":
-		predicateCmp = LT(position.Column, position.Value)
+		predicateCmp = LT(vector.Column, vector.Value)
 	}
 
 	predicate := pq.where(cursor[1:])
@@ -191,28 +202,45 @@ func (pq *Paginator) where(cursor []*CursorPosition) *Predicate {
 	return predicate
 }
 
-func (pq *Paginator) positions() []*CursorPosition {
+func (pq *Paginator) orderBy() ([]*Order, error) {
 	const separator = ","
 
-	positions := []*CursorPosition{}
+	orders := []*Order{}
 
 	for _, descriptor := range pq.selector.order {
 		for _, order := range strings.Split(descriptor, separator) {
-			position := CursorPositionFrom(order)
+			order, err := OrderFrom(order)
 
-			if position == nil {
-				continue
+			if err != nil {
+				return nil, err
 			}
 
-			positions = append(positions, position)
+			if order != nil {
+				orders = append(orders, order)
+			}
 		}
 	}
 
-	return positions
+	return orders, nil
+}
+
+// Vector represents an order vector
+type Vector struct {
+	Column string      `json:"column"`
+	Order  string      `json:"order"`
+	Value  interface{} `json:"value"`
+}
+
+// OrderBy representation
+func (v *Vector) OrderBy() *Order {
+	return &Order{
+		Column:    v.Column,
+		Direction: v.Order,
+	}
 }
 
 // Cursor represents a cursor
-type Cursor []*CursorPosition
+type Cursor []*Vector
 
 // DecodeCursor decodes the cursor
 func DecodeCursor(token string) (*Cursor, error) {
@@ -252,41 +280,40 @@ func (c *Cursor) String() string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
 }
 
-// CursorPosition represents an order position
-type CursorPosition struct {
-	Column string      `json:"column"`
-	Order  string      `json:"order"`
-	Value  interface{} `json:"value"`
+// Order represents a order
+type Order struct {
+	Column    string `json:"column"`
+	Direction string `json:"direction"`
 }
 
-// CursorPositionFrom returns a positions
-func CursorPositionFrom(order string) *CursorPosition {
+// OrderFrom returns an order
+func OrderFrom(value string) (*Order, error) {
 	var (
-		position *CursorPosition
-		parts    = strings.Fields(order)
+		order *Order
+		parts = strings.Fields(value)
 	)
 
 	switch len(parts) {
 	case 0:
-		return nil
+		return nil, nil
 	case 1:
 		name := strings.ToLower(Unident(parts[0]))
 
 		switch name[0] {
 		case '-':
-			position = &CursorPosition{
-				Column: name[1:],
-				Order:  "desc",
+			order = &Order{
+				Column:    name[1:],
+				Direction: "desc",
 			}
 		case '+':
-			position = &CursorPosition{
-				Column: name[1:],
-				Order:  "asc",
+			order = &Order{
+				Column:    name[1:],
+				Direction: "asc",
 			}
 		default:
-			position = &CursorPosition{
-				Column: name,
-				Order:  "asc",
+			order = &Order{
+				Column:    name,
+				Direction: "asc",
 			}
 		}
 	case 2:
@@ -294,33 +321,33 @@ func CursorPositionFrom(order string) *CursorPosition {
 
 		switch strings.ToLower(parts[1]) {
 		case "asc":
-			position = &CursorPosition{
-				Column: name,
-				Order:  "asc",
+			order = &Order{
+				Column:    name,
+				Direction: "asc",
 			}
 		case "desc":
-			position = &CursorPosition{
-				Column: name,
-				Order:  "desc",
+			order = &Order{
+				Column:    name,
+				Direction: "desc",
 			}
 		default:
-			return nil
+			return nil, fmt.Errorf("sql: unexpected order: %v", order)
 		}
 	default:
-		return nil
+		return nil, fmt.Errorf("sql: unexepcted syntax: %v", order)
 	}
 
-	return position
+	return order, nil
 }
 
 // Equal return true if the positions are equal
-func (p *CursorPosition) Equal(pp *CursorPosition) bool {
-	return strings.EqualFold(p.Column, pp.Column) && strings.EqualFold(p.Order, pp.Order)
+func (p *Order) Equal(pp *Order) bool {
+	return strings.EqualFold(p.Column, pp.Column) && strings.EqualFold(p.Direction, pp.Direction)
 }
 
 // String returns the position as string
-func (p *CursorPosition) String() string {
-	if p.Order == "asc" {
+func (p *Order) String() string {
+	if p.Direction == "asc" {
 		return Asc(p.Column)
 	}
 
