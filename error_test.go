@@ -92,15 +92,15 @@ var _ = Describe("ConstraintError", func() {
 		})
 	})
 
-	Describe("IsConstraintError", func() {
+	Describe("IsConstraintViolation", func() {
 		It("returns true", func() {
 			errx := &orm.ConstraintError{}
-			Expect(orm.IsConstraintError(errx)).To(BeTrue())
+			Expect(orm.IsConstraintViolation(errx)).To(BeTrue())
 		})
 
 		Context("when the error is nil", func() {
 			It("returns false", func() {
-				Expect(orm.IsConstraintError(nil)).To(BeFalse())
+				Expect(orm.IsConstraintViolation(nil)).To(BeFalse())
 			})
 		})
 	})

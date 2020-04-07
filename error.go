@@ -87,8 +87,8 @@ func (e *ConstraintError) Unwrap() error {
 	return e.wrap
 }
 
-// IsConstraintError returns a boolean indicating whether the error is a constraint failure.
-func IsConstraintError(err error) bool {
+// IsConstraintViolation returns a boolean indicating whether the error is a constraint failure.
+func IsConstraintViolation(err error) bool {
 	if err == nil {
 		return false
 	}
