@@ -198,7 +198,7 @@ func (pq *Paginator) orderBy() ([]*Order, error) {
 			return nil, err
 		}
 
-		orders = append(orders, orderBy...)
+		orders = append(orders, *orderBy...)
 	}
 
 	return orders, nil

@@ -9,7 +9,7 @@ import (
 type OrderBy []*Order
 
 // DecodeOrderBy decodes the order by clause
-func DecodeOrderBy(value string) (OrderBy, error) {
+func DecodeOrderBy(value string) (*OrderBy, error) {
 	const separatpr = ","
 
 	orders := OrderBy{}
@@ -25,12 +25,12 @@ func DecodeOrderBy(value string) (OrderBy, error) {
 		}
 	}
 
-	return orders, nil
+	return &orders, nil
 }
 
 // OrderOf parses the given parts as asc and desc clauses
-func (selector *Selector) OrderOf(orderBy OrderBy) *Selector {
-	for _, order := range orderBy {
+func (selector *Selector) OrderOf(orderBy *OrderBy) *Selector {
+	for _, order := range *orderBy {
 		if order == nil {
 			continue
 		}

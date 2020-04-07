@@ -15,7 +15,7 @@ var _ = Describe("Paginator", func() {
 	BeforeEach(func() {
 		selector = sql.Select().From(sql.Table("users")).
 			Where(sql.Like("name", "john")).
-			OrderOf(sql.OrderBy{
+			OrderOf(&sql.OrderBy{
 				{Column: "name", Direction: "asc"},
 			}).
 			Limit(100)
