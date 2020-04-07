@@ -116,7 +116,7 @@ func (pq *Paginator) order(cursor []*Vector) error {
 		pindex = 0
 	)
 
-	pagingKey, err := OrderFrom(pq.key)
+	pagingKey, err := DecodeOrder(pq.key)
 	switch {
 	case err != nil:
 		return err
@@ -190,22 +190,15 @@ func (pq *Paginator) where(cursor []*Vector) *Predicate {
 }
 
 func (pq *Paginator) orderBy() ([]*Order, error) {
-	const separator = ","
-
 	orders := []*Order{}
 
 	for _, descriptor := range pq.selector.order {
-		for _, order := range strings.Split(descriptor, separator) {
-			order, err := OrderFrom(order)
-
-			if err != nil {
-				return nil, err
-			}
-
-			if order != nil {
-				orders = append(orders, order)
-			}
+		orderBy, err := DecodeOrderBy(descriptor)
+		if err != nil {
+			return nil, err
 		}
+
+		orders = append(orders, orderBy...)
 	}
 
 	return orders, nil
@@ -229,8 +222,8 @@ func (v *Vector) OrderBy() *Order {
 // Cursor represents a cursor
 type Cursor []*Vector
 
-// CursorFrom decodes the cursor
-func CursorFrom(token string) (*Cursor, error) {
+// DecodeCursor decodes the cursor
+func DecodeCursor(token string) (*Cursor, error) {
 	cursor := &Cursor{}
 
 	if token == "" {

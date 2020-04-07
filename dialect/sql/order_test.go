@@ -8,9 +8,9 @@ import (
 )
 
 var _ = Describe("Order", func() {
-	Describe("OrderFrom", func() {
+	Describe("DecodeOrder", func() {
 		It("returns the position from a given string", func() {
-			position, err := sql.OrderFrom("ID ASC")
+			position, err := sql.DecodeOrder("ID ASC")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(position).NotTo(BeNil())
 			Expect(position.Column).To(Equal("id"))
@@ -19,7 +19,7 @@ var _ = Describe("Order", func() {
 
 		Context("when the order is sanizied", func() {
 			It("returns the position from a given string", func() {
-				position, err := sql.OrderFrom(sql.Asc("ID"))
+				position, err := sql.DecodeOrder(sql.Asc("ID"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(position).NotTo(BeNil())
 				Expect(position.Column).To(Equal("id"))
@@ -29,7 +29,7 @@ var _ = Describe("Order", func() {
 
 		Context("when the order is not provided", func() {
 			It("returns the position from a given string", func() {
-				position, err := sql.OrderFrom("ID")
+				position, err := sql.DecodeOrder("ID")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(position).NotTo(BeNil())
 				Expect(position.Column).To(Equal("id"))
@@ -39,7 +39,7 @@ var _ = Describe("Order", func() {
 
 		Context("when the string is empty", func() {
 			It("returns the position from a given string", func() {
-				position, err := sql.OrderFrom("")
+				position, err := sql.DecodeOrder("")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(position).To(BeNil())
 			})

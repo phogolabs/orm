@@ -5,31 +5,17 @@ import (
 	"strings"
 )
 
-// Order represents a order
-type Order struct {
-	Column    string `json:"column"`
-	Direction string `json:"direction"`
-}
+// OrderBy represents a order by clause
+type OrderBy []*Order
 
-// OrderOf parses the given parts as asc and desc clauses
-func (selector *Selector) OrderOf(orderBy ...*Order) *Selector {
-	for _, order := range orderBy {
-		if order == nil {
-			continue
-		}
+// DecodeOrderBy decodes the order by clause
+func DecodeOrderBy(value string) (OrderBy, error) {
+	const separatpr = ","
 
-		selector = selector.OrderBy(order.String())
-	}
+	orders := OrderBy{}
 
-	return selector
-}
-
-// OrderOf returns a order list
-func OrderOf(value ...string) ([]*Order, error) {
-	orders := []*Order{}
-
-	for _, part := range value {
-		order, err := OrderFrom(part)
+	for _, part := range strings.Split(value, separatpr) {
+		order, err := DecodeOrder(part)
 		if err != nil {
 			return nil, err
 		}
@@ -42,8 +28,27 @@ func OrderOf(value ...string) ([]*Order, error) {
 	return orders, nil
 }
 
-// OrderFrom returns an order
-func OrderFrom(value string) (*Order, error) {
+// OrderOf parses the given parts as asc and desc clauses
+func (selector *Selector) OrderOf(orderBy OrderBy) *Selector {
+	for _, order := range orderBy {
+		if order == nil {
+			continue
+		}
+
+		selector = selector.OrderBy(order.String())
+	}
+
+	return selector
+}
+
+// Order represents a order
+type Order struct {
+	Column    string `json:"column"`
+	Direction string `json:"direction"`
+}
+
+// DecodeOrder returns an order
+func DecodeOrder(value string) (*Order, error) {
 	var (
 		order *Order
 		parts = strings.Fields(value)

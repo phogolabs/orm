@@ -15,7 +15,9 @@ var _ = Describe("Paginator", func() {
 	BeforeEach(func() {
 		selector = sql.Select().From(sql.Table("users")).
 			Where(sql.Like("name", "john")).
-			OrderOf(&sql.Order{Column: "name", Direction: "asc"}).
+			OrderOf(sql.OrderBy{
+				{Column: "name", Direction: "asc"},
+			}).
 			Limit(100)
 	})
 
@@ -162,9 +164,9 @@ var _ = Describe("Paginator", func() {
 })
 
 var _ = Describe("Cursor", func() {
-	Describe("CursorFrom", func() {
+	Describe("DecodeCursor", func() {
 		It("decodes a cursor successfully", func() {
-			cursor, err := sql.CursorFrom("W3siY29sdW1uIjoiaWQiLCJvcmRlciI6ImFzYyIsInZhbHVlIjoxfV0")
+			cursor, err := sql.DecodeCursor("W3siY29sdW1uIjoiaWQiLCJvcmRlciI6ImFzYyIsInZhbHVlIjoxfV0")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cursor).NotTo(BeNil())
 
@@ -177,7 +179,7 @@ var _ = Describe("Cursor", func() {
 
 		Describe("when the string is malformed", func() {
 			It("returns an error", func() {
-				cursor, err := sql.CursorFrom("wrong")
+				cursor, err := sql.DecodeCursor("wrong")
 				Expect(err).To(MatchError("illegal base64 data at input byte 5"))
 				Expect(cursor).To(BeNil())
 			})
@@ -185,7 +187,7 @@ var _ = Describe("Cursor", func() {
 
 		Context("when the string is empty", func() {
 			It("decodes a cursor successfully", func() {
-				cursor, err := sql.CursorFrom("")
+				cursor, err := sql.DecodeCursor("")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cursor).NotTo(BeNil())
 			})
