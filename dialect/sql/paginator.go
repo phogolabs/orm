@@ -65,6 +65,12 @@ func (pq *Paginator) Cursor(src interface{}) (*Cursor, error) {
 			return &cursor, nil
 		}
 
+		if limit := pq.selector.limit; limit != nil {
+			if count < *limit {
+				return &cursor, nil
+			}
+		}
+
 		value = value.Index(count - 1)
 		src = value.Interface()
 	}
