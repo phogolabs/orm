@@ -92,10 +92,10 @@ func DecodeOrder(value string) (*Order, error) {
 				Direction: "desc",
 			}
 		default:
-			return nil, fmt.Errorf("sql: unexpected order: %v", value)
+			return nil, fmt.Errorf("sql: unexpected order: '%v'", value)
 		}
 	default:
-		return nil, fmt.Errorf("sql: unexepcted syntax: %v", value)
+		return nil, fmt.Errorf("sql: unexepcted syntax: '%v'", value)
 	}
 
 	return order, nil
