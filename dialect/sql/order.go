@@ -114,8 +114,3 @@ func (p *Order) String() string {
 
 	return Desc(p.Column)
 }
-
-// Unident return the string unidented
-func Unident(v string) string {
-	return strings.Replace(v, "`", "", -1)
-}
