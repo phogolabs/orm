@@ -33,6 +33,11 @@ func NewInsert(table string, src interface{}) *InsertBuilder {
 
 	for iterator.Next() {
 		column := iterator.Column()
+
+		if column.HasOption("auto") {
+			continue
+		}
+
 		columns = append(columns, column.Name)
 		values = append(values, iterator.Value().Interface())
 	}
