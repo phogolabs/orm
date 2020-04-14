@@ -28,7 +28,8 @@ func (g *ExecGateway) All(ctx context.Context, q sql.Querier, v interface{}) err
 	}
 	defer rows.Close()
 
-	return scan.Rows(rows, v)
+	err = scan.Rows(rows, v)
+	return g.wrap(err)
 }
 
 // Only returns the only entity in the query, returns an error if not
@@ -48,7 +49,7 @@ func (g *ExecGateway) Only(ctx context.Context, q sql.Querier, v interface{}) er
 	case err == scan.ErrOneRow:
 		return &NotSingularError{nameOf(reflect.TypeOf(v))}
 	default:
-		return err
+		return g.wrap(err)
 	}
 }
 
@@ -57,7 +58,7 @@ func (g *ExecGateway) Only(ctx context.Context, q sql.Querier, v interface{}) er
 func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
-		return err
+		return g.wrap(err)
 	}
 	defer rows.Close()
 
@@ -69,7 +70,7 @@ func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) e
 	case err == scan.ErrOneRow:
 		return nil
 	default:
-		return err
+		return g.wrap(err)
 	}
 }
 
@@ -78,7 +79,7 @@ func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) e
 func (g *ExecGateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, error) {
 	query, params, err := g.compile(q)
 	if err != nil {
-		return nil, err
+		return nil, g.wrap(err)
 	}
 
 	rows := &sql.Rows{}
@@ -96,7 +97,7 @@ func (g *ExecGateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, erro
 func (g *ExecGateway) Exec(ctx context.Context, q sql.Querier) (sql.Result, error) {
 	query, params, err := g.compile(q)
 	if err != nil {
-		return nil, err
+		return nil, g.wrap(err)
 	}
 
 	var result sql.Result
@@ -115,7 +116,7 @@ func (g *ExecGateway) compile(querier sql.Querier) (string, []interface{}, error
 
 		query, err := g.provider.Query(name)
 		if err != nil {
-			return "", nil, err
+			return "", nil, g.wrap(err)
 		}
 
 		querier = sql.NamedQuery(query, params...)
@@ -131,7 +132,7 @@ func (g *ExecGateway) compile(querier sql.Querier) (string, []interface{}, error
 	// check for errors
 	if reporter, ok := querier.(errorable); ok {
 		if err := reporter.Err(); err != nil {
-			return "", nil, err
+			return "", nil, g.wrap(err)
 		}
 	}
 
@@ -147,9 +148,13 @@ func (g *ExecGateway) wrap(err error) error {
 		msg = err.Error()
 		// error format per dialect.
 		errors = [...]string{
-			"Error 1062",               // MySQL 1062 error (ER_DUP_ENTRY).
-			"UNIQUE constraint failed", // SQLite.
-			"duplicate key value violates unique constraint", // PostgreSQL.
+			// MySQL 1062 error (ER_DUP_ENTRY).
+			"Error 1062",
+			// SQLite.
+			"UNIQUE constraint failed",
+			// PostgreSQL.
+			"duplicate key value violates unique constraint",
+			"violates check constraint",
 		}
 	)
 
