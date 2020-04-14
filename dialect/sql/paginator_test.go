@@ -113,11 +113,13 @@ var _ = Describe("Paginator", func() {
 				}
 
 				u := []*User{
+					{ID: 4, Name: "Mike"},
+					{ID: 3, Name: "Peter"},
 					{ID: 2, Name: "Brown"},
 					{ID: 1, Name: "John"},
 				}
 
-				paginator, err := selector.Clone().PaginateBy(sql.Desc("id")).Seek(&sql.Cursor{})
+				paginator, err := selector.Clone().Limit(2).PaginateBy(sql.Desc("id")).Seek(&sql.Cursor{})
 				Expect(err).NotTo(HaveOccurred())
 
 				cursor, err := paginator.Cursor(&u)
