@@ -3,7 +3,7 @@ module github.com/phogolabs/orm
 require (
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/a8m/rql v1.2.0
-	github.com/apex/log v1.1.1
+	github.com/apex/log v1.1.4
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/facebookincubator/ent v0.1.4
 	github.com/go-playground/locales v0.12.1 // indirect
