@@ -1,5 +1,7 @@
 module github.com/phogolabs/orm
 
+go 1.14
+
 require (
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/a8m/rql v1.2.0
@@ -26,5 +28,3 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 )
-
-go 1.13
