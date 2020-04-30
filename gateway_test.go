@@ -39,7 +39,7 @@ var _ = Describe("Gateway", func() {
 			Expect(g.Close()).To(Succeed())
 		})
 
-		Context("when cannot open the database", func() {
+		PContext("when cannot open the database", func() {
 			It("returns an error", func() {
 				g, err := orm.Connect("://www")
 				Expect(g).To(BeNil())
