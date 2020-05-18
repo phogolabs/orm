@@ -17,14 +17,13 @@ require (
 	github.com/lib/pq v1.4.0
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.12.1
+	github.com/onsi/gomega v1.7.1
 	github.com/phogolabs/parcello v0.8.1
 	github.com/phogolabs/prana v0.0.0-20191007115605-282b624acbe2
 	github.com/phogolabs/schema v0.0.0-20190406105649-68a93910a72e
 	github.com/ulule/loukoum v2.2.0+incompatible
 	github.com/volatiletech/sqlboiler v3.5.0+incompatible // indirect
-	golang.org/x/sys v0.0.0-20191007092633-5f54ce542709 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 )
