@@ -14,7 +14,7 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/leodido/go-urn v1.1.0 // indirect
-	github.com/lib/pq v1.4.0
+	github.com/lib/pq v1.7.0
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/onsi/ginkgo v1.12.1
