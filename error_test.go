@@ -82,7 +82,7 @@ var _ = Describe("NotLoadedError", func() {
 var _ = Describe("ConstraintError", func() {
 	It("returns a constraint error", func() {
 		errx := &orm.ConstraintError{}
-		Expect(errx.Error()).To(Equal("orm: constraint failed: "))
+		Expect(errx.Error()).To(Equal("orm: constraint violation"))
 	})
 
 	Describe("UnWrap", func() {

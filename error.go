@@ -2,6 +2,7 @@ package orm
 
 import (
 	"errors"
+	"fmt"
 )
 
 // NotFoundError returns when trying to fetch a specific entity and it was not found in the database.
@@ -73,13 +74,24 @@ func IsNotLoaded(err error) bool {
 // one or more of their constraints failed. For example, violation of edge or
 // field uniqueness.
 type ConstraintError struct {
-	msg  string
 	wrap error
+	name string
+}
+
+// Name returns the constraint name
+func (e ConstraintError) Name() string {
+	return e.name
 }
 
 // Error implements the error interface.
 func (e ConstraintError) Error() string {
-	return "orm: constraint failed: " + e.msg
+	const prefix = "orm: constraint violation"
+
+	if e.wrap != nil {
+		return fmt.Sprintf("%s: %s", prefix, e.wrap.Error())
+	}
+
+	return prefix
 }
 
 // Unwrap implements the errors.Wrapper interface.

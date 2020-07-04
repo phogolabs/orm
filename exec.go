@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -145,22 +146,33 @@ func (g *ExecGateway) wrap(err error) error {
 	}
 
 	var (
-		msg = err.Error()
-		// error format per dialect.
+		// error as string
+		errm = err.Error()
+		// known errors
 		errors = [...]string{
 			// MySQL 1062 error (ER_DUP_ENTRY).
 			"Error 1062",
 			// SQLite.
-			"UNIQUE constraint failed",
+			"UNIQUE constraint failed: %s",
 			// PostgreSQL.
-			"duplicate key value violates unique constraint",
-			"violates check constraint",
+			"pq: duplicate key value violates unique constraint %q",
+			// check constraint
+			"pq: violates check constraint %q",
 		}
 	)
 
-	for index := range errors {
-		if strings.Contains(msg, errors[index]) {
-			return &ConstraintError{msg, err}
+	for _, message := range errors {
+		// name of the constrain
+		var name string
+		// scane the name
+		fmt.Sscanf(errm, message, &name)
+		// check
+		if len(name) > 0 || strings.Contains(errm, message) {
+			// return the constraint
+			return &ConstraintError{
+				name: name,
+				wrap: err,
+			}
 		}
 	}
 
