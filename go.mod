@@ -7,7 +7,7 @@ require (
 	github.com/a8m/rql v1.2.0
 	github.com/apex/log v1.1.1
 	github.com/aymerick/raymond v2.0.2+incompatible
-	github.com/facebookincubator/ent v0.1.4
+	github.com/facebookincubator/ent v0.2.6
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
@@ -16,7 +16,7 @@ require (
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.4.0
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/phogolabs/parcello v0.8.1
