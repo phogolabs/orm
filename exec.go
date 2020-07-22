@@ -158,6 +158,8 @@ func (g *ExecGateway) wrap(err error) error {
 			"pq: duplicate key value violates unique constraint %q",
 			// check constraint
 			"pq: violates check constraint %q",
+			// new row check constraint
+			"pq: new row for relation %q violates check constraint %q",
 		}
 	)
 
@@ -165,7 +167,7 @@ func (g *ExecGateway) wrap(err error) error {
 		// name of the constrain
 		var name string
 		// scane the name
-		fmt.Sscanf(errm, message, &name)
+		fmt.Sscanf(errm, message, &name, &name)
 		// check
 		if len(name) > 0 || strings.Contains(errm, message) {
 			// return the constraint
