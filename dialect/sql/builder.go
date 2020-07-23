@@ -764,8 +764,9 @@ func (u *UpdateBuilder) Returning(columns ...string) *UpdateBuilder {
 // DeleteBuilder is a builder for `DELETE` statement.
 type DeleteBuilder struct {
 	Builder
-	table string
-	where *Predicate
+	table     string
+	where     *Predicate
+	returning []string
 }
 
 // Delete creates a builder for the `DELETE` statement.
@@ -803,6 +804,12 @@ func (d *DeleteBuilder) FromSelect(s *Selector) *DeleteBuilder {
 	return d
 }
 
+// Returning adds the `RETURNING` clause to the insert statement. PostgreSQL only.
+func (d *DeleteBuilder) Returning(columns ...string) *DeleteBuilder {
+	d.returning = columns
+	return d
+}
+
 // Query returns query representation of a `DELETE` statement.
 func (d *DeleteBuilder) Query() (string, []interface{}) {
 	d.WriteString("DELETE FROM ")
@@ -810,6 +817,10 @@ func (d *DeleteBuilder) Query() (string, []interface{}) {
 	if d.where != nil {
 		d.WriteString(" WHERE ")
 		d.Join(d.where)
+	}
+	if len(d.returning) > 0 && d.postgres() {
+		d.WriteString(" RETURNING ")
+		d.IdentComma(d.returning...)
 	}
 	return d.String(), d.args
 }
