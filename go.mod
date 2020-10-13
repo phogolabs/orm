@@ -18,7 +18,7 @@ require (
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/onsi/ginkgo v1.14.0
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/gomega v1.10.3
 	github.com/phogolabs/parcello v0.8.1
 	github.com/phogolabs/prana v0.0.0-20191007115605-282b624acbe2
 	github.com/phogolabs/schema v0.0.0-20190406105649-68a93910a72e
