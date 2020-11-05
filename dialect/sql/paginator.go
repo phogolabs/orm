@@ -35,12 +35,17 @@ func (pq *Paginator) Seek(cursor *Cursor) (*Paginator, error) {
 		cursor = &Cursor{}
 	}
 
+	if limit := pq.selector.limit; limit != nil {
+		next := *limit + 1
+		pq.selector.limit = &next
+	}
+
 	if err := pq.order(*cursor); err != nil {
 		return nil, err
 	}
 
 	if predicate := pq.where(*cursor); predicate != nil {
-		pq.selector = pq.selector.Where(predicate)
+		pq.selector.Where(predicate)
 	}
 
 	return pq, nil
@@ -108,6 +113,29 @@ func (pq *Paginator) Cursor(src interface{}) (*Cursor, error) {
 	}
 
 	return &cursor, nil
+}
+
+// Window returns a window
+func (pq *Paginator) Window(src interface{}) interface{} {
+	value := reflect.Indirect(reflect.ValueOf(src))
+
+	if value.Kind() == reflect.Slice {
+		count := value.Len()
+
+		if count == 0 {
+			return src
+		}
+
+		if limit := pq.selector.limit; limit != nil {
+			if count < *limit {
+				return src
+			}
+
+			return value.Slice(0, count-1).Interface()
+		}
+	}
+
+	return nil
 }
 
 func (pq *Paginator) order(cursor []*Vector) error {
@@ -189,7 +217,7 @@ func (pq *Paginator) where(cursor []*Vector) *Predicate {
 	case predicate != nil:
 		predicate = Or(predicateCmp, And(predicateEQ, predicate))
 	case predicate == nil:
-		predicate = predicateCmp
+		predicate = Or(predicateCmp, predicateEQ)
 	}
 
 	return predicate

@@ -39,7 +39,7 @@ var _ = Describe("Paginator", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		query, _ = paginator.Query()
-		Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND ((`name` > ?) OR ((`name` = ?) AND (`id` > ?))) ORDER BY `name` ASC, `id` ASC LIMIT ?"))
+		Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND ((`name` > ?) OR ((`name` = ?) AND (((`id` > ?) OR (`id` = ?))))) ORDER BY `name` ASC, `id` ASC LIMIT ?"))
 
 		data, err := json.Marshal(cursor)
 		Expect(err).NotTo(HaveOccurred())
