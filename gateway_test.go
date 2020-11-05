@@ -46,8 +46,8 @@ var _ = Describe("Connect", func() {
 
 	Context("when cannot open the database", func() {
 		It("returns an error", func() {
-			gateway, err := orm.Connect(":::::")
-			Expect(err).To(MatchError("parse \":::::\": missing protocol scheme"))
+			gateway, err := orm.Connect("unknown://")
+			Expect(err).To(MatchError("orm: unsupported driver: \"unknown\""))
 			Expect(gateway).To(BeNil())
 		})
 	})
@@ -56,7 +56,7 @@ var _ = Describe("Connect", func() {
 		It("returns an error", func() {
 			gateway, err := orm.Connect("sqlite3://localhost:5430/db")
 			Expect(gateway).To(BeNil())
-			Expect(err).To(MatchError("unable to open database file"))
+			Expect(err).To(MatchError("unable to open database file: no such file or directory"))
 		})
 	})
 })
