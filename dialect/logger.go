@@ -33,7 +33,7 @@ func (d *LoggerDriver) Exec(ctx context.Context, query string, args, v interface
 
 	logger = logger.WithField("sql.query", query)
 	logger = logger.WithField("sql.param", args)
-	logger = logger.WithField("sql.duration", time.Now().Sub(start))
+	logger = logger.WithField("sql.duration", time.Now().Sub(start).String())
 
 	if err != nil {
 		logger.WithError(err).Errorf("query.exec fail")
@@ -55,7 +55,7 @@ func (d *LoggerDriver) Query(ctx context.Context, query string, args, v interfac
 
 	logger = logger.WithField("sql.query", query)
 	logger = logger.WithField("sql.param", args)
-	logger = logger.WithField("sql.duration", time.Now().Sub(start))
+	logger = logger.WithField("sql.duration", time.Now().Sub(start).String())
 
 	if err != nil {
 		logger.WithError(err).Errorf("query.exec fail")
@@ -98,7 +98,7 @@ func (d *LoggerTx) Exec(ctx context.Context, query string, args, v interface{}) 
 
 	logger = logger.WithField("sql.query", query)
 	logger = logger.WithField("sql.param", args)
-	logger = logger.WithField("sql.duration", time.Now().Sub(start))
+	logger = logger.WithField("sql.duration", time.Now().Sub(start).String())
 
 	if err != nil {
 		logger.WithError(err).Errorf("query.exec fail")
@@ -120,7 +120,7 @@ func (d *LoggerTx) Query(ctx context.Context, query string, args, v interface{})
 
 	logger = logger.WithField("sql.query", query)
 	logger = logger.WithField("sql.param", args)
-	logger = logger.WithField("sql.duration", time.Now().Sub(start))
+	logger = logger.WithField("sql.duration", time.Now().Sub(start).String())
 
 	if err != nil {
 		logger.WithError(err).Errorf("query.exec fail")
