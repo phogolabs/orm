@@ -10,7 +10,7 @@ require (
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/phogolabs/flaw v0.0.0-20200822061332-36460da02916 // indirect
-	github.com/phogolabs/log v0.0.0-20200822155741-ef1d74433056 // indirect
+	github.com/phogolabs/log v0.0.0-20200822155741-ef1d74433056
 	github.com/phogolabs/parcello v0.8.2
 	github.com/phogolabs/prana v1.0.0-rc2
 	github.com/stretchr/testify v1.6.1

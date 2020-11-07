@@ -3,18 +3,12 @@ package dialect
 import (
 	"context"
 	"time"
+
+	"github.com/phogolabs/log"
 )
 
 // Logger represents a logger
-type Logger interface {
-	Debugf(string, ...interface{})
-	Errorf(string, ...interface{})
-	Infof(string, ...interface{})
-
-	WithFields(map[string]interface{}) Logger
-	WithField(string, value interface{}) Logger
-	WithError(error) Logger
-}
+type Logger = log.Logger
 
 // LoggerDriver is a driver that logs all driver operations.
 type LoggerDriver struct {
