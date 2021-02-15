@@ -4,10 +4,22 @@ import (
 	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
+// DeleteMutation represents a delete mutation
+type DeleteMutation struct {
+	builder *DeleteBuilder
+}
+
 // NewDelete creates a Mutation that deletes the entity with given primary key.
-func NewDelete(table string, src interface{}) *DeleteBuilder {
+func NewDelete(table string) *DeleteMutation {
+	return &DeleteMutation{
+		builder: Delete(table),
+	}
+}
+
+// Entity returns the builder
+func (d *DeleteMutation) Entity(src interface{}) *DeleteBuilder {
 	var (
-		deleter  = Delete(table)
+		deleter  = d.builder
 		iterator = scan.IteratorOf(src)
 	)
 
@@ -15,17 +27,28 @@ func NewDelete(table string, src interface{}) *DeleteBuilder {
 		column := iterator.Column()
 
 		if column.HasOption("primary_key") {
-			deleter.Where(EQ(column.Name, iterator.Value().Interface()))
+			deleter = deleter.Where(EQ(column.Name, iterator.Value().Interface()))
 		}
 	}
 
 	return deleter
 }
 
+// InsertMutation represents an insert mutation
+type InsertMutation struct {
+	builder *InsertBuilder
+}
+
 // NewInsert creates a Mutation that will save the entity src into the db
-func NewInsert(table string, src interface{}) *InsertBuilder {
+func NewInsert(table string) *InsertMutation {
+	return &InsertMutation{
+		builder: Insert(table),
+	}
+}
+
+// Entity returns the builder
+func (d *InsertMutation) Entity(src interface{}) *InsertBuilder {
 	var (
-		inserter = Insert(table)
 		iterator = scan.IteratorOf(src)
 		columns  = make([]string, 0)
 		values   = make([]interface{}, 0)
@@ -42,19 +65,29 @@ func NewInsert(table string, src interface{}) *InsertBuilder {
 		values = append(values, iterator.Value().Interface())
 	}
 
-	inserter = inserter.
+	return d.builder.
 		Columns(columns...).
 		Values(values...).
 		Returning("*")
+}
 
-	return inserter
+// UpdateMutation represents an update mutation
+type UpdateMutation struct {
+	builder *UpdateBuilder
 }
 
 // NewUpdate creates a Mutation that updates the entity into the db
-func NewUpdate(table string, src interface{}, columns ...string) *UpdateBuilder {
+func NewUpdate(table string) *UpdateMutation {
+	return &UpdateMutation{
+		builder: Update(table),
+	}
+}
+
+// Entity returns the builder
+func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuilder {
 	var (
+		updater    = d.builder
 		empty      = len(columns) == 0
-		updater    = Update(table)
 		iterator   = scan.IteratorOf(src)
 		updateable = make(map[string]interface{})
 	)

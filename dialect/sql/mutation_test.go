@@ -21,8 +21,7 @@ var _ = Describe("DeleteMutation", func() {
 			Name:    "Jack",
 		}
 
-		mutation := sql.NewDelete("users", user)
-
+		mutation := sql.NewDelete("users").Entity(user)
 		query, params := mutation.Query()
 		Expect(query).To(Equal("DELETE FROM `users` WHERE `id` = ? AND `group_id` = ?"))
 		Expect(params).To(HaveLen(2))
@@ -44,7 +43,7 @@ var _ = Describe("DeleteMutation", func() {
 				Name:    "Jack",
 			}
 
-			mutation := sql.NewDelete("users", user)
+			mutation := sql.NewDelete("users").Entity(user)
 			Expect(mutation.Empty()).To(BeTrue())
 		})
 	})
@@ -64,8 +63,7 @@ var _ = Describe("InsertMutation", func() {
 			Name:    "Jack",
 		}
 
-		mutation := sql.NewInsert("users", user)
-
+		mutation := sql.NewInsert("users").Entity(user)
 		query, params := mutation.Query()
 		Expect(query).To(Equal("INSERT INTO `users` (`id`, `group_id`, `name`) VALUES (?, ?, ?)"))
 		Expect(params).To(HaveLen(3))
@@ -89,8 +87,7 @@ var _ = Describe("UpdateMutation", func() {
 			Name:    "Jack",
 		}
 
-		mutation := sql.NewUpdate("users", user, "id", "group_id", "name")
-
+		mutation := sql.NewUpdate("users").Entity(user, "id", "group_id", "name")
 		query, params := mutation.Query()
 		Expect(query).To(Equal("UPDATE `users` SET `name` = ? WHERE `id` = ? AND `group_id` = ?"))
 		Expect(params).To(HaveLen(3))
@@ -113,8 +110,7 @@ var _ = Describe("UpdateMutation", func() {
 				Name:    "Jack",
 			}
 
-			mutation := sql.NewUpdate("students", student)
-
+			mutation := sql.NewUpdate("students").Entity(student)
 			query, params := mutation.Query()
 			Expect(query).To(Equal("UPDATE `students` SET `group_id` = ?, `name` = ? WHERE `id` = ?"))
 			Expect(params).To(HaveLen(3))
@@ -135,8 +131,7 @@ var _ = Describe("UpdateMutation", func() {
 				ID: "007",
 			}
 
-			mutation := sql.NewUpdate("students", student)
-
+			mutation := sql.NewUpdate("students").Entity(student)
 			query, params := mutation.Query()
 			Expect(query).To(Equal("UPDATE `students` SET `name` = NULL WHERE `id` = ?"))
 			Expect(params).To(HaveLen(1))
