@@ -12,17 +12,16 @@ import (
 	"github.com/phogolabs/prana/sqlexec"
 )
 
-var _ GatewayQuerier = &ExecGateway{}
+var _ Querier = &engine{}
 
-// ExecGateway is connected to a database and can executes SQL queries against it.
-type ExecGateway struct {
-	driver   dialect.ExecQuerier
+type engine struct {
 	provider *sqlexec.Provider
+	querier  dialect.ExecQuerier
 	dialect  string
 }
 
 // All executes the query and returns a list of entities.
-func (g *ExecGateway) All(ctx context.Context, q sql.Querier, v interface{}) error {
+func (g *engine) All(ctx context.Context, q sql.Statement, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return err
@@ -35,7 +34,7 @@ func (g *ExecGateway) All(ctx context.Context, q sql.Querier, v interface{}) err
 
 // Only returns the only entity in the query, returns an error if not
 // exactly one entity was returned.
-func (g *ExecGateway) Only(ctx context.Context, q sql.Querier, v interface{}) error {
+func (g *engine) Only(ctx context.Context, q sql.Statement, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return err
@@ -56,7 +55,7 @@ func (g *ExecGateway) Only(ctx context.Context, q sql.Querier, v interface{}) er
 
 // First returns the first entity in the query. Returns *NotFoundError
 // when no user was found.
-func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) error {
+func (g *engine) First(ctx context.Context, q sql.Statement, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return g.wrap(err)
@@ -77,7 +76,7 @@ func (g *ExecGateway) First(ctx context.Context, q sql.Querier, v interface{}) e
 
 // Query executes a query that returns rows, typically a SELECT in SQL.
 // It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
-func (g *ExecGateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, error) {
+func (g *engine) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) {
 	query, params, err := g.compile(q)
 	if err != nil {
 		return nil, g.wrap(err)
@@ -85,7 +84,7 @@ func (g *ExecGateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, erro
 
 	rows := &sql.Rows{}
 
-	if err := g.driver.Query(ctx, query, params, rows); err != nil {
+	if err := g.querier.Query(ctx, query, params, rows); err != nil {
 		return nil, g.wrap(err)
 	}
 
@@ -95,7 +94,7 @@ func (g *ExecGateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, erro
 // Exec executes a query that doesn't return rows. For example, in SQL, INSERT
 // or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
 // sql.Result.
-func (g *ExecGateway) Exec(ctx context.Context, q sql.Querier) (sql.Result, error) {
+func (g *engine) Exec(ctx context.Context, q sql.Statement) (sql.Result, error) {
 	query, params, err := g.compile(q)
 	if err != nil {
 		return nil, g.wrap(err)
@@ -103,36 +102,37 @@ func (g *ExecGateway) Exec(ctx context.Context, q sql.Querier) (sql.Result, erro
 
 	var result sql.Result
 
-	if err := g.driver.Exec(ctx, query, params, &result); err != nil {
+	if err := g.querier.Exec(ctx, query, params, &result); err != nil {
 		return nil, g.wrap(err)
 	}
 
 	return result, nil
 }
 
-func (g *ExecGateway) compile(querier sql.Querier) (string, []interface{}, error) {
+func (g *engine) compile(stmt sql.Statement) (string, []interface{}, error) {
 	// find the command if any
-	if _, ok := querier.(commandable); ok {
-		name, params := querier.Query()
-
-		query, err := g.provider.Query(name)
+	if routine, ok := stmt.(sql.Procedure); ok {
+		// get the actual SQL query
+		query, err := g.provider.Query(routine.Name())
+		// if getting the query fails
 		if err != nil {
 			return "", nil, g.wrap(err)
 		}
-
-		querier = sql.NamedQuery(query, params...)
+		// sets the routine's query
+		routine.SetQuery(query)
 	}
 
 	// set the dialect
-	if syntax, ok := querier.(translatable); ok {
-		syntax.SetDialect(g.dialect)
+	if query, ok := stmt.(sql.Translatable); ok {
+		query.SetDialect(g.dialect)
 	}
 
-	query, params := querier.Query()
+	// compile the query
+	query, params := stmt.Query()
 
 	// check for errors
-	if reporter, ok := querier.(errorable); ok {
-		if err := reporter.Err(); err != nil {
+	if reporter, ok := stmt.(sql.Errorable); ok {
+		if err := reporter.Error(); err != nil {
 			return "", nil, g.wrap(err)
 		}
 	}
@@ -140,7 +140,7 @@ func (g *ExecGateway) compile(querier sql.Querier) (string, []interface{}, error
 	return query, params, nil
 }
 
-func (g *ExecGateway) wrap(err error) error {
+func (g *engine) wrap(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -179,4 +179,21 @@ func (g *ExecGateway) wrap(err error) error {
 	}
 
 	return err
+}
+
+func nameOf(value reflect.Type) string {
+	switch value.Kind() {
+	case reflect.Ptr:
+		return nameOf(value.Elem())
+	case reflect.Struct:
+		return strings.ToLower(value.Name())
+	case reflect.Slice:
+		return nameOf(value.Elem())
+	case reflect.Array:
+		return nameOf(value.Elem())
+	case reflect.Map:
+		return "map"
+	default:
+		return value.Name()
+	}
 }

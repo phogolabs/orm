@@ -1,18 +1,12 @@
 package orm_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"path/filepath"
-	"sync"
-	"time"
 
 	"github.com/bxcodec/faker/v3"
 	"github.com/phogolabs/orm"
 	"github.com/phogolabs/orm/dialect/sql"
-	"github.com/phogolabs/orm/fake"
-	"github.com/phogolabs/parcello"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +17,7 @@ var _ = Describe("Open", func() {
 		It("returns an error", func() {
 			gateway, err := orm.Open("sqlite4", "/tmp/orm.db")
 			Expect(gateway).To(BeNil())
-			Expect(err).To(MatchError(`orm: unsupported driver: "sqlite4"`))
+			Expect(err).To(MatchError(`sql: unknown driver "sqlite4" (forgotten import?)`))
 		})
 	})
 
@@ -47,7 +41,7 @@ var _ = Describe("Connect", func() {
 	Context("when cannot open the database", func() {
 		It("returns an error", func() {
 			gateway, err := orm.Connect("unknown://")
-			Expect(err).To(MatchError("orm: unsupported driver: \"unknown\""))
+			Expect(err).To(MatchError(`sql: unknown driver "unknown" (forgotten import?)`))
 			Expect(gateway).To(BeNil())
 		})
 	})
@@ -112,94 +106,83 @@ var _ = Describe("Gateway", func() {
 		Expect(gateway.Close()).To(Succeed())
 	})
 
-	Describe("ReadDir", func() {
-		var fileSystem *fake.FileSystem
+	Describe("Routine", func() {
+		// var fileSystem *fake.FileSystem
 
-		BeforeEach(func() {
-			buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
-			fmt.Fprintln(buffer)
-			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+		// BeforeEach(func() {
+		// 	buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
+		// 	fmt.Fprintln(buffer)
+		// 	fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
 
-			content := buffer.Bytes()
+		// 	content := buffer.Bytes()
 
-			node := &parcello.Node{
-				Name:    "script.sql",
-				Content: &content,
-				Mutex:   &sync.RWMutex{},
-			}
+		// 	node := &parcello.Node{
+		// 		Name:    "script.sql",
+		// 		Content: &content,
+		// 		Mutex:   &sync.RWMutex{},
+		// 	}
 
-			fileSystem = &fake.FileSystem{}
-			fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+		// 	fileSystem = &fake.FileSystem{}
+		// 	fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
 
-			fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-				return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-			}
-		})
+		// 	fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+		// 		return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+		// 	}
+		// })
 
-		It("reads the directory", func() {
-			Expect(gateway.ReadDir(fileSystem)).To(Succeed())
-		})
+		// It("reads the directory", func() {
+		// 	Expect(gateway.Routine(fileSystem)).To(Succeed())
+		// })
 
-		Context("when the routine is executed", func() {
-			It("execs the routine", func() {
-				Expect(gateway.ReadDir(fileSystem)).To(Succeed())
-				_, err := gateway.Query(ctx, orm.Routine("cmd"))
-				Expect(err).To(Succeed())
-			})
-		})
-	})
-
-	Describe("ReadFrom", func() {
-		It("reads the routines from file", func() {
-			script := fmt.Sprintf("%v", time.Now().UnixNano())
-			buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", script))
-			fmt.Fprintln(buffer)
-			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
-			_, err := gateway.ReadFrom(buffer)
-			Expect(err).To(Succeed())
-		})
+		// Context("when the routine is executed", func() {
+		// 	It("execs the routine", func() {
+		// 		Expect(gateway.Routine(fileSystem)).To(Succeed())
+		// 		_, err := gateway.Query(ctx, orm.Routine("cmd"))
+		// 		Expect(err).To(Succeed())
+		// 	})
+		// })
 	})
 
 	Describe("Migrate", func() {
-		var fileSystem *fake.FileSystem
+		// var fileSystem *fake.FileSystem
 
-		BeforeEach(func() {
-			buffer := bytes.NewBufferString("-- name: up")
+		// BeforeEach(func() {
+		// 	buffer := bytes.NewBufferString("-- name: up")
 
-			fmt.Fprintln(buffer)
-			fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
+		// 	fmt.Fprintln(buffer)
+		// 	fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
 
-			content := buffer.Bytes()
+		// 	content := buffer.Bytes()
 
-			node := &parcello.Node{
-				Name:    "00060524000000_setup.sql",
-				Content: &content,
-				Mutex:   &sync.RWMutex{},
-			}
+		// 	node := &parcello.Node{
+		// 		Name:    "00060524000000_setup.sql",
+		// 		Content: &content,
+		// 		Mutex:   &sync.RWMutex{},
+		// 	}
 
-			fileSystem = &fake.FileSystem{}
-			fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
+		// 	fileSystem = &fake.FileSystem{}
+		// 	fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
 
-			fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-				return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-			}
+		// 	fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
+		// 		return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
+		// 	}
 
-			query :=
-				sql.CreateTable("migrations").IfNotExists().
-					Columns(
-						sql.Column("id").Type("varchar(15)"),
-						sql.Column("description").Type("text").Attr("NOT NULL"),
-						sql.Column("created_at").Type("timestamp").Attr("NOT NULL"),
-					).
-					PrimaryKey("id")
+		// 	query :=
+		// 		sql.CreateTable("migrations").IfNotExists().
+		// 			Columns(
+		// 				sql.Column("id").Type("varchar(15)"),
+		// 				sql.Column("description").Type("text").Attr("NOT NULL"),
+		// 				sql.Column("created_at").Type("timestamp").Attr("NOT NULL"),
+		// 			).
+		// 			PrimaryKey("id")
 
-			_, err := gateway.Exec(ctx, query)
-			Expect(err).To(Succeed())
-		})
+		// 	_, err := gateway.Exec(ctx, query)
+		// 	Expect(err).To(Succeed())
+		// })
 
-		It("executes the migration successfully", func() {
-			Expect(gateway.Migrate(fileSystem)).To(Succeed())
-		})
+		// It("executes the migration successfully", func() {
+		// 	Expect(gateway.Migrate(fileSystem)).To(Succeed())
+		// })
 	})
 
 	Describe("Begin", func() {
@@ -224,7 +207,7 @@ var _ = Describe("Gateway", func() {
 
 	Describe("RunInTx", func() {
 		It("starts new transaction", func() {
-			err := gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+			err := gateway.RunInTx(ctx, func(tx *orm.GatewayTx) error {
 				entities := []*User{}
 				Expect(tx.All(ctx, sql.Raw("SELECT * FROM users"), &entities)).To(Succeed())
 
@@ -251,7 +234,7 @@ var _ = Describe("Gateway", func() {
 				Expect(err).To(BeNil())
 				Expect(gateway.Close()).To(Succeed())
 
-				err = gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+				err = gateway.RunInTx(ctx, func(tx *orm.GatewayTx) error {
 					return nil
 				})
 
@@ -261,7 +244,7 @@ var _ = Describe("Gateway", func() {
 
 		Context("when the transaction fails", func() {
 			It("returns an error", func() {
-				err := gateway.RunInTx(ctx, func(tx *orm.TxGateway) error {
+				err := gateway.RunInTx(ctx, func(tx *orm.GatewayTx) error {
 					Expect(tx).NotTo(BeNil())
 					return fmt.Errorf("oh no")
 				})

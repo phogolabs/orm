@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/phogolabs/orm/dialect"
+	"github.com/phogolabs/orm/dialect/sql"
 )
 
 // Option represents a Gateway option
@@ -22,7 +23,9 @@ func (fn OptionFunc) Apply(gateway *Gateway) {
 // WithLogger sets the logger
 func WithLogger(logger dialect.Logger) Option {
 	fn := func(g *Gateway) {
-		g.driver = dialect.Log(g.driver, logger)
+		if driver, ok := g.engine.querier.(*sql.Driver); ok {
+			g.engine.querier = dialect.Log(driver, logger)
+		}
 	}
 
 	return OptionFunc(fn)
@@ -40,7 +43,9 @@ func WithLogger(logger dialect.Logger) Option {
 // a future release.
 func WithMaxIdleConns(value int) Option {
 	fn := func(g *Gateway) {
-		g.db.SetMaxIdleConns(value)
+		if driver, ok := g.engine.querier.(*sql.Driver); ok {
+			driver.DB().SetMaxIdleConns(value)
+		}
 	}
 
 	return OptionFunc(fn)
@@ -56,7 +61,9 @@ func WithMaxIdleConns(value int) Option {
 // The default is 0 (unlimited).
 func WithMaxOpenConns(value int) Option {
 	fn := func(g *Gateway) {
-		g.db.SetMaxOpenConns(value)
+		if driver, ok := g.engine.querier.(*sql.Driver); ok {
+			driver.DB().SetMaxOpenConns(value)
+		}
 	}
 
 	return OptionFunc(fn)
@@ -69,7 +76,9 @@ func WithMaxOpenConns(value int) Option {
 // If d <= 0, connections are reused forever.
 func WithConnMaxLifetime(duration time.Duration) Option {
 	fn := func(g *Gateway) {
-		g.db.SetConnMaxLifetime(duration)
+		if driver, ok := g.engine.querier.(*sql.Driver); ok {
+			driver.DB().SetConnMaxLifetime(duration)
+		}
 	}
 
 	return OptionFunc(fn)

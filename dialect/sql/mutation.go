@@ -55,14 +55,19 @@ func (d *InsertMutation) Entity(src interface{}) *InsertBuilder {
 	)
 
 	for iterator.Next() {
-		column := iterator.Column()
+		var (
+			column = iterator.Column()
+			value  = iterator.Value().Interface()
+		)
 
 		if column.HasOption("auto") {
-			continue
+			if scan.IsEmpty(value) {
+				continue
+			}
 		}
 
 		columns = append(columns, column.Name)
-		values = append(values, iterator.Value().Interface())
+		values = append(values, value)
 	}
 
 	return d.builder.
@@ -94,6 +99,7 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 
 	for iterator.Next() {
 		column := iterator.Column()
+
 		if empty {
 			columns = append(columns, column.Name)
 		}

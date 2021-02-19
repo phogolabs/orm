@@ -18,7 +18,7 @@ func NamedQuery(query string) (string, []string) {
 	for index := strings.Index(query, "?"); index != -1; index = strings.Index(query, "?") {
 		fmt.Fprint(buffer, query[:index])
 		fmt.Fprint(buffer, ":")
-		fmt.Fprint(buffer, fmt.Sprintf("arg%d", next))
+		fmt.Fprintf(buffer, "arg%d", next)
 
 		query = query[index+1:]
 		next++

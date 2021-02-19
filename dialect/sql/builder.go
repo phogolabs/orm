@@ -14,12 +14,34 @@ import (
 	"github.com/phogolabs/orm/dialect"
 )
 
-// Querier wraps the basic Query method implemented
+// Statement wraps the basic Query method implemented
 // by the different builders in this file.
-type Querier interface {
+type Statement interface {
 	// Query returns the query representation of the element
 	// and its arguments (if any).
 	Query() (string, []interface{})
+}
+
+// Procedre wraps the basic Query method implemented
+// by the different routines in the file.
+type Procedure interface {
+	// Statement inherits the statement
+	Statement
+	// Name returns the name of the procesure
+	Name() string
+	// SetQuery sets the query
+	SetQuery(string)
+}
+
+// Errorable querier are those that returns errors
+type Errorable interface {
+	Error() error
+}
+
+// Dialect allows setting the dialect of the query
+type Translatable interface {
+	Dialect() string
+	SetDialect(string)
 }
 
 // ColumnBuilder is a builder for column definition in table creation.
@@ -70,13 +92,13 @@ func (c *ColumnBuilder) Query() (string, []interface{}) {
 // TableBuilder is a query builder for `CREATE TABLE` statement.
 type TableBuilder struct {
 	Builder
-	name        string    // table name.
-	exists      bool      // check existence.
-	charset     string    // table charset.
-	collation   string    // table collation.
-	columns     []Querier // table columns.
-	primary     []string  // primary key.
-	constraints []Querier // foreign keys and indices.
+	name        string      // table name.
+	exists      bool        // check existence.
+	charset     string      // table charset.
+	collation   string      // table collation.
+	columns     []Statement // table columns.
+	primary     []string    // primary key.
+	constraints []Statement // foreign keys and indices.
 }
 
 // CreateTable returns a query builder for the `CREATE TABLE` statement.
@@ -104,7 +126,7 @@ func (t *TableBuilder) Column(c *ColumnBuilder) *TableBuilder {
 
 // Columns appends the a list of columns to the builder.
 func (t *TableBuilder) Columns(columns ...*ColumnBuilder) *TableBuilder {
-	t.columns = make([]Querier, 0, len(columns))
+	t.columns = make([]Statement, 0, len(columns))
 	for i := range columns {
 		t.columns = append(t.columns, columns[i])
 	}
@@ -119,7 +141,7 @@ func (t *TableBuilder) PrimaryKey(column ...string) *TableBuilder {
 
 // ForeignKeys adds a list of foreign-keys to the statement (without constraints).
 func (t *TableBuilder) ForeignKeys(fks ...*ForeignKeyBuilder) *TableBuilder {
-	queries := make([]Querier, len(fks))
+	queries := make([]Statement, len(fks))
 	for i := range fks {
 		// erase the constraint symbol/name.
 		fks[i].symbol = ""
@@ -131,7 +153,7 @@ func (t *TableBuilder) ForeignKeys(fks ...*ForeignKeyBuilder) *TableBuilder {
 
 // Constraints adds a list of foreign-key constraints to the statement.
 func (t *TableBuilder) Constraints(fks ...*ForeignKeyBuilder) *TableBuilder {
-	queries := make([]Querier, len(fks))
+	queries := make([]Statement, len(fks))
 	for i := range fks {
 		queries[i] = &Wrapper{"CONSTRAINT %s", fks[i]}
 	}
@@ -206,8 +228,8 @@ func (t *DescribeBuilder) Query() (string, []interface{}) {
 // TableAlter is a query builder for `ALTER TABLE` statement.
 type TableAlter struct {
 	Builder
-	name    string    // table to alter.
-	Queries []Querier // columns and foreign-keys to add.
+	name    string      // table to alter.
+	Queries []Statement // columns and foreign-keys to add.
 }
 
 // AlterTable returns a query builder for the `ALTER TABLE` statement.
@@ -327,8 +349,8 @@ func (t *TableAlter) Query() (string, []interface{}) {
 // IndexAlter is a query builder for `ALTER INDEX` statement.
 type IndexAlter struct {
 	Builder
-	name    string    // index to alter.
-	Queries []Querier // alter options.
+	name    string      // index to alter.
+	Queries []Statement // alter options.
 }
 
 // AlterIndex returns a query builder for the `ALTER INDEX` statement.
@@ -738,7 +760,7 @@ func (u *UpdateBuilder) Query() (string, []interface{}) {
 		}
 		u.Ident(c).WriteString(" = ")
 		switch v := u.values[i].(type) {
-		case Querier:
+		case Statement:
 			u.Join(v)
 		default:
 			u.Arg(v)
@@ -1772,14 +1794,14 @@ func (w *WithBuilder) Query() (string, []interface{}) {
 // implement the table view interface.
 func (*WithBuilder) view() {}
 
-// Wrapper wraps a given Querier with different format.
+// Wrapper wraps a given Statement with different format.
 // Used to prefix/suffix other queries.
 type Wrapper struct {
 	format  string
-	wrapped Querier
+	wrapped Statement
 }
 
-// Query returns query representation of a wrapped Querier.
+// Query returns query representation of a wrapped Statement.
 func (w *Wrapper) Query() (string, []interface{}) {
 	query, args := w.wrapped.Query()
 	return fmt.Sprintf(w.format, query), args
@@ -1816,17 +1838,17 @@ func (w *Wrapper) SetTotal(total int) {
 	}
 }
 
-// Raw returns a raw sql Querier that is placed as-is in the query.
-func Raw(s string) Querier { return &raw{s} }
+// Raw returns a raw sql Statement that is placed as-is in the query.
+func Raw(s string) Statement { return &raw{s} }
 
 type raw struct{ s string }
 
 func (r *raw) Query() (string, []interface{}) { return r.s, nil }
 
 // Queries are list of queries join with space between them.
-type Queries []Querier
+type Queries []Statement
 
-// Query returns query representation of Queriers.
+// Query returns query representation of Statements.
 func (n Queries) Query() (string, []interface{}) {
 	b := &Builder{}
 	for i := range n {
@@ -1947,17 +1969,17 @@ func (b *Builder) Pad() *Builder {
 }
 
 // Join joins a list of Queries to the builder.
-func (b *Builder) Join(qs ...Querier) *Builder {
+func (b *Builder) Join(qs ...Statement) *Builder {
 	return b.join(qs, "")
 }
 
 // JoinComma joins a list of Queries and adds comma between them.
-func (b *Builder) JoinComma(qs ...Querier) *Builder {
+func (b *Builder) JoinComma(qs ...Statement) *Builder {
 	return b.join(qs, ", ")
 }
 
 // join joins a list of Queries to the builder with a given separator.
-func (b *Builder) join(qs []Querier, sep string) *Builder {
+func (b *Builder) join(qs []Statement, sep string) *Builder {
 	for i, q := range qs {
 		if i > 0 {
 			b.WriteString(sep)
@@ -2011,7 +2033,7 @@ func (b *Builder) SetTotal(total int) {
 	b.total = total
 }
 
-// Query implements the Querier interface.
+// Query implements the Statement interface.
 func (b Builder) Query() (string, []interface{}) {
 	return b.String(), b.args
 }

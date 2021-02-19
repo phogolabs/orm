@@ -8,10 +8,25 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/orm/dialect"
+	"github.com/phogolabs/prana/sqlexec"
+	"github.com/phogolabs/prana/sqlmigr"
 )
+
+// FileSystem represents the SQL filesystem
+type FileSystem = fs.FS
+
+// Provider represents a routine provider
+type Provider = sqlexec.Provider
+
+// Map represents a key value map
+type Map map[string]interface{}
+
+var _ dialect.Driver = &Driver{}
 
 // Driver is a dialect.Driver implementation for SQL based databases.
 type Driver struct {
@@ -36,6 +51,17 @@ func OpenDB(driver string, db *sql.DB) *Driver {
 // DB returns the underlying *sql.DB instance.
 func (d Driver) DB() *sql.DB {
 	return d.conn.ExecQuerier.(*sql.DB)
+}
+
+// Ping pings the server
+func (d Driver) Ping(ctx context.Context) error {
+	return d.DB().PingContext(ctx)
+}
+
+// Migrate runs the migrations
+func (d Driver) Migrate(storage FileSystem) error {
+	db := sqlx.NewDb(d.DB(), d.dialect)
+	return sqlmigr.RunAll(db, storage)
 }
 
 // Dialect implements the dialect.Dialect method.
@@ -64,7 +90,9 @@ func (d *Driver) BeginTx(ctx context.Context, opts *TxOptions) (dialect.Tx, erro
 }
 
 // Close closes the underlying connection.
-func (d *Driver) Close() error { return d.ExecQuerier.(*sql.DB).Close() }
+func (d *Driver) Close() error {
+	return d.ExecQuerier.(*sql.DB).Close()
+}
 
 // Tx wraps the sql.Tx for implementing the dialect.Tx interface.
 type Tx struct {
@@ -72,14 +100,28 @@ type Tx struct {
 }
 
 // Commit commits the transaction.
-func (t *Tx) Commit() error { return t.ExecQuerier.(*sql.Tx).Commit() }
+func (t *Tx) Commit() error {
+	return t.ExecQuerier.(*sql.Tx).Commit()
+}
 
 // Rollback rollback the transaction.
-func (t *Tx) Rollback() error { return t.ExecQuerier.(*sql.Tx).Rollback() }
+func (t *Tx) Rollback() error {
+	return t.ExecQuerier.(*sql.Tx).Rollback()
+}
 
 // ExecQuerier wraps the standard Exec and Query methods.
 type ExecQuerier interface {
+	Execer
+	Querier
+}
+
+// ExecQuerier wraps the standard Exec methods.
+type Execer interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
+// Querier wraps the standard Query methods.
+type Querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 

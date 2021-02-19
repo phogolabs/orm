@@ -7,7 +7,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	_ "github.com/phogolabs/orm/fixture"
 )
 
 func TestORM(t *testing.T) {

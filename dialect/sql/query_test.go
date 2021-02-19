@@ -10,19 +10,24 @@ import (
 var _ = Describe("RoutineQuerier", func() {
 	It("creates new routine successfully", func() {
 		routine := sql.Routine("my-test-routine", 5432)
+		routine.SetQuery("SELECT * FROM USER WHERE id = ?")
+
 		Expect(routine.Name()).To(Equal("my-test-routine"))
 
 		query, params := routine.Query()
-		Expect(query).To(Equal("my-test-routine"))
+		Expect(query).To(Equal("SELECT * FROM USER WHERE id = :arg0"))
 		Expect(params).To(HaveLen(1))
-		Expect(params).To(ContainElement(5432))
+
+		arg := params[0].(sql.NamedArg)
+		Expect(arg.Name).To(Equal("arg0"))
+		Expect(arg.Value).To(Equal(5432))
 	})
 })
 
 var _ = Describe("NamedQuerier", func() {
 	Context("when the provided argument is single", func() {
 		It("creates new command successfully", func() {
-			routine := sql.NamedQuery("SELECT * FROM users WHERE id = ?", 5432)
+			routine := sql.Query("SELECT * FROM users WHERE id = ?", 5432)
 
 			query, params := routine.Query()
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :arg0"))
@@ -37,7 +42,7 @@ var _ = Describe("NamedQuerier", func() {
 
 	Context("when the provided argument is a slice", func() {
 		It("creates new command successfully", func() {
-			routine := sql.NamedQuery("SELECT * FROM users WHERE id = ? AND category_id > ? AND category_name = ?", 1, 77, "fruits")
+			routine := sql.Query("SELECT * FROM users WHERE id = ? AND category_id > ? AND category_name = ?", 1, 77, "fruits")
 			query, params := routine.Query()
 
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :arg0 AND category_id > :arg1 AND category_name = :arg2"))
@@ -68,7 +73,7 @@ var _ = Describe("NamedQuerier", func() {
 				"id":            1234,
 			}
 
-			routine := sql.NamedQuery("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", param)
+			routine := sql.Query("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", param)
 			query, params := routine.Query()
 
 			Expect(query).To(Equal("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name"))
@@ -105,7 +110,7 @@ var _ = Describe("NamedQuerier", func() {
 				CategoryName: "nuts",
 			}
 
-			routine := sql.NamedQuery("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", user)
+			routine := sql.Query("SELECT * FROM users WHERE id = :id AND category_id > :category_id AND category_name = :category_name", user)
 			routine.SetDialect("postgres")
 
 			query, params := routine.Query()

@@ -14,7 +14,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	tests := []struct {
-		input     Querier
+		input     Statement
 		wantQuery string
 		wantArgs  []interface{}
 	}{
@@ -593,7 +593,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT * FROM "users" AS "u"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Select(t1.C("id"), t2.C("name")).From(t1).Join(t2)
@@ -601,7 +601,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "SELECT `u`.`id`, `g`.`name` FROM `users` AS `u` JOIN `groups` AS `g`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Dialect(dialect.Postgres).Select(t1.C("id"), t2.C("name")).From(t1).Join(t2)
@@ -609,7 +609,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT "u"."id", "g"."name" FROM "users" AS "u" JOIN "groups" AS "g"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Select(t1.C("id"), t2.C("name")).
@@ -620,7 +620,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "SELECT `u`.`id`, `g`.`name` FROM `users` AS `u` JOIN `groups` AS `g` ON `u`.`id` = `g`.`user_id`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Dialect(dialect.Postgres).
@@ -632,7 +632,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT "u"."id", "g"."name" FROM "users" AS "u" JOIN "groups" AS "g" ON "u"."id" = "g"."user_id"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Select(t1.C("id"), t2.C("name")).
@@ -645,7 +645,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Table("groups").As("g")
 				return Dialect(dialect.Postgres).
@@ -659,14 +659,14 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				return Select(t1.Columns("name", "age")...).From(t1)
 			}(),
 			wantQuery: "SELECT `u`.`name`, `u`.`age` FROM `users` AS `u`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				return Dialect(dialect.Postgres).
 					Select(t1.Columns("name", "age")...).From(t1)
@@ -674,7 +674,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT "u"."name", "u"."age" FROM "users" AS "u"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Dialect(dialect.Postgres).
 					Table("users").As("u")
 				return Dialect(dialect.Postgres).
@@ -683,7 +683,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT "u"."name", "u"."age" FROM "users" AS "u"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				t2 := Select().From(Table("groups")).Where(EQ("user_id", 10)).As("g")
 				return Select(t1.C("id"), t2.C("name")).
@@ -695,7 +695,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{10},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				t1 := d.Table("users").As("u")
 				t2 := d.Select().From(Table("groups")).Where(EQ("user_id", 10)).As("g")
@@ -708,7 +708,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{10},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				selector := Select().Where(EQ("name", "foo").Or().EQ("name", "bar"))
 				return Delete("users").FromSelect(selector)
 			}(),
@@ -716,7 +716,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				selector := d.Select().Where(EQ("name", "foo").Or().EQ("name", "bar"))
 				return d.Delete("users").FromSelect(selector)
@@ -725,14 +725,14 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				selector := Select().From(Table("users")).As("t")
 				return selector.Select(selector.C("name"))
 			}(),
 			wantQuery: "SELECT `t`.`name` FROM `users`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				selector := Dialect(dialect.Postgres).
 					Select().From(Table("users")).As("t")
 				return selector.Select(selector.C("name"))
@@ -740,7 +740,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT "t"."name" FROM "users"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				selector := Select().From(Table("groups")).Where(EQ("name", "foo"))
 				return Delete("users").FromSelect(selector)
 			}(),
@@ -748,7 +748,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				selector := d.Select().From(Table("groups")).Where(EQ("name", "foo"))
 				return d.Delete("users").FromSelect(selector)
@@ -757,14 +757,14 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				selector := Select()
 				return Delete("users").FromSelect(selector)
 			}(),
 			wantQuery: "DELETE FROM `users`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				selector := d.Select()
 				return d.Delete("users").FromSelect(selector)
@@ -817,7 +817,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"%ariel%", "%bar%"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				s1 := Select().
 					From(Table("users")).
 					Where(Not(EQ("name", "foo").And().EQ("age", "bar")))
@@ -827,7 +827,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				s1 := d.Select().
 					From(Table("users")).
@@ -838,7 +838,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				s1 := Select().From(Table("users")).Where(Not(EQ("name", "foo").And().EQ("age", "bar"))).As("users_view")
 				return Select("name").From(s1)
 			}(),
@@ -846,7 +846,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				s1 := d.Select().From(Table("users")).Where(Not(EQ("name", "foo").And().EQ("age", "bar"))).As("users_view")
 				return d.Select("name").From(s1)
@@ -855,7 +855,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"foo", "bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Select().
 					From(t1).
@@ -865,7 +865,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"pedro"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().
@@ -876,7 +876,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"pedro"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Select().
 					From(t1).
@@ -886,7 +886,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"pedro"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().
@@ -915,7 +915,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT COUNT(DISTINCT "id") FROM "users"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				t2 := Select().From(Table("groups"))
 				t3 := Select().Count().From(t1).Join(t1).On(t2.C("id"), t1.C("blocked_id"))
@@ -924,7 +924,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "SELECT COUNT(DISTINCT `t0`.`id`, `t0`.`name`) FROM `users` AS `t0` JOIN `users` AS `t0` ON `groups`.`id` = `t0`.`blocked_id`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				d := Dialect(dialect.Postgres)
 				t1 := d.Table("users")
 				t2 := d.Select().From(Table("groups"))
@@ -944,14 +944,14 @@ func TestBuilder(t *testing.T) {
 			wantQuery: `SELECT SUM("age"), MIN("age") FROM "users"`,
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				return Select(As(Max(t1.C("age")), "max_age")).From(t1)
 			}(),
 			wantQuery: "SELECT MAX(`u`.`age`) AS `max_age` FROM `users` AS `u`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users").As("u")
 				return Dialect(dialect.Postgres).
 					Select(As(Max(t1.C("age")), "max_age")).
@@ -1058,7 +1058,7 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "WITH users_view AS (SELECT * FROM `users`) SELECT * FROM `users_view`",
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				base := Select("*").From(Table("groups"))
 				return Queries{With("groups").As(base.Clone().Where(EQ("name", "bar"))), base.Select("age")}
 			}(),
@@ -1066,7 +1066,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"bar"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				builder := Dialect(dialect.Postgres)
 				t1 := builder.Table("groups")
 				t2 := builder.Table("users")
@@ -1085,7 +1085,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"baz", 1},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().
@@ -1096,7 +1096,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{1, "Ariel"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().
@@ -1107,7 +1107,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"Ariel", 1, "Ariel"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().
@@ -1118,7 +1118,7 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{"Ariel", "Doe", 1, "Ariel"},
 		},
 		{
-			input: func() Querier {
+			input: func() Statement {
 				t1 := Table("users")
 				return Dialect(dialect.Postgres).
 					Select().

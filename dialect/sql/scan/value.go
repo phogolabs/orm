@@ -39,6 +39,32 @@ func IsNil(src interface{}) bool {
 	return false
 }
 
+// IsEmpty returns true if the value is empty
+func IsEmpty(src interface{}) bool {
+	if src == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(src)
+
+	switch value.Kind() {
+	case reflect.Ptr:
+		return value.IsNil()
+	case reflect.Chan:
+		return value.IsNil()
+	case reflect.Func:
+		return value.IsNil()
+	case reflect.Map:
+		return value.IsNil()
+	case reflect.Interface:
+		return value.IsNil()
+	case reflect.Slice:
+		return value.IsNil()
+	}
+
+	return value.IsZero()
+}
+
 // Args returns the arguments
 func Args(src []interface{}, columns ...string) ([]interface{}, error) {
 	if len(columns) == 0 {

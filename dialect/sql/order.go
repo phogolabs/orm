@@ -50,15 +50,18 @@ type Order struct {
 // DecodeOrder returns an order
 func DecodeOrder(value string) (*Order, error) {
 	var (
-		order *Order
-		parts = strings.Fields(value)
+		order   *Order
+		parts   = strings.Fields(value)
+		unident = func(v string) string {
+			return strings.Replace(v, "`", "", -1)
+		}
 	)
 
 	switch len(parts) {
 	case 0:
 		return nil, nil
 	case 1:
-		name := strings.ToLower(Unident(parts[0]))
+		name := strings.ToLower(unident(parts[0]))
 
 		switch name[0] {
 		case '-':
@@ -78,7 +81,7 @@ func DecodeOrder(value string) (*Order, error) {
 			}
 		}
 	case 2:
-		name := strings.ToLower(Unident(parts[0]))
+		name := strings.ToLower(unident(parts[0]))
 
 		switch strings.ToLower(parts[1]) {
 		case "asc":

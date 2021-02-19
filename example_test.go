@@ -5,7 +5,6 @@ import (
 
 	"github.com/phogolabs/orm"
 	"github.com/phogolabs/orm/dialect/sql"
-	"github.com/phogolabs/parcello"
 )
 
 func ExampleGateway_First() {
@@ -15,7 +14,7 @@ func ExampleGateway_First() {
 	}
 
 	user := &User{}
-	query := orm.SQL("SELECT * FROM users ORDER BY created_at")
+	query := orm.Query("SELECT * FROM users ORDER BY created_at")
 
 	if err := gateway.First(context.TODO(), query, user); err != nil {
 		panic(err)
@@ -29,7 +28,7 @@ func ExampleGateway_Only() {
 	}
 
 	user := &User{}
-	query := orm.SQL("SELECT * FROM users WHERE id = ?", "007")
+	query := orm.Query("SELECT * FROM users WHERE id = ?", "007")
 
 	if err := gateway.Only(context.TODO(), query, user); err != nil {
 		panic(err)
@@ -59,10 +58,6 @@ func ExampleRoutine() {
 		panic(err)
 	}
 
-	if err = gateway.ReadDir(parcello.Dir("./database/command")); err != nil {
-		panic(err)
-	}
-
 	users := []*User{}
 	routine := orm.Routine("show-top-5-users")
 
@@ -78,7 +73,7 @@ func ExampleSQL() {
 	}
 
 	users := []*User{}
-	query := orm.SQL("SELECT name FROM users")
+	query := orm.Query("SELECT name FROM users")
 
 	if err := gateway.All(context.TODO(), query, &users); err != nil {
 		panic(err)
