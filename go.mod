@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Pallinder/go-randomdata v1.2.0
-	github.com/a8m/rql v1.2.0
+	github.com/a8m/rql v1.3.0
 	github.com/apex/log v1.6.0
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/facebookincubator/ent v0.1.4
@@ -15,7 +15,6 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.7.0
-	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
