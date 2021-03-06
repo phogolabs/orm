@@ -24,6 +24,11 @@ func (selector *Selector) PaginateBy(key string) *Paginator {
 	}
 }
 
+// Dialect returns the dialect
+func (pq *Paginator) Dialect() string {
+	return pq.selector.dialect
+}
+
 // SetDialect sets the dialect
 func (pq *Paginator) SetDialect(dialect string) {
 	pq.selector.SetDialect(dialect)
