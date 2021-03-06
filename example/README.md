@@ -15,5 +15,5 @@ by using `Migrate` function.
 You can run the project by executing the `main.go`:
 
 ```bash
-$ go run main.go
+$ go run cmd/example-api/main.go
 ```
