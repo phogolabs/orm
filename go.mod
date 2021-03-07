@@ -9,7 +9,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
-	github.com/phogolabs/log v0.0.0-20210301135254-d095e2fdec4b
+	github.com/phogolabs/flaw v0.0.0-20210306145544-6984b46f2d8f // indirect
+	github.com/phogolabs/log v0.0.0-20210306145126-52c24a2892fb
 	github.com/phogolabs/prana v1.0.0-rc3
 	github.com/stretchr/testify v1.6.1
 )

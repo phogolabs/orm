@@ -49,6 +49,7 @@ github.com/aws/aws-sdk-go v1.20.6/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN
 github.com/aws/aws-sdk-go v1.25.43/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.35.25/go.mod h1:tlPOdRjfxPBpNIwqDj61rmsnA85v9jc0Ps9+muhnW+k=
 github.com/aws/aws-sdk-go v1.37.20/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
+github.com/aws/aws-sdk-go v1.37.25/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59/go.mod h1:q/89r3U2H7sSsE2t6Kca0lfwTK8JdoNGS/yzM/4iH5I=
 github.com/aymerick/raymond v2.0.2+incompatible h1:VEp3GpgdAnv9B2GFyTvqgcKvY+mfKMjPOA3SbKLtnU0=
 github.com/aymerick/raymond v2.0.2+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
@@ -214,11 +215,13 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/phogolabs/cli v0.0.0-20191212161310-ce689d871370/go.mod h1:grzrc/EIac+v5wd6EjBB4a9obKGGIdsgWhPIsqjBGLo=
 github.com/phogolabs/cli v0.0.0-20210301135109-eacc30a9c1b0/go.mod h1:RsK0tjGgCTdbk6Lq+kkpIT7uVrj+2y8VXzWb+3DQrDY=
 github.com/phogolabs/flaw v0.0.0-20201111183117-182b92e71790/go.mod h1:OqB+cuSe37p90UkdmK5Tjq+zPKo7YCghu08SXDrrkoM=
-github.com/phogolabs/flaw v0.0.0-20210108012932-e1cf67d6edb4 h1:0IKp0S2DCpliXvUNgoW2xroXzrS2yDzkN83a7QHNxT8=
 github.com/phogolabs/flaw v0.0.0-20210108012932-e1cf67d6edb4/go.mod h1:PmaO1F61Y/yB2kWQXnDMQ0vE68rW0+582wAKwDWDTXw=
+github.com/phogolabs/flaw v0.0.0-20210306145544-6984b46f2d8f h1:aECEjhojd8KHxnJRi98/ZOKa2kKQVbZ7SaieVT5C/78=
+github.com/phogolabs/flaw v0.0.0-20210306145544-6984b46f2d8f/go.mod h1:P+5bxKo3KEVGUc/bnK5w2M9dx/90ap6PZiDVZ3uYpQ4=
 github.com/phogolabs/log v0.0.0-20201111184021-532c7331555a/go.mod h1:7X0ltAHDRqlAd+BYf4aQROW5tkdifwN1Jq0pC8T4TDc=
-github.com/phogolabs/log v0.0.0-20210301135254-d095e2fdec4b h1:+HLgXE8Nc2JNsIqL+ZT059kw7TnOoQMDtOvvZX4NzdQ=
 github.com/phogolabs/log v0.0.0-20210301135254-d095e2fdec4b/go.mod h1:ryZQpLgcr/DhL7CHFXcQGgZ130Y+/xqqhB+5kWWWfi0=
+github.com/phogolabs/log v0.0.0-20210306145126-52c24a2892fb h1:vUGTupIhi1/P558sBStwXYkK2K9t54w+SAeA4c/Z+1s=
+github.com/phogolabs/log v0.0.0-20210306145126-52c24a2892fb/go.mod h1:jLPIzHaiMkYf5Z228pAKDy91YXqg9tcwGzgZLowv4ac=
 github.com/phogolabs/parcello v0.8.1/go.mod h1:/HlY+yKSdyM8MUX9YvwT3+sED9SKXizc5zfuHDh6+to=
 github.com/phogolabs/parcello v0.8.2/go.mod h1:rtKgAK1yF6KZOllQDfcHvOzYYwV3kCt61LJybif3SCE=
 github.com/phogolabs/prana v1.0.0-rc3 h1:ArRMDTkshe8UK3bR4fS3TA0U6r5TFI3jerHuKNKsvGo=

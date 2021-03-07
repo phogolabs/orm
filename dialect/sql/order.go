@@ -30,6 +30,10 @@ func DecodeOrderBy(value string) (*OrderBy, error) {
 
 // OrderOf parses the given parts as asc and desc clauses
 func (selector *Selector) OrderOf(orderBy *OrderBy) *Selector {
+	if orderBy == nil {
+		return selector
+	}
+
 	for _, order := range *orderBy {
 		if order == nil {
 			continue
