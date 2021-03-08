@@ -12,5 +12,5 @@ require (
 	github.com/phogolabs/flaw v0.0.0-20210306145544-6984b46f2d8f // indirect
 	github.com/phogolabs/log v0.0.0-20210306145126-52c24a2892fb
 	github.com/phogolabs/prana v1.0.0-rc3
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 )
