@@ -10,16 +10,16 @@ import (
 func NewGateway(url string) (*orm.Gateway, error) {
 	logger := log.WithField("component", "database")
 
-	gateway, err := orm.Connect(url, orm.WithLogger(logger))
+	gateway, err := orm.Connect(url,
+		orm.WithLogger(logger),
+		orm.WithRoutine(routine.Query),
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
-	if err = gateway.ReadFrom(routine.Content); err != nil {
-		return nil, err
-	}
-
-	if err = gateway.Migrate(migration.Content); err != nil {
+	if err = gateway.Migrate(migration.Schema); err != nil {
 		return nil, err
 	}
 

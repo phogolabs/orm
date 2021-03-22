@@ -9,23 +9,24 @@ import (
 
 // Option represents a Gateway option
 type Option interface {
-	Apply(*Gateway)
+	Apply(*Gateway) error
 }
 
 // OptionFunc represents a function that can be used to set option
-type OptionFunc func(*Gateway)
+type OptionFunc func(*Gateway) error
 
 // Apply applies the option
-func (fn OptionFunc) Apply(gateway *Gateway) {
-	fn(gateway)
+func (fn OptionFunc) Apply(gateway *Gateway) error {
+	return fn(gateway)
 }
 
 // WithLogger sets the logger
 func WithLogger(logger dialect.Logger) Option {
-	fn := func(g *Gateway) {
+	fn := func(g *Gateway) error {
 		if driver, ok := g.engine.querier.(*sql.Driver); ok {
 			g.engine.querier = dialect.Log(driver, logger)
 		}
+		return nil
 	}
 
 	return OptionFunc(fn)
@@ -42,10 +43,11 @@ func WithLogger(logger dialect.Logger) Option {
 // The default max idle connections is currently 2. This may change in
 // a future release.
 func WithMaxIdleConns(value int) Option {
-	fn := func(g *Gateway) {
+	fn := func(g *Gateway) error {
 		if driver, ok := g.engine.querier.(*sql.Driver); ok {
 			driver.DB().SetMaxIdleConns(value)
 		}
+		return nil
 	}
 
 	return OptionFunc(fn)
@@ -60,10 +62,11 @@ func WithMaxIdleConns(value int) Option {
 // If n <= 0, then there is no limit on the number of open connections.
 // The default is 0 (unlimited).
 func WithMaxOpenConns(value int) Option {
-	fn := func(g *Gateway) {
+	fn := func(g *Gateway) error {
 		if driver, ok := g.engine.querier.(*sql.Driver); ok {
 			driver.DB().SetMaxOpenConns(value)
 		}
+		return nil
 	}
 
 	return OptionFunc(fn)
@@ -75,10 +78,23 @@ func WithMaxOpenConns(value int) Option {
 //
 // If d <= 0, connections are reused forever.
 func WithConnMaxLifetime(duration time.Duration) Option {
-	fn := func(g *Gateway) {
+	fn := func(g *Gateway) error {
 		if driver, ok := g.engine.querier.(*sql.Driver); ok {
 			driver.DB().SetConnMaxLifetime(duration)
 		}
+		return nil
+	}
+
+	return OptionFunc(fn)
+}
+
+// WithRoutine creates the gateway with a given routine
+func WithRoutine(source FileSystem) Option {
+	fn := func(g *Gateway) error {
+		if err := g.engine.provider.ReadDir(source); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	return OptionFunc(fn)

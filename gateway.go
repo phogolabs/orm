@@ -43,7 +43,7 @@ func Open(name, source string, opts ...Option) (*Gateway, error) {
 	}
 
 	dialect := driver.Dialect()
-
+	// setup the provider
 	provider := &sql.Provider{}
 	provider.SetDialect(dialect)
 
@@ -56,7 +56,9 @@ func Open(name, source string, opts ...Option) (*Gateway, error) {
 	}
 
 	for _, opt := range opts {
-		opt.Apply(gateway)
+		if err := opt.Apply(gateway); err != nil {
+			return nil, err
+		}
 	}
 
 	return gateway, nil
@@ -86,11 +88,6 @@ func (g *Gateway) Migrate(storage FileSystem) error {
 	driver := g.engine.querier.(dialect.Driver)
 	// run the migration
 	return driver.Migrate(storage)
-}
-
-// ReadFrom loads the pre-defined routines from the file system
-func (g *Gateway) ReadFrom(storage FileSystem) error {
-	return g.engine.provider.ReadDir(storage)
 }
 
 // Begin begins a transaction and returns an *Tx
