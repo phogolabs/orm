@@ -3,4 +3,4 @@ package routine
 import "embed"
 
 //go:embed *.sql
-var Query embed.FS
+var Statement embed.FS

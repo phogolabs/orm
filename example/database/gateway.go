@@ -7,21 +7,15 @@ import (
 	"github.com/phogolabs/orm/example/database/routine"
 )
 
-func NewGateway(url string) (*orm.Gateway, error) {
+// Schema represents the database schema
+var Schema = migration.Schema
+
+// Open opens the connection
+func Open(url string) (*orm.Gateway, error) {
 	logger := log.WithField("component", "database")
 
-	gateway, err := orm.Connect(url,
+	return orm.Connect(url,
 		orm.WithLogger(logger),
-		orm.WithRoutine(routine.Query),
+		orm.WithRoutine(routine.Statement),
 	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err = gateway.Migrate(migration.Schema); err != nil {
-		return nil, err
-	}
-
-	return gateway, nil
 }

@@ -11,16 +11,24 @@ import (
 	"github.com/bxcodec/faker/v3"
 	"github.com/phogolabs/log"
 	"github.com/phogolabs/orm/example/database"
-	"github.com/phogolabs/orm/example/database/model"
+	"github.com/phogolabs/orm/example/database/ent"
 )
 
 func main() {
-	repository, err := database.NewUserRepository("sqlite3://prana.db")
+	gateway, err := database.Open("sqlite3://prana.db")
 	if err != nil {
 		log.WithError(err).Fatal("failed to open database connection")
 	}
 	// close the connection
-	defer repository.Close()
+	defer gateway.Close()
+
+	if err := gateway.Migrate(database.Schema); err != nil {
+		log.WithError(err).Fatal("failed to run database migration")
+	}
+
+	repository := &database.UserRepository{
+		Gateway: gateway,
+	}
 
 	if err = generate(repository); err != nil {
 		log.WithError(err).Fatal("failed to generate all records")
@@ -40,7 +48,7 @@ func generate(repository *database.UserRepository) error {
 	ctx := context.TODO()
 
 	for i := 0; i < 10; i++ {
-		record := &model.User{
+		record := &ent.User{
 			ID:        int(time.Now().UnixNano()),
 			FirstName: faker.FirstName(),
 			LastName:  pointer(faker.LastName()),

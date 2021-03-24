@@ -3,7 +3,7 @@
 // Package model contains an object model of database schema 'default'
 // Auto-generated at Thu, 11 Apr 2019 16:39:45 CEST
 
-package model
+package ent
 
 // User represents a data base table 'users'
 type User struct {

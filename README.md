@@ -32,7 +32,7 @@ import (
 and then establish the connection:
 
 ```golang
-gateway, err := orm.Open("sqlite3", "example.db")
+gateway, err := orm.Open("sqlite3", "example.db", orm.WithRoutine(routine.Statement))
 if err != nil {
  return err
 }
@@ -62,12 +62,6 @@ VALUES (:id, :first_name, :last_name);
 
 -- named: select-all-users
 SELECT * FROM users;
-```
-
-```golang
-if err = gateway.ReadFrom(file); err != nil {
-  log.WithError(err).Fatal("Failed to load script")
-}
 ```
 
 Then you can execute the desired script by just passing its name:
