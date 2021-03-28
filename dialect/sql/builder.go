@@ -1438,8 +1438,8 @@ type Selector struct {
 	order    []string
 	group    []string
 	having   *Predicate
-	limit    *int
-	offset   *int
+	limit    *uint64
+	offset   *uint64
 	distinct bool
 }
 
@@ -1485,13 +1485,13 @@ func (s *Selector) SetDistinct(v bool) *Selector {
 }
 
 // Limit adds the `LIMIT` clause to the `SELECT` statement.
-func (s *Selector) Limit(limit int) *Selector {
+func (s *Selector) Limit(limit uint64) *Selector {
 	s.limit = &limit
 	return s
 }
 
 // Offset adds the `OFFSET` clause to the `SELECT` statement.
-func (s *Selector) Offset(offset int) *Selector {
+func (s *Selector) Offset(offset uint64) *Selector {
 	s.offset = &offset
 	return s
 }

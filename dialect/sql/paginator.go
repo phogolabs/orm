@@ -76,7 +76,7 @@ func (pq *Paginator) Cursor(src interface{}) (*Cursor, error) {
 		}
 
 		if limit := pq.selector.limit; limit != nil {
-			if count < *limit {
+			if uint64(count) < *limit {
 				return &cursor, nil
 			}
 		}
@@ -132,7 +132,7 @@ func (pq *Paginator) Window(src interface{}) interface{} {
 		}
 
 		if limit := pq.selector.limit; limit != nil {
-			if count < *limit {
+			if uint64(count) < *limit {
 				return src
 			}
 
