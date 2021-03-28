@@ -26,10 +26,20 @@ func (g *engine) All(ctx context.Context, q sql.Statement, v interface{}) error 
 	if err != nil {
 		return err
 	}
+	// close the rows
 	defer rows.Close()
 
-	err = scan.Rows(rows, v)
-	return g.wrap(err)
+	// scan the rows into the target
+	if err := scan.Rows(rows, v); err != nil {
+		return g.wrap(err)
+	}
+
+	// if the query supports scannable interface
+	if scanner, ok := q.(scan.Readable); ok {
+		return scanner.Scan(v)
+	}
+
+	return nil
 }
 
 // Only returns the only entity in the query, returns an error if not
@@ -39,8 +49,10 @@ func (g *engine) Only(ctx context.Context, q sql.Statement, v interface{}) error
 	if err != nil {
 		return err
 	}
+	// close the rows
 	defer rows.Close()
 
+	// scan the rows into the target
 	err = scan.Row(rows, v)
 
 	switch {
@@ -60,8 +72,10 @@ func (g *engine) First(ctx context.Context, q sql.Statement, v interface{}) erro
 	if err != nil {
 		return g.wrap(err)
 	}
+	// close the rows
 	defer rows.Close()
 
+	// scan the rows into the target
 	err = scan.Row(rows, v)
 
 	switch {
@@ -77,13 +91,14 @@ func (g *engine) First(ctx context.Context, q sql.Statement, v interface{}) erro
 // Query executes a query that returns rows, typically a SELECT in SQL.
 // It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
 func (g *engine) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) {
+	// compile the query prior to execution
 	query, params, err := g.compile(q)
 	if err != nil {
 		return nil, g.wrap(err)
 	}
 
 	rows := &sql.Rows{}
-
+	// execute the query into the rows
 	if err := g.querier.Query(ctx, query, params, rows); err != nil {
 		return nil, g.wrap(err)
 	}
@@ -95,13 +110,14 @@ func (g *engine) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) 
 // or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
 // sql.Result.
 func (g *engine) Exec(ctx context.Context, q sql.Statement) (sql.Result, error) {
+	// compile the query prior to execution
 	query, params, err := g.compile(q)
 	if err != nil {
 		return nil, g.wrap(err)
 	}
 
 	var result sql.Result
-
+	// execute the query into the reslt
 	if err := g.querier.Exec(ctx, query, params, &result); err != nil {
 		return nil, g.wrap(err)
 	}

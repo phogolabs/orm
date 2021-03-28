@@ -977,7 +977,7 @@ func TestBuilder(t *testing.T) {
 				From(Table("users")).
 				GroupBy("name").
 				OrderBy("name"),
-			wantQuery: "SELECT `name`, COUNT(*) FROM `users` GROUP BY `name` ORDER BY `name`",
+			wantQuery: "SELECT `name`, COUNT(*) FROM `users` GROUP BY `name` ORDER BY `name` ASC",
 		},
 		{
 			input: Dialect(dialect.Postgres).
@@ -985,14 +985,14 @@ func TestBuilder(t *testing.T) {
 				From(Table("users")).
 				GroupBy("name").
 				OrderBy("name"),
-			wantQuery: `SELECT "name", COUNT(*) FROM "users" GROUP BY "name" ORDER BY "name"`,
+			wantQuery: `SELECT "name", COUNT(*) FROM "users" GROUP BY "name" ORDER BY "name" ASC`,
 		},
 		{
 			input: Select("name", "age", Count("*")).
 				From(Table("users")).
 				GroupBy("name", "age").
 				OrderBy(Desc("name"), "age"),
-			wantQuery: "SELECT `name`, `age`, COUNT(*) FROM `users` GROUP BY `name`, `age` ORDER BY `name` DESC, `age`",
+			wantQuery: "SELECT `name`, `age`, COUNT(*) FROM `users` GROUP BY `name`, `age` ORDER BY `name` DESC, `age` ASC",
 		},
 		{
 			input: Dialect(dialect.Postgres).
@@ -1000,14 +1000,14 @@ func TestBuilder(t *testing.T) {
 				From(Table("users")).
 				GroupBy("name", "age").
 				OrderBy(Desc("name"), "age"),
-			wantQuery: `SELECT "name", "age", COUNT(*) FROM "users" GROUP BY "name", "age" ORDER BY "name" DESC, "age"`,
+			wantQuery: `SELECT "name", "age", COUNT(*) FROM "users" GROUP BY "name", "age" ORDER BY "name" DESC, "age" ASC`,
 		},
 		{
 			input: Select("*").
 				From(Table("users")).
 				Limit(1),
 			wantQuery: "SELECT * FROM `users` LIMIT ?",
-			wantArgs:  []interface{}{1},
+			wantArgs:  []interface{}{uint64(1)},
 		},
 		{
 			input: Dialect(dialect.Postgres).
@@ -1015,7 +1015,7 @@ func TestBuilder(t *testing.T) {
 				From(Table("users")).
 				Limit(1),
 			wantQuery: `SELECT * FROM "users" LIMIT $1`,
-			wantArgs:  []interface{}{1},
+			wantArgs:  []interface{}{uint64(1)},
 		},
 		{
 			input:     Select("age").Distinct().From(Table("users")),
@@ -1030,7 +1030,7 @@ func TestBuilder(t *testing.T) {
 		},
 		{
 			input:     Select("age", "name").From(Table("users")).Distinct().OrderBy("name"),
-			wantQuery: "SELECT DISTINCT `age`, `name` FROM `users` ORDER BY `name`",
+			wantQuery: "SELECT DISTINCT `age`, `name` FROM `users` ORDER BY `name` ASC",
 		},
 		{
 			input: Dialect(dialect.Postgres).
@@ -1038,7 +1038,7 @@ func TestBuilder(t *testing.T) {
 				From(Table("users")).
 				Distinct().
 				OrderBy("name"),
-			wantQuery: `SELECT DISTINCT "age", "name" FROM "users" ORDER BY "name"`,
+			wantQuery: `SELECT DISTINCT "age", "name" FROM "users" ORDER BY "name" ASC`,
 		},
 		{
 			input:     Select("age").From(Table("users")).Where(EQ("name", "foo")).Or().Where(EQ("name", "bar")),
@@ -1082,7 +1082,7 @@ func TestBuilder(t *testing.T) {
 					On(t1.C("id"), t4.C("id")).Limit(1)
 			}(),
 			wantQuery: `SELECT * FROM "groups" JOIN (SELECT "user_groups"."id" FROM "user_groups" JOIN "users" AS "t0" ON "user_groups"."id" = "t0"."id2" WHERE "t0"."id" = $1) AS "t1" ON "groups"."id" = "t1"."id" LIMIT $2`,
-			wantArgs:  []interface{}{"baz", 1},
+			wantArgs:  []interface{}{"baz", uint64(1)},
 		},
 		{
 			input: func() Statement {
