@@ -1250,6 +1250,45 @@ func (p *Predicate) append(f func(*Builder)) *Predicate {
 	return p
 }
 
+// Asc adds the ASC suffix for the given column.
+func Asc(column string) string {
+	b := &Builder{}
+	b.Ident(column).WriteString(" ASC")
+	return b.String()
+}
+
+// Desc adds the DESC suffix for the given column.
+func Desc(column string) string {
+	b := &Builder{}
+	b.Ident(column).WriteString(" DESC")
+	return b.String()
+}
+
+type order struct {
+	column    string
+	direction string
+}
+
+func (p order) equal(pp order) bool {
+	return strings.EqualFold(p.column, pp.column) &&
+		strings.EqualFold(p.direction, pp.direction)
+}
+
+func (o order) clone() order {
+	return order{
+		column:    o.column,
+		direction: o.direction,
+	}
+}
+
+func (p order) String() string {
+	if p.direction == "asc" {
+		return Asc(p.column)
+	}
+
+	return Desc(p.column)
+}
+
 // Func represents an SQL function.
 type Func struct {
 	Builder
@@ -1435,7 +1474,7 @@ type Selector struct {
 	where    *Predicate
 	or       bool
 	not      bool
-	order    []string
+	orders   []order
 	group    []string
 	having   *Predicate
 	limit    *uint64
@@ -1628,10 +1667,17 @@ func (s *Selector) Clone() *Selector {
 	if s == nil {
 		return nil
 	}
+
 	joins := make([]join, len(s.joins))
 	for i := range s.joins {
 		joins[i] = s.joins[i].clone()
 	}
+
+	orders := make([]order, len(s.orders))
+	for i := range s.orders {
+		orders[i] = s.orders[i].clone()
+	}
+
 	return &Selector{
 		Builder:  s.Builder.clone(),
 		as:       s.as,
@@ -1645,28 +1691,60 @@ func (s *Selector) Clone() *Selector {
 		having:   s.having.clone(),
 		joins:    append([]join{}, joins...),
 		group:    append([]string{}, s.group...),
-		order:    append([]string{}, s.order...),
+		orders:   append([]order{}, orders...),
 		columns:  append([]string{}, s.columns...),
 	}
 }
 
-// Asc adds the ASC suffix for the given column.
-func Asc(column string) string {
-	b := &Builder{}
-	b.Ident(column).WriteString(" ASC")
-	return b.String()
-}
-
-// Desc adds the DESC suffix for the given column.
-func Desc(column string) string {
-	b := &Builder{}
-	b.Ident(column).WriteString(" DESC")
-	return b.String()
-}
-
 // OrderBy appends the `ORDER BY` clause to the `SELECT` statement.
 func (s *Selector) OrderBy(columns ...string) *Selector {
-	s.order = append(s.order, columns...)
+	for _, column := range columns {
+		for _, clause := range strings.Split(column, ",") {
+			parts := strings.Fields(clause)
+
+			if len(parts) == 0 {
+				continue
+			}
+
+			// get the raw column name
+			name := strings.ToLower(unident(parts[0]))
+
+			switch len(parts) {
+			case 1:
+				switch name[0] {
+				case '+':
+					s.orders = append(s.orders, order{
+						column:    name[1:],
+						direction: "asc",
+					})
+				case '-':
+					s.orders = append(s.orders, order{
+						column:    name[1:],
+						direction: "desc",
+					})
+				default:
+					s.orders = append(s.orders, order{
+						column:    name,
+						direction: "asc",
+					})
+				}
+			case 2:
+				switch strings.ToLower(parts[1]) {
+				case "asc":
+					s.orders = append(s.orders, order{
+						column:    name,
+						direction: "asc",
+					})
+				case "desc":
+					s.orders = append(s.orders, order{
+						column:    name,
+						direction: "desc",
+					})
+				}
+			}
+		}
+	}
+
 	return s
 }
 
@@ -1674,6 +1752,24 @@ func (s *Selector) OrderBy(columns ...string) *Selector {
 func (s *Selector) GroupBy(columns ...string) *Selector {
 	s.group = append(s.group, columns...)
 	return s
+}
+
+// StartAt starts the query at given token
+func (s *Selector) StartAt(token ...string) *Pager {
+	pager := &Pager{
+		selector: s.Clone(),
+		cursor:   &cursor{},
+	}
+
+	// pre-initialize the token
+	if count := len(token); count == 0 {
+		token = append(token, "")
+	}
+
+	// move to the beginning
+	pager.seek(token[0])
+
+	return pager
 }
 
 // Having appends a predicate for the `HAVING` clause.
@@ -1738,9 +1834,16 @@ func (s *Selector) Query() (string, []interface{}) {
 		b.WriteString(" HAVING ")
 		b.Join(s.having)
 	}
-	if len(s.order) > 0 {
+	if len(s.orders) > 0 {
 		b.WriteString(" ORDER BY ")
-		b.IdentComma(s.order...)
+
+		orderBy := make([]string, len(s.orders))
+		// convert to string
+		for index, clause := range s.orders {
+			orderBy[index] = clause.String()
+		}
+
+		b.IdentComma(orderBy...)
 	}
 	if s.limit != nil {
 		b.WriteString(" LIMIT ")
@@ -2249,4 +2352,8 @@ func isModifier(s string) bool {
 		}
 	}
 	return false
+}
+
+func unident(v string) string {
+	return strings.Replace(v, "`", "", -1)
 }

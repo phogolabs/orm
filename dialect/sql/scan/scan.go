@@ -9,6 +9,11 @@ import (
 // ErrOneRow is returned by Row scan when the query returns more than one row
 var ErrOneRow = fmt.Errorf("sql/scan: expect exactly one row in result set")
 
+// Readable provides a scannable interface
+type Readable interface {
+	Scan(interface{}) error
+}
+
 // Scanner is the interface that wraps the
 // three sql.Rows methods used for scanning.
 type Scanner interface {
