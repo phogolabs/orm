@@ -72,9 +72,12 @@ func (pg *Pager) Scan(target interface{}) error {
 	value.Set(value.Slice(0, count-1))
 
 	columns := []string{}
-	// extract the column names
-	for _, order := range pg.selector.orders {
-		columns = append(columns, order.column)
+	// if the order is present
+	if pg.selector.order != nil {
+		// extract the column names
+		for _, orderBy := range pg.selector.order.columns {
+			columns = append(columns, orderBy.Name)
+		}
 	}
 	// extract the column values
 	values, err := scan.Values(item.Interface(), columns...)
@@ -83,17 +86,20 @@ func (pg *Pager) Scan(target interface{}) error {
 	}
 
 	pg.cursor = &cursor{}
-	// calculate the cursor
-	for index, clause := range pg.selector.orders {
-		if index >= len(values) {
-			return fmt.Errorf("sql: the order clauses should have valid cursor vector")
-		}
 
-		pg.cursor.add(&vector{
-			Column:    clause.column,
-			Direction: clause.direction,
-			Value:     values[index],
-		})
+	if pg.selector.order != nil {
+		// calculate the cursor
+		for index, clause := range pg.selector.order.columns {
+			if index >= len(values) {
+				return fmt.Errorf("sql: the order clauses should have valid cursor vector")
+			}
+
+			pg.cursor.add(&vector{
+				Column:    clause.Name,
+				Direction: clause.Direction,
+				Value:     values[index],
+			})
+		}
 	}
 
 	return nil
@@ -120,7 +126,7 @@ func (pg *Pager) seek(token string) *Pager {
 		return pg
 	}
 
-	if len(pg.selector.orders) == 0 {
+	if pg.selector.order == nil || len(pg.selector.order.columns) == 0 {
 		pg.err = fmt.Errorf("sql: query should have at least one order by clause")
 	}
 
@@ -210,20 +216,20 @@ func (c *cursor) where(vec []*vector) *Predicate {
 func (c *cursor) order(selector *Selector) error {
 	var (
 		ccount = len(*c)
-		pcount = len(selector.orders)
+		pcount = selector.order.count()
 		pindex = 0
 	)
 
 	for cindex, vector := range *c {
-		candidate := order{
-			column:    vector.Column,
-			direction: vector.Direction,
+		orderBy := &OrderByColumn{
+			Name:      vector.Column,
+			Direction: vector.Direction,
 		}
 
 		switch {
 		case pcount == 0, cindex > pindex:
-			selector.orders = append(selector.orders, candidate)
-		case !candidate.equal(selector.orders[pindex]):
+			selector.order = selector.order.add(orderBy)
+		case !orderBy.Equal(selector.order.columns[pindex]):
 			return fmt.Errorf("sql: pagination cursor position mismatch")
 		}
 

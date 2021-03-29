@@ -1264,29 +1264,150 @@ func Desc(column string) string {
 	return b.String()
 }
 
-type order struct {
-	column    string
-	direction string
+// OrderByColumn represents an order by clause
+type OrderByColumn struct {
+	Name      string
+	Direction string
 }
 
-func (p order) equal(pp order) bool {
-	return strings.EqualFold(p.column, pp.column) &&
-		strings.EqualFold(p.direction, pp.direction)
+// Equal returns true if both clauses are equal
+func (o *OrderByColumn) Equal(obc *OrderByColumn) bool {
+	return strings.EqualFold(o.Name, obc.Name) &&
+		strings.EqualFold(o.Direction, obc.Direction)
 }
 
-func (o order) clone() order {
-	return order{
-		column:    o.column,
-		direction: o.direction,
+// String returns the clause as string.
+func (o *OrderByColumn) String() string {
+	if o.Direction == "asc" {
+		return Asc(o.Name)
+	}
+
+	return Desc(o.Name)
+}
+
+func (o *OrderByColumn) clone() *OrderByColumn {
+	return &OrderByColumn{
+		Name:      o.Name,
+		Direction: o.Direction,
 	}
 }
 
-func (p order) String() string {
-	if p.direction == "asc" {
-		return Asc(p.column)
+// OrderByPath represents an order by columns list
+type OrderByPath struct {
+	columns []*OrderByColumn
+}
+
+// OrderBy returns an order by
+func OrderBy(columns ...string) *OrderByPath {
+	path := &OrderByPath{}
+
+	for _, column := range columns {
+		for _, clause := range strings.Split(column, ",") {
+			parts := strings.Fields(clause)
+
+			if len(parts) == 0 {
+				continue
+			}
+
+			// get the raw column name
+			name := strings.ToLower(unident(parts[0]))
+
+			switch len(parts) {
+			case 1:
+				switch name[0] {
+				case '+':
+					path.columns = append(path.columns, &OrderByColumn{
+						Name:      name[1:],
+						Direction: "asc",
+					})
+				case '-':
+					path.columns = append(path.columns, &OrderByColumn{
+						Name:      name[1:],
+						Direction: "desc",
+					})
+				default:
+					path.columns = append(path.columns, &OrderByColumn{
+						Name:      name,
+						Direction: "asc",
+					})
+				}
+			case 2:
+				switch strings.ToLower(parts[1]) {
+				case "asc":
+					path.columns = append(path.columns, &OrderByColumn{
+						Name:      name,
+						Direction: "asc",
+					})
+				case "desc":
+					path.columns = append(path.columns, &OrderByColumn{
+						Name:      name,
+						Direction: "desc",
+					})
+				}
+			}
+		}
 	}
 
-	return Desc(p.column)
+	return path
+}
+
+// As maps the columns to a given map
+func (o *OrderByPath) As(kv Map) *OrderByPath {
+	for _, orderBy := range o.columns {
+		if name, ok := kv[orderBy.Name]; ok {
+			orderBy.Name = fmt.Sprintf("%v", name)
+		}
+	}
+
+	return o
+}
+
+func (o *OrderByPath) merge(path *OrderByPath) *OrderByPath {
+	if path == nil {
+		return o
+	}
+
+	if o == nil {
+		o = &OrderByPath{}
+	}
+
+	o.columns = append(o.columns, path.columns...)
+	return o
+}
+
+func (o *OrderByPath) add(column *OrderByColumn) *OrderByPath {
+	if column == nil {
+		return o
+	}
+
+	if o == nil {
+		o = &OrderByPath{}
+	}
+
+	o.columns = append(o.columns, column)
+	return o
+}
+
+func (o *OrderByPath) count() int {
+	if o == nil {
+		return 0
+	}
+
+	return len(o.columns)
+}
+
+func (o *OrderByPath) clone() *OrderByPath {
+	if o == nil {
+		return nil
+	}
+
+	c := &OrderByPath{}
+
+	for _, orderBy := range o.columns {
+		c.columns = append(c.columns, orderBy.clone())
+	}
+
+	return c
 }
 
 // Func represents an SQL function.
@@ -1474,7 +1595,7 @@ type Selector struct {
 	where    *Predicate
 	or       bool
 	not      bool
-	orders   []order
+	order    *OrderByPath
 	group    []string
 	having   *Predicate
 	limit    *uint64
@@ -1673,11 +1794,6 @@ func (s *Selector) Clone() *Selector {
 		joins[i] = s.joins[i].clone()
 	}
 
-	orders := make([]order, len(s.orders))
-	for i := range s.orders {
-		orders[i] = s.orders[i].clone()
-	}
-
 	return &Selector{
 		Builder:  s.Builder.clone(),
 		as:       s.as,
@@ -1687,64 +1803,24 @@ func (s *Selector) Clone() *Selector {
 		limit:    s.limit,
 		offset:   s.offset,
 		distinct: s.distinct,
+		order:    s.order.clone(),
 		where:    s.where.clone(),
 		having:   s.having.clone(),
 		joins:    append([]join{}, joins...),
 		group:    append([]string{}, s.group...),
-		orders:   append([]order{}, orders...),
 		columns:  append([]string{}, s.columns...),
 	}
 }
 
 // OrderBy appends the `ORDER BY` clause to the `SELECT` statement.
 func (s *Selector) OrderBy(columns ...string) *Selector {
-	for _, column := range columns {
-		for _, clause := range strings.Split(column, ",") {
-			parts := strings.Fields(clause)
+	s.order = s.order.merge(OrderBy(columns...))
+	return s
+}
 
-			if len(parts) == 0 {
-				continue
-			}
-
-			// get the raw column name
-			name := strings.ToLower(unident(parts[0]))
-
-			switch len(parts) {
-			case 1:
-				switch name[0] {
-				case '+':
-					s.orders = append(s.orders, order{
-						column:    name[1:],
-						direction: "asc",
-					})
-				case '-':
-					s.orders = append(s.orders, order{
-						column:    name[1:],
-						direction: "desc",
-					})
-				default:
-					s.orders = append(s.orders, order{
-						column:    name,
-						direction: "asc",
-					})
-				}
-			case 2:
-				switch strings.ToLower(parts[1]) {
-				case "asc":
-					s.orders = append(s.orders, order{
-						column:    name,
-						direction: "asc",
-					})
-				case "desc":
-					s.orders = append(s.orders, order{
-						column:    name,
-						direction: "desc",
-					})
-				}
-			}
-		}
-	}
-
+// OrderBy appends the `ORDER BY` clause to the `SELECT` statement.
+func (s *Selector) OrderByPath(path *OrderByPath) *Selector {
+	s.order = s.order.merge(path)
 	return s
 }
 
@@ -1754,20 +1830,20 @@ func (s *Selector) GroupBy(columns ...string) *Selector {
 	return s
 }
 
-// StartAt starts the query at given token
-func (s *Selector) StartAt(token ...string) *Pager {
+// Pager starts a pager
+func (s *Selector) Pager() *Pager {
+	return s.StartAt("")
+}
+
+// StartAt starts the query pager at given token
+func (s *Selector) StartAt(token string) *Pager {
 	pager := &Pager{
 		selector: s.Clone(),
 		cursor:   &cursor{},
 	}
 
-	// pre-initialize the token
-	if count := len(token); count == 0 {
-		token = append(token, "")
-	}
-
 	// move to the beginning
-	pager.seek(token[0])
+	pager.seek(token)
 
 	return pager
 }
@@ -1834,16 +1910,18 @@ func (s *Selector) Query() (string, []interface{}) {
 		b.WriteString(" HAVING ")
 		b.Join(s.having)
 	}
-	if len(s.orders) > 0 {
-		b.WriteString(" ORDER BY ")
+	if s.order != nil {
+		if len(s.order.columns) > 0 {
+			b.WriteString(" ORDER BY ")
 
-		orderBy := make([]string, len(s.orders))
-		// convert to string
-		for index, clause := range s.orders {
-			orderBy[index] = clause.String()
+			orderBy := make([]string, len(s.order.columns))
+			// convert to string
+			for index, clause := range s.order.columns {
+				orderBy[index] = clause.String()
+			}
+
+			b.IdentComma(orderBy...)
 		}
-
-		b.IdentComma(orderBy...)
 	}
 	if s.limit != nil {
 		b.WriteString(" LIMIT ")

@@ -20,7 +20,7 @@ var _ = Describe("Pager", func() {
 
 	Describe("StartAt", func() {
 		It("returns a pager", func() {
-			pager := query.StartAt()
+			pager := query.Pager()
 
 			query, args := pager.Query()
 			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC LIMIT ?"))
@@ -47,7 +47,7 @@ var _ = Describe("Pager", func() {
 			})
 
 			It("returns an error", func() {
-				pager := query.StartAt()
+				pager := query.Pager()
 				Expect(pager.Error()).To(MatchError("sql: query should have at least one order by clause"))
 			})
 		})
@@ -66,7 +66,7 @@ var _ = Describe("Pager", func() {
 				{ID: 2, Name: "Brown"},
 			}
 
-			pager := query.Limit(2).StartAt()
+			pager := query.Limit(2).Pager()
 			Expect(pager.Scan(&users)).To(Succeed())
 			Expect(pager.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
 			Expect(users).To(HaveLen(2))
@@ -77,7 +77,7 @@ var _ = Describe("Pager", func() {
 		Context("when the target is not a slice", func() {
 			It("returns an error", func() {
 				user := &User{}
-				pager := query.Limit(2).StartAt()
+				pager := query.Limit(2).Pager()
 				Expect(pager.Scan(&user)).To(MatchError("dialect/sql: invalid type **sql_test.User. expect []interface{}"))
 			})
 		})
@@ -85,7 +85,7 @@ var _ = Describe("Pager", func() {
 
 	Describe("SetDialect", func() {
 		It("sets the dialect", func() {
-			pager := query.StartAt()
+			pager := query.Pager()
 			pager.SetDialect("postgres")
 			Expect(pager.Dialect()).To(Equal("postgres"))
 		})
@@ -93,7 +93,7 @@ var _ = Describe("Pager", func() {
 
 	Describe("Query", func() {
 		It("returns the actual query", func() {
-			pager := query.OrderBy("id").StartAt()
+			pager := query.OrderBy("id").Pager()
 			query, args := pager.Query()
 			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC, `id` ASC LIMIT ?"))
 			Expect(args).To(HaveLen(2))
