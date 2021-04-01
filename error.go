@@ -107,3 +107,8 @@ func IsConstraintViolation(err error) bool {
 	var e *ConstraintError
 	return errors.As(err, &e)
 }
+
+// IsTransactionError returns true if the error is cause on commit
+func IsTransactionError(err error) bool {
+	return err.Error() == "pq: Could not complete operation in a failed transaction"
+}

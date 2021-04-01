@@ -125,7 +125,18 @@ func (g *Gateway) RunInTx(ctx context.Context, fn RunTxFunc) error {
 		return err
 	}
 
-	return gtx.Commit()
+	if err := gtx.Commit(); err != nil {
+		// this means that even that the error is nil some of the SQL statements
+		// failed
+		if IsTransactionError(err) {
+			// rollback if it's transaction error
+			return gtx.Rollback()
+		}
+		// otherwise return the actual error
+		return err
+	}
+
+	return nil
 }
 
 // All executes the query and returns a list of entities.
