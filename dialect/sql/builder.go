@@ -700,38 +700,35 @@ func (i *InsertBuilder) Query() (string, []interface{}) {
 type ConflictBuilder struct {
 	Builder
 	insert   *InsertBuilder
+	update   *UpdateBuilder
 	conflict []string
 }
 
 // DoNothing returns a conflict builder that does nothing
 func (b *ConflictBuilder) DoNothing() *ConflictBuilder {
+	b.update = nil
 	return b
 }
 
-// DoUpdate returns a conflict builder that does update
-func (b *ConflictBuilder) DoUpdate() *UpdateBuilder {
-	query, args := b.insert.Query()
-
-	builder := &UpdateBuilder{values: args}
-	builder.SetDialect(b.dialect)
-
-	builder.WriteString(query)
-	builder.WriteString(" ON CONFLICT")
-
-	if len(b.conflict) > 0 {
-		builder.WriteString("(")
-		builder.IdentComma(b.conflict...)
-		builder.WriteString(") DO ")
-	}
-
-	// return the update builder
-	return builder
+// Do returns a conflict builder that does update
+func (b *ConflictBuilder) Do(update *UpdateBuilder) *ConflictBuilder {
+	b.update = update
+	b.update.table = ""
+	b.update.SetDialect(b.dialect)
+	return b
 }
 
 // SetDialect sets the dialect
 func (b *ConflictBuilder) SetDialect(value string) {
 	b.Builder.SetDialect(value)
-	b.insert.SetDialect(value)
+
+	if b.insert != nil {
+		b.insert.SetDialect(value)
+	}
+
+	if b.update != nil {
+		b.update.SetDialect(value)
+	}
 }
 
 // Query returns the queries
@@ -744,10 +741,16 @@ func (b *ConflictBuilder) Query() (string, []interface{}) {
 	if len(b.conflict) > 0 {
 		b.WriteString("(")
 		b.IdentComma(b.conflict...)
-		b.WriteString(") DO")
+		b.WriteString(") DO ")
 	}
 
-	b.WriteString(" NOTHING")
+	if b.update == nil {
+		b.WriteString("NOTHING")
+	} else {
+		query, params := b.update.Query()
+		args = append(args, params...)
+		b.WriteString(query)
+	}
 
 	return b.String(), args
 }

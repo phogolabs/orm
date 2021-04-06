@@ -72,8 +72,7 @@ func (d *InsertMutation) Entity(src interface{}) *InsertBuilder {
 
 	return d.builder.
 		Columns(columns...).
-		Values(values...).
-		Returning("*")
+		Values(values...)
 }
 
 // UpdateMutation represents an update mutation
@@ -123,6 +122,5 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 		}
 	}
 
-	updater = updater.Returning("*")
 	return updater
 }
