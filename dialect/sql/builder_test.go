@@ -224,7 +224,7 @@ func TestBuilder(t *testing.T) {
 		},
 		{
 			input:     Dialect(dialect.Postgres).Insert("users").Columns("name").Values("john").OnConflict("name").Do(Update("users").Set("name", "jack").Where(IsNull("name")).Returning("*")),
-			wantQuery: `INSERT INTO "users" ("name") VALUES ($1) ON CONFLICT("name") DO UPDATE  SET "name" = $1 WHERE "name" IS NULL RETURNING *`,
+			wantQuery: `INSERT INTO "users" ("name") VALUES ($1) ON CONFLICT("name") DO UPDATE  SET "name" = $2 WHERE "name" IS NULL RETURNING *`,
 			wantArgs:  []interface{}{"john", "jack"},
 		},
 		{

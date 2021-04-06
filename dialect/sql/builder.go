@@ -747,6 +747,7 @@ func (b *ConflictBuilder) Query() (string, []interface{}) {
 	if b.update == nil {
 		b.WriteString("NOTHING")
 	} else {
+		b.update.total += len(args)
 		query, params := b.update.Query()
 		args = append(args, params...)
 		b.WriteString(query)
