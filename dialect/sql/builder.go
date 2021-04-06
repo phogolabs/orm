@@ -646,6 +646,20 @@ func (i *InsertBuilder) Default() *InsertBuilder {
 	return i
 }
 
+// OnConflict creates a conflict builder
+func (i *InsertBuilder) OnConflict(constraint ...string) *ConflictBuilder {
+	// create the builder
+	builder := &ConflictBuilder{
+		conflict: constraint,
+		insert:   i,
+	}
+	// setup the dialect
+	builder.SetDialect(i.dialect)
+
+	// return the builder
+	return builder
+}
+
 // Returning adds the `RETURNING` clause to the insert statement. PostgreSQL only.
 func (i *InsertBuilder) Returning(columns ...string) *InsertBuilder {
 	i.returning = columns
@@ -672,11 +686,70 @@ func (i *InsertBuilder) Query() (string, []interface{}) {
 			})
 		}
 	}
-	if len(i.returning) > 0 && i.postgres() {
-		i.WriteString(" RETURNING ")
-		i.IdentComma(i.returning...)
+	if i.postgres() {
+		if len(i.returning) > 0 {
+			i.WriteString(" RETURNING ")
+			i.IdentComma(i.returning...)
+		}
 	}
+
 	return i.String(), i.args
+}
+
+// ConflictAction represents a conflict builder
+type ConflictBuilder struct {
+	Builder
+	insert   *InsertBuilder
+	conflict []string
+}
+
+// DoNothing returns a conflict builder that does nothing
+func (b *ConflictBuilder) DoNothing() *ConflictBuilder {
+	return b
+}
+
+// DoUpdate returns a conflict builder that does update
+func (b *ConflictBuilder) DoUpdate() *UpdateBuilder {
+	query, args := b.insert.Query()
+
+	builder := &UpdateBuilder{values: args}
+	builder.SetDialect(b.dialect)
+
+	builder.WriteString(query)
+	builder.WriteString(" ON CONFLICT")
+
+	if len(b.conflict) > 0 {
+		builder.WriteString("(")
+		builder.IdentComma(b.conflict...)
+		builder.WriteString(") DO ")
+	}
+
+	// return the update builder
+	return builder
+}
+
+// SetDialect sets the dialect
+func (b *ConflictBuilder) SetDialect(value string) {
+	b.Builder.SetDialect(value)
+	b.insert.SetDialect(value)
+}
+
+// Query returns the queries
+func (b *ConflictBuilder) Query() (string, []interface{}) {
+	query, args := b.insert.Query()
+
+	b.WriteString(query)
+	b.WriteString(" ON CONFLICT")
+
+	if len(b.conflict) > 0 {
+		b.WriteString("(")
+		b.IdentComma(b.conflict...)
+		b.WriteString(") DO")
+	}
+
+	b.WriteString(" NOTHING")
+
+	return b.String(), args
 }
 
 // UpdateBuilder is a builder for `UPDATE` statement.

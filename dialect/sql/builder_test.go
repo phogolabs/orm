@@ -218,6 +218,16 @@ func TestBuilder(t *testing.T) {
 			wantArgs:  []interface{}{1},
 		},
 		{
+			input:     Dialect(dialect.Postgres).Insert("users").Columns("name").Values("john").OnConflict("name").DoNothing(),
+			wantQuery: `INSERT INTO "users" ("name") VALUES ($1) ON CONFLICT("name") DO NOTHING`,
+			wantArgs:  []interface{}{"john"},
+		},
+		{
+			input:     Dialect(dialect.Postgres).Insert("users").Columns("name").Values("john").OnConflict("name").DoUpdate().Set("name", "jack").Where(IsNull("name")).Returning("*"),
+			wantQuery: `INSERT INTO "users" ("name") VALUES ($1) ON CONFLICT("name") DO UPDATE  SET "name" = $1 WHERE "name" IS NULL RETURNING *`,
+			wantArgs:  []interface{}{"john"},
+		},
+		{
 			input:     Dialect(dialect.Postgres).Insert("users").Columns("age").Values(1),
 			wantQuery: `INSERT INTO "users" ("age") VALUES ($1)`,
 			wantArgs:  []interface{}{1},
