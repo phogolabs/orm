@@ -647,11 +647,11 @@ func (i *InsertBuilder) Default() *InsertBuilder {
 }
 
 // OnConflict creates a conflict builder
-func (i *InsertBuilder) OnConflict(constraint ...string) *ConflictBuilder {
+func (i *InsertBuilder) OnConflict(columns ...string) *ConflictBuilder {
 	// create the builder
 	builder := &ConflictBuilder{
-		conflict: constraint,
-		insert:   i,
+		insert:  i,
+		columns: columns,
 	}
 	// setup the dialect
 	builder.SetDialect(i.dialect)
@@ -699,9 +699,17 @@ func (i *InsertBuilder) Query() (string, []interface{}) {
 // ConflictAction represents a conflict builder
 type ConflictBuilder struct {
 	Builder
-	insert   *InsertBuilder
-	update   *UpdateBuilder
-	conflict []string
+	insert     *InsertBuilder
+	update     *UpdateBuilder
+	columns    []string
+	constraint string
+}
+
+// OnConstraint converts the builder to `ON CONSTRAINT`
+func (b *ConflictBuilder) OnConstraint(name string) *ConflictBuilder {
+	b.columns = []string{}
+	b.constraint = name
+	return b
 }
 
 // DoNothing returns a conflict builder that does nothing
@@ -738,10 +746,16 @@ func (b *ConflictBuilder) Query() (string, []interface{}) {
 	b.WriteString(query)
 	b.WriteString(" ON CONFLICT")
 
-	if len(b.conflict) > 0 {
+	switch {
+	case len(b.columns) > 0:
 		b.WriteString("(")
-		b.IdentComma(b.conflict...)
+		b.IdentComma(b.columns...)
 		b.WriteString(")")
+		break
+	case len(b.constraint) > 0:
+		b.WriteString(" ON CONSTRAINT")
+		b.WriteString(b.constraint)
+		break
 	}
 
 	b.WriteString(" DO ")
