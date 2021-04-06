@@ -751,11 +751,9 @@ func (b *ConflictBuilder) Query() (string, []interface{}) {
 		b.WriteString("(")
 		b.IdentComma(b.columns...)
 		b.WriteString(")")
-		break
 	case len(b.constraint) > 0:
-		b.WriteString(" ON CONSTRAINT")
+		b.WriteString(" ON CONSTRAINT ")
 		b.WriteString(b.constraint)
-		break
 	}
 
 	b.WriteString(" DO ")
