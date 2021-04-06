@@ -81,9 +81,11 @@ type UpdateMutation struct {
 }
 
 // NewUpdate creates a Mutation that updates the entity into the db
-func NewUpdate(table string) *UpdateMutation {
+func NewUpdate(table ...string) *UpdateMutation {
+	table = append(table, "")
+
 	return &UpdateMutation{
-		builder: Update(table),
+		builder: Update(table[0]),
 	}
 }
 
@@ -107,8 +109,12 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 			updateable[column.Name] = iterator.Value().Interface()
 		}
 
-		if column.HasOption("primary_key") {
-			updater.Where(EQ(column.Name, iterator.Value().Interface()))
+		// if the update statement does not have table name
+		// means that we are in DO UPDATE case
+		if updater.table != "" {
+			if column.HasOption("primary_key") {
+				updater.Where(EQ(column.Name, iterator.Value().Interface()))
+			}
 		}
 	}
 
