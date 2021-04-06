@@ -741,8 +741,10 @@ func (b *ConflictBuilder) Query() (string, []interface{}) {
 	if len(b.conflict) > 0 {
 		b.WriteString("(")
 		b.IdentComma(b.conflict...)
-		b.WriteString(") DO ")
+		b.WriteString(")")
 	}
+
+	b.WriteString(" DO ")
 
 	if b.update == nil {
 		b.WriteString("NOTHING")
