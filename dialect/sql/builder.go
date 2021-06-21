@@ -1442,6 +1442,11 @@ func OrderBy(columns ...string) *OrderByPath {
 	return path
 }
 
+// Columns return the order by colum names
+func (o *OrderByPath) Columns() []*OrderByColumn {
+	return o.columns
+}
+
 // As maps the columns to a given map
 func (o *OrderByPath) As(kv Map) *OrderByPath {
 	for _, orderBy := range o.columns {
@@ -1642,6 +1647,16 @@ func (s *SelectTable) Columns(columns ...string) []string {
 func (s *SelectTable) Unquote() *SelectTable {
 	s.quote = false
 	return s
+}
+
+// Clone returns a shallow clone of s.
+func (s *SelectTable) Clone() *SelectTable {
+	return &SelectTable{
+		Builder: s.Builder.clone(),
+		quote:   s.quote,
+		name:    s.name,
+		as:      s.as,
+	}
 }
 
 // ref returns the table reference.
