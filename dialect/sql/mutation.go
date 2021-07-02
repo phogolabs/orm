@@ -24,10 +24,13 @@ func (d *DeleteMutation) Entity(src interface{}) *DeleteBuilder {
 	)
 
 	for iterator.Next() {
-		column := iterator.Column()
+		var (
+			column = iterator.Column()
+			value  = iterator.Value().Interface()
+		)
 
 		if column.HasOption("primary_key") {
-			deleter = deleter.Where(EQ(column.Name, iterator.Value().Interface()))
+			deleter = deleter.Where(EQ(column.Name, value))
 		}
 	}
 
@@ -99,21 +102,27 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 	)
 
 	for iterator.Next() {
-		column := iterator.Column()
+		var (
+			column = iterator.Column()
+			value  = iterator.Value().Interface()
+		)
 
 		if empty {
 			columns = append(columns, column.Name)
 		}
 
-		if !column.HasOption("read_only") {
-			updateable[column.Name] = iterator.Value().Interface()
+		immutable := column.HasOption("read_only") || column.HasOption("immutable") || column.HasOption("primary_key")
+		// we can update only immutable columns
+		if !immutable {
+			updateable[column.Name] = value
 		}
 
 		// if the update statement does not have table name
 		// means that we are in DO UPDATE case
 		if updater.table != "" {
+			// TODO: we may use immutable & unique column with not null values as part of the where
 			if column.HasOption("primary_key") {
-				updater.Where(EQ(column.Name, iterator.Value().Interface()))
+				updater.Where(EQ(column.Name, value))
 			}
 		}
 	}

@@ -16,6 +16,7 @@ require (
 	github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5
 	github.com/phogolabs/prana v1.0.0-rc3
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
-	google.golang.org/genproto v0.0.0-20210617175327-b9e0b3197ced // indirect
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	google.golang.org/genproto v0.0.0-20210701191553-46259e63a0a9 // indirect
+	google.golang.org/grpc v1.39.0 // indirect
 )
