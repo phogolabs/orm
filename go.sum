@@ -239,8 +239,8 @@ github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5 h1:MlaknYljrhKCT3wBN
 github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5/go.mod h1:IvLsZtJyw+eLkm7BNaRFrfz33UNKtrsNNz+hj6RVC+A=
 github.com/phogolabs/parcello v0.8.1/go.mod h1:/HlY+yKSdyM8MUX9YvwT3+sED9SKXizc5zfuHDh6+to=
 github.com/phogolabs/parcello v0.8.2/go.mod h1:rtKgAK1yF6KZOllQDfcHvOzYYwV3kCt61LJybif3SCE=
-github.com/phogolabs/prana v1.0.0-rc7 h1:PQhn6g6YvlfKMBLeTOjNhBSC0L+lgOcpHNIju4ToY+U=
-github.com/phogolabs/prana v1.0.0-rc7/go.mod h1:y92Ktk/rxzeRC8/uf4Iq0X6AeTU+/KOwIPejZ564aiU=
+github.com/phogolabs/prana v1.0.0-rc8 h1:+VfryhtT15vsqBtPQhJgIS56qvG6PLeK/Gr4ZcY8eOA=
+github.com/phogolabs/prana v1.0.0-rc8/go.mod h1:y92Ktk/rxzeRC8/uf4Iq0X6AeTU+/KOwIPejZ564aiU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
