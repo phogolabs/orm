@@ -8,9 +8,11 @@ import (
 
 // Iterator iterates over a struct fields
 type Iterator struct {
-	value reflect.Value
-	meta  *reflectx.StructMap
-	index int
+	prefix string
+	value  reflect.Value
+	meta   *reflectx.StructMap
+	node   *Iterator
+	index  int
 }
 
 // IteratorOf creates a new iterator
@@ -21,22 +23,37 @@ func IteratorOf(src interface{}) *Iterator {
 	)
 
 	return &Iterator{
-		value: value,
 		meta:  meta,
+		value: value,
 		index: -1,
 	}
 }
 
 // Next progress
-func (i *Iterator) Next() bool {
-	count := len(i.meta.Index)
+func (iter *Iterator) Next() bool {
+	if iter.node != nil {
+		// proceed
+		if ok := iter.node.Next(); ok {
+			return true
+		}
+		// go one level up
+		iter.node = nil
+	}
 
-	if count == 0 {
+	count := len(iter.meta.Tree.Children)
+
+	// if we are at the end return
+	if count <= 0 {
 		return false
 	}
 
-	if next := i.index + 1; next < count {
-		i.index = next
+	if next := iter.index + 1; next < count {
+		iter.index = next
+
+		if column := iter.Column(); column.HasOption("inline") {
+			iter.node = iter.createAt(column)
+		}
+
 		return true
 	}
 
@@ -44,17 +61,52 @@ func (i *Iterator) Next() bool {
 }
 
 // Column returns the column
-func (i *Iterator) Column() *Column {
-	field := i.meta.Index[i.index]
+func (iter *Iterator) Column() *Column {
+	if iter.node != nil {
+		return iter.node.Column()
+	}
 
-	return &Column{
+	// current field
+	field := iter.meta.Tree.Children[iter.index]
+
+	column := &Column{
 		Name:    field.Name,
 		Options: field.Options,
 	}
+
+	if len(iter.prefix) > 0 {
+		column.Name = iter.prefix + "_" + column.Name
+	}
+
+	return column
 }
 
 // Value returns the underlying value
-func (i *Iterator) Value() reflect.Value {
-	field := i.meta.Index[i.index]
-	return i.value.FieldByIndex(field.Index)
+func (iter *Iterator) Value() reflect.Value {
+	if iter.node != nil {
+		return iter.node.Value()
+	}
+
+	field := iter.meta.Tree.Children[iter.index]
+	// fetch the field value
+	return iter.value.FieldByIndex(field.Index)
+}
+
+func (iter *Iterator) delta() int {
+	return len(iter.meta.Tree.Children) - iter.index - 1
+}
+
+func (iter *Iterator) createAt(column *Column) *Iterator {
+	node := &Iterator{
+		meta:  mapper.TypeMap(iter.Value().Type()),
+		value: reflect.Indirect(iter.Value()),
+		index: 0,
+	}
+
+	// set the prefix
+	if column.HasOption("prefix") {
+		node.prefix = column.Name
+	}
+
+	return node
 }

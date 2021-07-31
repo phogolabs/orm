@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/jmoiron/sqlx/reflectx"
 )
 
 // Allocator allocates values
@@ -34,12 +36,12 @@ func (r *Allocator) Set(value, next reflect.Value, columns []string) {
 	case value.Kind() == reflect.Ptr:
 		r.Set(value.Elem(), next.Elem(), columns)
 	case value.Kind() == reflect.Struct:
-		meta := mapper.TypeMap(value.Type())
-
 		for _, name := range columns {
-			field, _ := meta.Names[name]
+			field := fieldByName(value.Type(), name)
+			// copy the value from the source to target
 			source := next.FieldByIndex(field.Index)
-			target := value.FieldByIndex(field.Index)
+			target := valueByIndex(value, field.Index)
+			// set the value
 			target.Set(source)
 		}
 	default:
@@ -48,16 +50,16 @@ func (r *Allocator) Set(value, next reflect.Value, columns []string) {
 }
 
 // NewAllocator returns allocator  for the given reflect.Type.
-func NewAllocator(typ reflect.Type, columns []string) (*Allocator, error) {
-	switch k := typ.Kind(); {
-	case k == reflect.Interface && typ.NumMethod() == 0:
+func NewAllocator(target reflect.Type, columns []string) (*Allocator, error) {
+	switch k := target.Kind(); {
+	case k == reflect.Interface && target.NumMethod() == 0:
 		fallthrough // interface{}
 	case k == reflect.String || k >= reflect.Bool && k <= reflect.Float64:
-		return NewAllocatorPrimitive(typ), nil
+		return NewAllocatorPrimitive(target), nil
 	case k == reflect.Ptr:
-		return NewAllocatorPtr(typ, columns)
+		return NewAllocatorPtr(target, columns)
 	case k == reflect.Struct:
-		return NewAllocatorStruct(typ, columns)
+		return NewAllocatorStruct(target, columns)
 	default:
 		return nil, fmt.Errorf("sql/scan: unsupported type ([]%s)", k)
 	}
@@ -74,18 +76,18 @@ func NewAllocatorPrimitive(typ reflect.Type) *Allocator {
 }
 
 // NewAllocatorStruct returns the a configuration for scanning an sql.Row into a struct.
-func NewAllocatorStruct(typ reflect.Type, columns []string) (*Allocator, error) {
+func NewAllocatorStruct(target reflect.Type, columns []string) (*Allocator, error) {
 	var (
-		meta    = mapper.TypeMap(typ)
 		types   = []reflect.Type{}
-		indices = make([][]int, 0, typ.NumField())
+		indices = make([][]int, 0, target.NumField())
 	)
 
 	for _, name := range columns {
 		name = strings.ToLower(strings.Split(name, "(")[0])
-		field, ok := meta.Names[name]
 
-		if !ok {
+		field := fieldByName(target, name)
+		// check if the field is nil
+		if field == nil {
 			return nil, fmt.Errorf("sql/scan: missing struct field for column: %s", name)
 		}
 
@@ -96,13 +98,15 @@ func NewAllocatorStruct(typ reflect.Type, columns []string) (*Allocator, error) 
 	allocator := &Allocator{
 		types: types,
 		create: func(values []interface{}) reflect.Value {
-			value := reflect.New(typ).Elem()
+			row := reflect.New(target).Elem()
 
-			for index, field := range values {
-				value.FieldByIndex(indices[index]).Set(reflect.Indirect(reflect.ValueOf(field)))
+			for index, value := range values {
+				vector := indices[index]
+				column := valueByIndex(row, vector)
+				column.Set(reflect.Indirect(reflect.ValueOf(value)))
 			}
 
-			return value
+			return row
 		},
 	}
 
@@ -110,10 +114,10 @@ func NewAllocatorStruct(typ reflect.Type, columns []string) (*Allocator, error) 
 }
 
 // NewAllocatorPtr wraps the underlying type with rowScan.
-func NewAllocatorPtr(typ reflect.Type, columns []string) (*Allocator, error) {
-	typ = typ.Elem()
+func NewAllocatorPtr(target reflect.Type, columns []string) (*Allocator, error) {
+	target = target.Elem()
 
-	allocator, err := NewAllocator(typ, columns)
+	allocator, err := NewAllocator(target, columns)
 	if err != nil {
 		return nil, err
 	}
@@ -129,4 +133,54 @@ func NewAllocatorPtr(typ reflect.Type, columns []string) (*Allocator, error) {
 	}
 
 	return allocator, nil
+}
+
+func valueByIndex(target reflect.Value, vector []int) reflect.Value {
+	if len(vector) == 1 {
+		return target.Field(vector[0])
+	}
+
+	for depth, index := range vector {
+		if depth > 0 && target.Kind() == reflect.Ptr {
+			valType := target.Type().Elem()
+
+			if valType.Kind() == reflect.Struct && target.IsNil() {
+				// set the value
+				target.Set(reflect.New(valType))
+			}
+
+			target = target.Elem()
+		}
+
+		// field
+		target = target.Field(index)
+	}
+
+	return target
+}
+
+func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
+	meta := mapper.TypeMap(target)
+
+	if field, ok := meta.Names[name]; ok {
+		return field
+	}
+
+	for _, parent := range meta.Tree.Children {
+		if _, ok := parent.Options["inline"]; ok {
+			if _, ok := parent.Options["prefix"]; ok {
+				name = strings.TrimPrefix(name, parent.Name+"_")
+			}
+
+			if field := fieldByName(parent.Field.Type, name); field != nil {
+				// translate the field
+				index := append(meta.Tree.Index, parent.Index...)
+				index = append(index, field.Index...)
+				// traverse
+				return meta.GetByTraversal(index)
+			}
+		}
+	}
+
+	return nil
 }

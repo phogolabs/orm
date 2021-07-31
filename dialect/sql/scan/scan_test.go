@@ -19,6 +19,15 @@ var _ = Describe("Scan", func() {
 		Password string  `db:"password"`
 	}
 
+	type Member struct {
+		User *User `db:"user,inline,prefix"`
+	}
+
+	type UserGroup struct {
+		Name   string  `db:"name"`
+		Member *Member `db:"member,inline,prefix"`
+	}
+
 	BeforeEach(func() {
 		var err error
 
@@ -27,10 +36,18 @@ var _ = Describe("Scan", func() {
 
 		_, err = db.Exec("CREATE TABLE users (id int, name varchar(255), password varchar(10))")
 		Expect(err).To(BeNil())
+
+		_, err = db.Exec("CREATE TABLE groups (name varchar(255), member_user_id int, member_user_name varchar(255), member_user_password varchar(10))")
+		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {
-		_, err := db.Exec("DELETE FROM users")
+		var err error
+
+		_, err = db.Exec("DELETE FROM users")
+		Expect(err).To(BeNil())
+
+		_, err = db.Exec("DELETE FROM groups")
 		Expect(err).To(BeNil())
 
 		Expect(db.Close()).To(Succeed())
@@ -50,6 +67,24 @@ var _ = Describe("Scan", func() {
 			Expect(user.ID).To(Equal(1))
 			Expect(*user.Name).To(Equal("root"))
 			Expect(user.Password).To(Equal("swordfish"))
+		})
+
+		Context("when the collection is nested", func() {
+			It("scans the row successfully", func() {
+				_, err := db.Exec("INSERT INTO groups VALUES('admin', 1, 'root', 'swordfish')")
+				Expect(err).To(BeNil())
+
+				group := &UserGroup{}
+
+				rows, err := db.Query("SELECT * FROM groups")
+				Expect(err).To(BeNil())
+
+				Expect(scan.Row(rows, group)).To(Succeed())
+				Expect(group.Name).To(Equal("admin"))
+				Expect(group.Member.User.ID).To(Equal(1))
+				Expect(group.Member.User.Password).To(Equal("swordfish"))
+				Expect(*group.Member.User.Name).To(Equal("root"))
+			})
 		})
 	})
 
