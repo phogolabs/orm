@@ -1383,14 +1383,14 @@ func (o *OrderByColumn) clone() *OrderByColumn {
 	}
 }
 
-// OrderByPath represents an order by columns list
-type OrderByPath struct {
+// OrderByExpr represents an order by columns list
+type OrderByExpr struct {
 	columns []*OrderByColumn
 }
 
 // OrderBy returns an order by
-func OrderBy(columns ...string) *OrderByPath {
-	path := &OrderByPath{}
+func OrderBy(columns ...string) *OrderByExpr {
+	path := &OrderByExpr{}
 
 	for _, column := range columns {
 		for _, clause := range strings.Split(column, ",") {
@@ -1443,12 +1443,12 @@ func OrderBy(columns ...string) *OrderByPath {
 }
 
 // Columns return the order by colum names
-func (o *OrderByPath) Columns() []*OrderByColumn {
+func (o *OrderByExpr) Columns() []*OrderByColumn {
 	return o.columns
 }
 
 // As maps the columns to a given map
-func (o *OrderByPath) As(kv Map) *OrderByPath {
+func (o *OrderByExpr) As(kv Map) *OrderByExpr {
 	for _, orderBy := range o.columns {
 		if name, ok := kv[orderBy.Name]; ok {
 			orderBy.Name = fmt.Sprintf("%v", name)
@@ -1458,33 +1458,33 @@ func (o *OrderByPath) As(kv Map) *OrderByPath {
 	return o
 }
 
-func (o *OrderByPath) merge(path *OrderByPath) *OrderByPath {
+func (o *OrderByExpr) merge(path *OrderByExpr) *OrderByExpr {
 	if path == nil {
 		return o
 	}
 
 	if o == nil {
-		o = &OrderByPath{}
+		o = &OrderByExpr{}
 	}
 
 	o.columns = append(o.columns, path.columns...)
 	return o
 }
 
-func (o *OrderByPath) add(column *OrderByColumn) *OrderByPath {
+func (o *OrderByExpr) add(column *OrderByColumn) *OrderByExpr {
 	if column == nil {
 		return o
 	}
 
 	if o == nil {
-		o = &OrderByPath{}
+		o = &OrderByExpr{}
 	}
 
 	o.columns = append(o.columns, column)
 	return o
 }
 
-func (o *OrderByPath) count() int {
+func (o *OrderByExpr) count() int {
 	if o == nil {
 		return 0
 	}
@@ -1492,12 +1492,12 @@ func (o *OrderByPath) count() int {
 	return len(o.columns)
 }
 
-func (o *OrderByPath) clone() *OrderByPath {
+func (o *OrderByExpr) clone() *OrderByExpr {
 	if o == nil {
 		return nil
 	}
 
-	c := &OrderByPath{}
+	c := &OrderByExpr{}
 
 	for _, orderBy := range o.columns {
 		c.columns = append(c.columns, orderBy.clone())
@@ -1701,7 +1701,7 @@ type Selector struct {
 	where    *Predicate
 	or       bool
 	not      bool
-	order    *OrderByPath
+	order    *OrderByExpr
 	group    []string
 	having   *Predicate
 	limit    *uint64
@@ -1924,9 +1924,9 @@ func (s *Selector) OrderBy(columns ...string) *Selector {
 	return s
 }
 
-// OrderBy appends the `ORDER BY` clause to the `SELECT` statement.
-func (s *Selector) OrderByPath(path *OrderByPath) *Selector {
-	s.order = s.order.merge(path)
+// OrderByExpr appends the `ORDER BY` expression to the `SELECT` statement.
+func (s *Selector) OrderByExpr(expr *OrderByExpr) *Selector {
+	s.order = s.order.merge(expr)
 	return s
 }
 
@@ -2293,7 +2293,7 @@ func (b *Builder) Nested(f func(*Builder)) *Builder {
 	nb.WriteString("(")
 	f(nb)
 	nb.WriteString(")")
-	nb.WriteTo(b)
+	_, _ = nb.WriteTo(b)
 	b.args = append(b.args, nb.args...)
 	b.total = nb.total
 	return b

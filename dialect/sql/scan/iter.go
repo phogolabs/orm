@@ -92,10 +92,6 @@ func (iter *Iterator) Value() reflect.Value {
 	return iter.value.FieldByIndex(field.Index)
 }
 
-func (iter *Iterator) delta() int {
-	return len(iter.meta.Tree.Children) - iter.index - 1
-}
-
 func (iter *Iterator) createAt(column *Column) *Iterator {
 	node := &Iterator{
 		meta:  mapper.TypeMap(iter.Value().Type()),
