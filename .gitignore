@@ -11,9 +11,10 @@
 *.out
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.DS_Store
 .glide/
-vendor/
 *.coverprofile
+vendor/
 
 # Ignore SQLite database
 *.db

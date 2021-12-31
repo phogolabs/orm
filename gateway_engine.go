@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-openapi/inflect"
 	"github.com/phogolabs/orm/dialect"
 	"github.com/phogolabs/orm/dialect/sql"
 	"github.com/phogolabs/orm/dialect/sql/scan"
@@ -201,8 +202,6 @@ func nameOf(value reflect.Type) string {
 	switch value.Kind() {
 	case reflect.Ptr:
 		return nameOf(value.Elem())
-	case reflect.Struct:
-		return strings.ToLower(value.Name())
 	case reflect.Slice:
 		return nameOf(value.Elem())
 	case reflect.Array:
@@ -210,6 +209,7 @@ func nameOf(value reflect.Type) string {
 	case reflect.Map:
 		return "map"
 	default:
-		return value.Name()
+		name := inflect.Underscore(value.Name())
+		return strings.ToLower(name)
 	}
 }

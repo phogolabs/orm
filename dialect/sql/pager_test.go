@@ -3,7 +3,7 @@ package sql_test
 import (
 	"github.com/phogolabs/orm/dialect/sql"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

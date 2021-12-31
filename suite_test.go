@@ -5,7 +5,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
