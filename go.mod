@@ -9,7 +9,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-sqlite3 v1.14.10
-	github.com/onsi/ginkgo/v2 v2.0.0
+	github.com/onsi/ginkgo/v2 v2.1.0
 	github.com/onsi/gomega v1.17.0
 	github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5
 	github.com/phogolabs/prana v1.0.0-rc10
