@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Pager", func() {
+var _ = Describe("PaginateBy", func() {
 	var query *sql.Selector
 
 	BeforeEach(func() {
@@ -19,21 +19,21 @@ var _ = Describe("Pager", func() {
 	})
 
 	Describe("StartAt", func() {
-		It("returns a pager", func() {
-			pager := query.Pager()
+		It("returns a paginator", func() {
+			paginator := query.PaginateBy()
 
-			query, args := pager.Query()
+			query, args := paginator.Query()
 			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC LIMIT ?"))
-			Expect(pager.Token()).To(BeEmpty())
+			Expect(paginator.Token()).To(BeEmpty())
 			Expect(args).To(HaveLen(2))
 		})
 
 		Context("when the token is provided", func() {
-			It("returns a pager", func() {
-				pager := query.StartAt("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d")
-				query, args := pager.Query()
+			It("returns a paginator", func() {
+				paginator := query.PaginateBy("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d")
+				query, args := paginator.Query()
 				Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND ((`name` > ?) OR (`name` = ?)) ORDER BY `name` ASC LIMIT ?"))
-				Expect(pager.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
+				Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
 				Expect(args).To(HaveLen(4))
 			})
 
@@ -47,8 +47,8 @@ var _ = Describe("Pager", func() {
 			})
 
 			It("returns an error", func() {
-				pager := query.Pager()
-				Expect(pager.Error()).To(MatchError("sql: query should have at least one order by clause"))
+				paginator := query.PaginateBy()
+				Expect(paginator.Error()).To(MatchError("sql: query should have at least one order by clause"))
 			})
 		})
 	})
@@ -66,9 +66,9 @@ var _ = Describe("Pager", func() {
 				{ID: 2, Name: "Brown"},
 			}
 
-			pager := query.Limit(2).Pager()
-			Expect(pager.Scan(&users)).To(Succeed())
-			Expect(pager.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
+			paginator := query.Limit(2).PaginateBy()
+			Expect(paginator.Scan(&users)).To(Succeed())
+			Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
 			Expect(users).To(HaveLen(2))
 			Expect(users[0].Name).To(Equal("Mike"))
 			Expect(users[1].Name).To(Equal("Peter"))
@@ -77,24 +77,24 @@ var _ = Describe("Pager", func() {
 		Context("when the target is not a slice", func() {
 			It("returns an error", func() {
 				user := &User{}
-				pager := query.Limit(2).Pager()
-				Expect(pager.Scan(&user)).To(MatchError("dialect/sql: invalid type **sql_test.User. expect []interface{}"))
+				paginator := query.Limit(2).PaginateBy()
+				Expect(paginator.Scan(&user)).To(MatchError("dialect/sql: invalid type **sql_test.User. expect []interface{}"))
 			})
 		})
 	})
 
 	Describe("SetDialect", func() {
 		It("sets the dialect", func() {
-			pager := query.Pager()
-			pager.SetDialect("postgres")
-			Expect(pager.Dialect()).To(Equal("postgres"))
+			paginator := query.PaginateBy()
+			paginator.SetDialect("postgres")
+			Expect(paginator.Dialect()).To(Equal("postgres"))
 		})
 	})
 
 	Describe("Query", func() {
 		It("returns the actual query", func() {
-			pager := query.OrderBy("id").Pager()
-			query, args := pager.Query()
+			paginator := query.OrderBy("id").PaginateBy()
+			query, args := paginator.Query()
 			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC, `id` ASC LIMIT ?"))
 			Expect(args).To(HaveLen(2))
 		})

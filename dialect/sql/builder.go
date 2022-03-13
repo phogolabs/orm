@@ -1383,14 +1383,14 @@ func (o *OrderByColumn) clone() *OrderByColumn {
 	}
 }
 
-// OrderByExpr represents an order by columns list
-type OrderByExpr struct {
+// OrderByBuilder represents an order by columns list
+type OrderByBuilder struct {
 	columns []*OrderByColumn
 }
 
 // OrderBy returns an order by
-func OrderBy(columns ...string) *OrderByExpr {
-	path := &OrderByExpr{}
+func OrderBy(columns ...string) *OrderByBuilder {
+	path := &OrderByBuilder{}
 
 	for _, column := range columns {
 		for _, clause := range strings.Split(column, ",") {
@@ -1442,13 +1442,26 @@ func OrderBy(columns ...string) *OrderByExpr {
 	return path
 }
 
+// String returns the string representation
+func (o *OrderByBuilder) String() string {
+	vector := make([]string, len(o.columns))
+
+	// convert to string array
+	for i, column := range o.columns {
+		vector[i] = column.String()
+	}
+
+	// done
+	return strings.Join(vector, ",")
+}
+
 // Columns return the order by colum names
-func (o *OrderByExpr) Columns() []*OrderByColumn {
+func (o *OrderByBuilder) Columns() []*OrderByColumn {
 	return o.columns
 }
 
 // As maps the columns to a given map
-func (o *OrderByExpr) As(kv Map) *OrderByExpr {
+func (o *OrderByBuilder) As(kv Map) *OrderByBuilder {
 	for _, orderBy := range o.columns {
 		if name, ok := kv[orderBy.Name]; ok {
 			orderBy.Name = fmt.Sprintf("%v", name)
@@ -1458,33 +1471,33 @@ func (o *OrderByExpr) As(kv Map) *OrderByExpr {
 	return o
 }
 
-func (o *OrderByExpr) merge(path *OrderByExpr) *OrderByExpr {
+func (o *OrderByBuilder) merge(path *OrderByBuilder) *OrderByBuilder {
 	if path == nil {
 		return o
 	}
 
 	if o == nil {
-		o = &OrderByExpr{}
+		o = &OrderByBuilder{}
 	}
 
 	o.columns = append(o.columns, path.columns...)
 	return o
 }
 
-func (o *OrderByExpr) add(column *OrderByColumn) *OrderByExpr {
+func (o *OrderByBuilder) add(column *OrderByColumn) *OrderByBuilder {
 	if column == nil {
 		return o
 	}
 
 	if o == nil {
-		o = &OrderByExpr{}
+		o = &OrderByBuilder{}
 	}
 
 	o.columns = append(o.columns, column)
 	return o
 }
 
-func (o *OrderByExpr) count() int {
+func (o *OrderByBuilder) count() int {
 	if o == nil {
 		return 0
 	}
@@ -1492,12 +1505,12 @@ func (o *OrderByExpr) count() int {
 	return len(o.columns)
 }
 
-func (o *OrderByExpr) clone() *OrderByExpr {
+func (o *OrderByBuilder) clone() *OrderByBuilder {
 	if o == nil {
 		return nil
 	}
 
-	c := &OrderByExpr{}
+	c := &OrderByBuilder{}
 
 	for _, orderBy := range o.columns {
 		c.columns = append(c.columns, orderBy.clone())
@@ -1701,7 +1714,7 @@ type Selector struct {
 	where    *Predicate
 	or       bool
 	not      bool
-	order    *OrderByExpr
+	order    *OrderByBuilder
 	group    []string
 	having   *Predicate
 	limit    *uint64
@@ -1924,34 +1937,27 @@ func (s *Selector) OrderBy(columns ...string) *Selector {
 	return s
 }
 
-// OrderByExpr appends the `ORDER BY` expression to the `SELECT` statement.
-func (s *Selector) OrderByExpr(expr *OrderByExpr) *Selector {
-	s.order = s.order.merge(expr)
-	return s
-}
-
 // GroupBy appends the `GROUP BY` clause to the `SELECT` statement.
 func (s *Selector) GroupBy(columns ...string) *Selector {
 	s.group = append(s.group, columns...)
 	return s
 }
 
-// Pager starts a pager
-func (s *Selector) Pager() *Pager {
-	return s.StartAt("")
-}
+// PaginateBy starts a pagination
+func (s *Selector) PaginateBy(tokens ...string) *Paginator {
+	if len(tokens) == 0 {
+		tokens = append(tokens, "")
+	}
 
-// StartAt starts the query pager at given token
-func (s *Selector) StartAt(token string) *Pager {
-	pager := &Pager{
+	paginator := &Paginator{
 		selector: s.Clone(),
 		cursor:   &cursor{},
 	}
 
-	// move to the beginning
-	pager.seek(token)
+	// seek at given position
+	paginator.seek(tokens[0])
 
-	return pager
+	return paginator
 }
 
 // Having appends a predicate for the `HAVING` clause.

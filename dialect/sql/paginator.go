@@ -10,40 +10,40 @@ import (
 	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
-// Pager paginates a given selector
-type Pager struct {
+// Paginator paginates a given selector
+type Paginator struct {
 	selector *Selector
 	cursor   *cursor
 	err      error
 }
 
 // Token returns the token
-func (pg *Pager) Token() string {
+func (pg *Paginator) Token() string {
 	return pg.cursor.text()
 }
 
 // Error returns the underlying error
-func (pg *Pager) Error() error {
+func (pg *Paginator) Error() error {
 	return pg.err
 }
 
 // Dialect returns the dialect
-func (pg *Pager) Dialect() string {
+func (pg *Paginator) Dialect() string {
 	return pg.selector.dialect
 }
 
 // SetDialect sets the dialect
-func (pg *Pager) SetDialect(dialect string) {
+func (pg *Paginator) SetDialect(dialect string) {
 	pg.selector.SetDialect(dialect)
 }
 
 // Query returns the query
-func (pg *Pager) Query() (string, []interface{}) {
+func (pg *Paginator) Query() (string, []interface{}) {
 	return pg.selector.Query()
 }
 
 // Cursor returns the next cursor
-func (pg *Pager) Scan(target interface{}) error {
+func (pg *Paginator) Scan(target interface{}) error {
 	value := reflect.Indirect(reflect.ValueOf(target))
 
 	if value.Kind() != reflect.Slice {
@@ -105,7 +105,7 @@ func (pg *Pager) Scan(target interface{}) error {
 	return nil
 }
 
-func (pg *Pager) seek(token string) *Pager {
+func (pg *Paginator) seek(token string) *Paginator {
 	if limit := pg.selector.limit; limit != nil {
 		next := *limit + 1
 		pg.selector.limit = &next
