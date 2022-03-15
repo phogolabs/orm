@@ -119,11 +119,13 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 
 		// if the update statement does not have table name
 		// means that we are in DO UPDATE case
-		if updater.table != "" {
+		if updater.table == "" {
+			continue
+		}
+
+		if column.HasOption("primary_key") && !scan.IsEmpty(value) {
 			// TODO: we may use immutable & unique column with not null values as part of the where
-			if column.HasOption("primary_key") {
-				updater.Where(EQ(column.Name, value))
-			}
+			updater.Where(EQ(column.Name, value))
 		}
 	}
 
