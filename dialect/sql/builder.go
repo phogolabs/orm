@@ -964,12 +964,22 @@ func Or(preds ...*Predicate) *Predicate {
 		if len(preds) > 1 {
 			b.WriteString("(")
 		}
-		for i := range preds {
+
+		i := 0
+
+		for _, cond := range preds {
+			if cond == nil {
+				continue
+			}
+
 			if i > 0 {
 				b.WriteString(" OR ")
 			}
+
+			i++
+
 			b.Nested(func(b *Builder) {
-				b.Join(preds[i])
+				b.Join(cond)
 			})
 		}
 		if len(preds) > 1 {
@@ -1024,12 +1034,21 @@ func (p *Predicate) Not() *Predicate {
 // And combines all given predicates with AND between them.
 func And(preds ...*Predicate) *Predicate {
 	return P().append(func(b *Builder) {
-		for i := range preds {
+		i := 0
+
+		for _, cond := range preds {
+			if cond == nil {
+				continue
+			}
+
 			if i > 0 {
 				b.WriteString(" AND ")
 			}
+
+			i++
+
 			b.Nested(func(b *Builder) {
-				b.Join(preds[i])
+				b.Join(cond)
 			})
 		}
 	})
