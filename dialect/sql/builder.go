@@ -1472,12 +1472,12 @@ func (o *OrderByBuilder) As(kv Map) *OrderByBuilder {
 }
 
 func (o *OrderByBuilder) merge(path *OrderByBuilder) *OrderByBuilder {
-	if path == nil {
-		return o
-	}
-
 	if o == nil {
 		o = &OrderByBuilder{}
+	}
+
+	if path == nil {
+		return o
 	}
 
 	o.columns = append(o.columns, path.columns...)

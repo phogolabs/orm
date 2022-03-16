@@ -123,7 +123,7 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 			continue
 		}
 
-		if column.HasOption("primary_key") && !scan.IsEmpty(value) {
+		if column.HasOption("primary_key") {
 			// TODO: we may use immutable & unique column with not null values as part of the where
 			updater.Where(EQ(column.Name, value))
 		}
