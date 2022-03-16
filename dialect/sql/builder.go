@@ -775,6 +775,8 @@ type UpdateBuilder struct {
 	Builder
 	table     string
 	where     *Predicate
+	or        bool
+	not       bool
 	nulls     []string
 	columns   []string
 	returning []string
@@ -814,16 +816,38 @@ func (u *UpdateBuilder) SetNull(column string) *UpdateBuilder {
 	return u
 }
 
+// Not sets the next coming predicate with not.
+func (u *UpdateBuilder) Not() *UpdateBuilder {
+	u.not = true
+	return u
+}
+
+// Or sets the next coming predicate with OR operator (disjunction).
+func (u *UpdateBuilder) Or() *UpdateBuilder {
+	u.or = true
+	return u
+}
+
 // Where adds a where predicate for update statement.
 func (u *UpdateBuilder) Where(p *Predicate) *UpdateBuilder {
 	if p == nil {
 		return u
 	}
-	if u.where != nil {
-		u.where.merge(p)
-	} else {
-		u.where = p
+
+	if u.not {
+		p = Not(p)
+		u.not = false
 	}
+	switch {
+	case u.where == nil:
+		u.where = p
+	case u.where != nil && u.or:
+		u.where = Or(u.where, p)
+		u.or = false
+	default:
+		u.where.merge(p)
+	}
+
 	return u
 }
 
@@ -879,6 +903,8 @@ type DeleteBuilder struct {
 	Builder
 	table     string
 	where     *Predicate
+	or        bool
+	not       bool
 	returning []string
 }
 
@@ -898,13 +924,39 @@ type DeleteBuilder struct {
 //
 func Delete(table string) *DeleteBuilder { return &DeleteBuilder{table: table} }
 
+// Not sets the next coming predicate with not.
+func (d *DeleteBuilder) Not() *DeleteBuilder {
+	d.not = true
+	return d
+}
+
+// Or sets the next coming predicate with OR operator (disjunction).
+func (d *DeleteBuilder) Or() *DeleteBuilder {
+	d.or = true
+	return d
+}
+
 // Where appends a where predicate to the `DELETE` statement.
 func (d *DeleteBuilder) Where(p *Predicate) *DeleteBuilder {
-	if d.where != nil {
-		d.where.merge(p)
-	} else {
-		d.where = p
+	if p == nil {
+		return d
 	}
+
+	if d.not {
+		p = Not(p)
+		d.not = false
+	}
+
+	switch {
+	case d.where == nil:
+		d.where = p
+	case d.where != nil && d.or:
+		d.where = Or(d.where, p)
+		d.or = false
+	default:
+		d.where.merge(p)
+	}
+
 	return d
 }
 
