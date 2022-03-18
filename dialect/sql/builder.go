@@ -1313,6 +1313,18 @@ func (p *Predicate) HasSuffix(col, suffix string) *Predicate {
 	return p.Like(col, "%"+suffix)
 }
 
+// HasColumn is a helper predicate that checks column usage.
+func (p *Predicate) HasColumn(col string) bool {
+	builder := &Builder{}
+	builder.SetDialect(p.dialect)
+	builder.WriteString(builder.Quote(col))
+
+	column, _ := builder.Query()
+	predicate, _ := p.clone().Query()
+
+	return strings.Contains(predicate, column)
+}
+
 // EqualFold is a helper predicate that applies the "=" predicate with case-folding.
 func EqualFold(col, sub string) *Predicate { return (&Predicate{}).EqualFold(col, sub) }
 
