@@ -10,31 +10,27 @@ import (
 )
 
 var _ = Describe("Iter", func() {
-	type Address struct {
-		Street  string `db:"street"`
-		City    string `db:"city"`
-		State   string `db:"state"`
-		Country string `db:"country"`
+	type University struct {
+		ID   string `db:"id,primary_key"`
+		Name string `db:"name"`
 	}
 
 	type Student struct {
-		ID        string    `db:"id,primary_key"`
-		Name      string    `db:"name"`
-		Address   *Address  `db:"address,inline,prefix"`
-		CreatedAt time.Time `db:"created_at,read_only"`
+		ID         string      `db:"id,primary_key"`
+		Name       string      `db:"name"`
+		University *University `db:"university,foreign_key=university_id,reference_key=id"`
+		CreatedAt  time.Time   `db:"created_at,read_only"`
 	}
 
 	It("iterates over the fields", func() {
 		student := &Student{
-			ID:        "001",
-			Name:      "Jack",
-			CreatedAt: time.Now(),
-			Address: &Address{
-				Street:  "5th Avenue",
-				City:    "New York City",
-				State:   "New York",
-				Country: "USA",
+			ID:   "001",
+			Name: "Jack",
+			University: &University{
+				ID:   "007",
+				Name: "Sofia University",
 			},
+			CreatedAt: time.Now(),
 		}
 
 		iter := scan.IteratorOf(student)
@@ -44,32 +40,22 @@ var _ = Describe("Iter", func() {
 		Expect(column).NotTo(BeNil())
 		Expect(column.Name).To(Equal("id"))
 		Expect(column.HasOption("primary_key")).To(BeTrue())
+		Expect(iter.Value().Interface()).To(Equal("001"))
 		Expect(iter.Next()).To(BeTrue())
 
 		column = iter.Column()
 		Expect(column).NotTo(BeNil())
 		Expect(column.Name).To(Equal("name"))
 		Expect(column.Options).To(BeEmpty())
+		Expect(iter.Value().Interface()).To(Equal("Jack"))
 		Expect(iter.Next()).To(BeTrue())
 
 		column = iter.Column()
 		Expect(column).NotTo(BeNil())
-		Expect(column.Name).To(Equal("address_street"))
-		Expect(iter.Next()).To(BeTrue())
-
-		column = iter.Column()
-		Expect(column).NotTo(BeNil())
-		Expect(column.Name).To(Equal("address_city"))
-		Expect(iter.Next()).To(BeTrue())
-
-		column = iter.Column()
-		Expect(column).NotTo(BeNil())
-		Expect(column.Name).To(Equal("address_state"))
-		Expect(iter.Next()).To(BeTrue())
-
-		column = iter.Column()
-		Expect(column).NotTo(BeNil())
-		Expect(column.Name).To(Equal("address_country"))
+		Expect(column.Name).To(Equal("university_id"))
+		Expect(column.HasOption("foreign_key")).To(BeTrue())
+		Expect(column.HasOption("reference_key")).To(BeTrue())
+		Expect(iter.Value().Interface()).To(Equal("007"))
 		Expect(iter.Next()).To(BeTrue())
 
 		column = iter.Column()

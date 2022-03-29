@@ -4,39 +4,6 @@ import (
 	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
-// DeleteMutation represents a delete mutation
-type DeleteMutation struct {
-	builder *DeleteBuilder
-}
-
-// NewDelete creates a Mutation that deletes the entity with given primary key.
-func NewDelete(table string) *DeleteMutation {
-	return &DeleteMutation{
-		builder: Delete(table),
-	}
-}
-
-// Entity returns the builder
-func (d *DeleteMutation) Entity(src interface{}) *DeleteBuilder {
-	var (
-		deleter  = d.builder
-		iterator = scan.IteratorOf(src)
-	)
-
-	for iterator.Next() {
-		var (
-			column = iterator.Column()
-			value  = iterator.Value().Interface()
-		)
-
-		if column.HasOption("primary_key") {
-			deleter = deleter.Where(EQ(column.Name, value))
-		}
-	}
-
-	return deleter
-}
-
 // InsertMutation represents an insert mutation
 type InsertMutation struct {
 	builder *InsertBuilder
@@ -95,7 +62,7 @@ func NewUpdate(table ...string) *UpdateMutation {
 // Entity returns the builder
 func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuilder {
 	var (
-		updater    = d.builder
+		builder    = d.builder
 		empty      = len(columns) == 0
 		iterator   = scan.IteratorOf(src)
 		updateable = make(map[string]interface{})
@@ -119,25 +86,56 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 
 		// if the update statement does not have table name
 		// means that we are in DO UPDATE case
-		if updater.table == "" {
+		if builder.table == "" {
 			continue
 		}
 
 		if column.HasOption("primary_key") {
 			// TODO: we may use immutable & unique column with not null values as part of the where
-			updater.Where(EQ(column.Name, value))
+			builder.Where(EQ(column.Name, value))
 		}
 	}
 
 	for _, name := range columns {
 		if value, ok := updateable[name]; ok {
 			if scan.IsNil(value) {
-				updater.SetNull(name)
+				builder.SetNull(name)
 			} else {
-				updater.Set(name, value)
+				builder.Set(name, value)
 			}
 		}
 	}
 
-	return updater
+	return builder
+}
+
+// DeleteMutation represents a delete mutation
+type DeleteMutation struct {
+	builder *DeleteBuilder
+}
+
+// NewDelete creates a Mutation that deletes the entity with given primary key.
+func NewDelete(table string) *DeleteMutation {
+	return &DeleteMutation{
+		builder: Delete(table),
+	}
+}
+
+// Entity returns the builder
+func (d *DeleteMutation) Entity(src interface{}) *DeleteBuilder {
+	var (
+		builder  = d.builder
+		iterator = scan.IteratorOf(src)
+	)
+
+	for iterator.Next() {
+		if column := iterator.Column(); column.HasOption("primary_key") {
+			// where condition
+			builder = builder.Where(
+				EQ(column.Name, iterator.Value().Interface()),
+			)
+		}
+	}
+
+	return builder
 }

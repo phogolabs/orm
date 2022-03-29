@@ -166,19 +166,28 @@ func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
 		return field
 	}
 
-	for _, parent := range meta.Tree.Children {
-		if _, ok := parent.Options["inline"]; ok {
-			if _, ok := parent.Options["prefix"]; ok {
-				name = strings.TrimPrefix(name, parent.Name+"_")
-			}
+	find := func(parent *reflectx.FieldInfo, key string) *reflectx.FieldInfo {
+		if field := fieldByName(parent.Field.Type, key); field != nil {
+			// translate the field
+			index := append(meta.Tree.Index, parent.Index...)
+			index = append(index, field.Index...)
+			// traverse
+			return meta.GetByTraversal(index)
+		}
 
-			if field := fieldByName(parent.Field.Type, name); field != nil {
-				// translate the field
-				index := append(meta.Tree.Index, parent.Index...)
-				index = append(index, field.Index...)
-				// traverse
-				return meta.GetByTraversal(index)
+		return nil
+	}
+
+	for _, parent := range meta.Tree.Children {
+		if key, ok := parent.Options["foreign_key"]; ok && key == name {
+			if field, ok := parent.Options["reference_key"]; ok {
+				return find(parent, field)
 			}
+		}
+
+		if _, ok := parent.Options["prefix"]; ok {
+			filed := strings.TrimPrefix(strings.TrimPrefix(name, parent.Name), "_")
+			return find(parent, filed)
 		}
 	}
 
