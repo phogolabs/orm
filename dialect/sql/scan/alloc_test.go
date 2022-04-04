@@ -2,26 +2,15 @@ package scan_test
 
 import (
 	"reflect"
-	"time"
 
 	"github.com/phogolabs/orm/dialect/sql/scan"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/phogolabs/orm/dialect/sql/scan/mock"
 )
 
 var _ = Describe("Allocator", func() {
-	type Group struct {
-		ID string `db:"id"`
-	}
-
-	type User struct {
-		ID        string    `db:"id"`
-		Group     *Group    `db:"group,foreign_key=group_id,reference_key=id"`
-		Name      string    `db:"name"`
-		CreatedAt time.Time `db:"created_at"`
-	}
-
 	Describe("Allocate", func() {
 		It("allocates new values", func() {
 			var (

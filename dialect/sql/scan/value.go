@@ -120,42 +120,46 @@ func valuesOf(value reflect.Value, columns []string) ([]interface{}, error) {
 	}
 }
 
-func valuesOfStruct(value reflect.Value, columns []string) ([]interface{}, error) {
-	kind := value.Kind()
+func valuesOfStruct(target reflect.Value, columns []string) ([]interface{}, error) {
+	kind := target.Kind()
 
 	if kind != reflect.Struct {
 		return nil, fmt.Errorf("sql/scan: invalid type %s. expected struct as an argument", kind)
 	}
 
-	var (
-		values = make([]interface{}, 0)
-		meta   = mapper.TypeMap(value.Type())
-	)
+	values := make([]interface{}, 0)
 
 	if len(columns) == 0 {
-		for _, field := range meta.Index {
-			columns = append(columns, field.Name)
+		meta := mapper.TypeMap(target.Type())
+
+		iter := &Iterator{
+			meta:  meta,
+			value: target,
+			index: -1,
+		}
+
+		for iter.Next() {
+			column := iter.Column()
+			columns = append(columns, column.Name)
 		}
 	}
 
 	for _, name := range columns {
-		field, ok := meta.Names[name]
-
-		if !ok {
-			continue
+		if field := fieldByName(target.Type(), name); field != nil {
+			// find the value
+			value := valueByIndex(target, field.Index).Interface()
+			// append it
+			values = append(values, value)
 		}
-
-		param := value.FieldByIndex(field.Index)
-		values = append(values, param.Interface())
 	}
 
 	return values, nil
 }
 
-func valuesOfNamedArg(value reflect.Value, columns []string) ([]interface{}, error) {
+func valuesOfNamedArg(target reflect.Value, columns []string) ([]interface{}, error) {
 	var (
 		values = []interface{}{}
-		arg    = value.Interface().(sql.NamedArg)
+		arg    = target.Interface().(sql.NamedArg)
 	)
 
 	if len(columns) == 0 {

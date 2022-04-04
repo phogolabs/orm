@@ -178,6 +178,13 @@ func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
 		return nil
 	}
 
+	trim := func(parent *reflectx.FieldInfo, name string) string {
+		name = strings.TrimPrefix(name, parent.Name)
+		name = strings.TrimPrefix(name, "_")
+		// done
+		return name
+	}
+
 	for _, parent := range meta.Tree.Children {
 		if key, ok := parent.Options["foreign_key"]; ok && key == name {
 			if field, ok := parent.Options["reference_key"]; ok {
@@ -186,8 +193,7 @@ func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
 		}
 
 		if _, ok := parent.Options["prefix"]; ok {
-			filed := strings.TrimPrefix(strings.TrimPrefix(name, parent.Name), "_")
-			return find(parent, filed)
+			return find(parent, trim(parent, name))
 		}
 	}
 

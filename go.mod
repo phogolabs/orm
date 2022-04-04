@@ -3,6 +3,7 @@ module github.com/phogolabs/orm
 go 1.16
 
 require (
+	github.com/AlekSi/pointer v1.2.0 // indirect
 	github.com/bxcodec/faker/v3 v3.8.0
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-openapi/inflect v0.19.0
