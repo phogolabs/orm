@@ -3,8 +3,11 @@ package mock
 import "time"
 
 type Group struct {
-	ID   string `db:"id"`
-	Name string `db:"name"`
+	ID          string    `db:"id"`
+	Name        string    `db:"name"`
+	Description string    `db:"description"`
+	CreatedAt   time.Time `db:"created_at,auto,read_only"`
+	UpdatedAt   time.Time `db:"created_at,auto,read_only"`
 }
 
 type User struct {

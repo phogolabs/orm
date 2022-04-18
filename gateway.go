@@ -129,31 +129,31 @@ func (g *Gateway) RunInTx(ctx context.Context, fn RunTxFunc) error {
 }
 
 // All executes the query and returns a list of entities.
-func (g *Gateway) All(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *Gateway) All(ctx context.Context, q sql.Querier, v interface{}) error {
 	return g.engine.All(ctx, q, v)
 }
 
 // Only returns the only entity in the query, returns an error if not
 // exactly one entity was returned.
-func (g *Gateway) Only(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *Gateway) Only(ctx context.Context, q sql.Querier, v interface{}) error {
 	return g.engine.Only(ctx, q, v)
 }
 
 // First returns the first entity in the query. Returns *NotFoundError
 // when no records were found.
-func (g *Gateway) First(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *Gateway) First(ctx context.Context, q sql.Querier, v interface{}) error {
 	return g.engine.First(ctx, q, v)
 }
 
 // Query executes a query that returns rows, typically a SELECT in SQL.
 // It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
-func (g *Gateway) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) {
+func (g *Gateway) Query(ctx context.Context, q sql.Querier) (*sql.Rows, error) {
 	return g.engine.Query(ctx, q)
 }
 
 // Exec executes a query that doesn't return rows. For example, in SQL, INSERT
 // or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
 // sql.Result.
-func (g *Gateway) Exec(ctx context.Context, q sql.Statement) (sql.Result, error) {
+func (g *Gateway) Exec(ctx context.Context, q sql.Querier) (sql.Result, error) {
 	return g.engine.Exec(ctx, q)
 }

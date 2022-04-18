@@ -25,7 +25,7 @@ var _ = Describe("Scan", func() {
 
 	type UserGroup struct {
 		Name   string  `db:"name"`
-		Member *Member `db:"member,inline,prefix"`
+		Member *Member `db:"member"`
 	}
 
 	BeforeEach(func() {

@@ -14,42 +14,39 @@ var _ = Describe("PaginateBy", func() {
 		query = sql.Select().
 			From(sql.Table("users")).
 			Where(sql.Like("name", "john")).
-			OrderBy(sql.Asc("name")).
+			OrderExpr(sql.OrderColumnBy("name")).
 			Limit(100)
 	})
 
-	Describe("StartAt", func() {
+	It("returns a paginator", func() {
+		paginator := query.PaginateBy()
+
+		query, args := paginator.Query()
+		Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC LIMIT 101"))
+		Expect(paginator.Token()).To(BeEmpty())
+		Expect(args).To(HaveLen(1))
+	})
+
+	Context("when the token is provided", func() {
 		It("returns a paginator", func() {
-			paginator := query.PaginateBy()
-
+			paginator := query.PaginateBy("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d")
 			query, args := paginator.Query()
-			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC LIMIT ?"))
-			Expect(paginator.Token()).To(BeEmpty())
-			Expect(args).To(HaveLen(2))
+			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND (`name` > ? OR `name` = ?) ORDER BY `name` ASC LIMIT 101"))
+			Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
+			Expect(args).To(HaveLen(3))
+		})
+	})
+
+	Context("when the query is not sorted", func() {
+		BeforeEach(func() {
+			query = sql.Select().
+				From(sql.Table("users")).
+				Limit(100)
 		})
 
-		Context("when the token is provided", func() {
-			It("returns a paginator", func() {
-				paginator := query.PaginateBy("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d")
-				query, args := paginator.Query()
-				Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND ((`name` > ?) OR (`name` = ?)) ORDER BY `name` ASC LIMIT ?"))
-				Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
-				Expect(args).To(HaveLen(4))
-			})
-
-		})
-
-		Context("when the query is not sorted", func() {
-			BeforeEach(func() {
-				query = sql.Select().
-					From(sql.Table("users")).
-					Limit(100)
-			})
-
-			It("returns an error", func() {
-				paginator := query.PaginateBy()
-				Expect(paginator.Error()).To(MatchError("sql: query should have at least one order by clause"))
-			})
+		It("returns an error", func() {
+			paginator := query.PaginateBy()
+			Expect(paginator.Err()).To(MatchError("sql: query should have at least one order by clause"))
 		})
 	})
 
@@ -93,10 +90,10 @@ var _ = Describe("PaginateBy", func() {
 
 	Describe("Query", func() {
 		It("returns the actual query", func() {
-			paginator := query.OrderBy("id").PaginateBy()
+			paginator := query.OrderExpr(sql.OrderColumnBy("id")).PaginateBy()
 			query, args := paginator.Query()
-			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC, `id` ASC LIMIT ?"))
-			Expect(args).To(HaveLen(2))
+			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC, `id` ASC LIMIT 101"))
+			Expect(args).To(HaveLen(1))
 		})
 	})
 })

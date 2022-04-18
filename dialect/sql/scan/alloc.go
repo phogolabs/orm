@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-openapi/inflect"
 	"github.com/jmoiron/sqlx/reflectx"
 )
 
@@ -159,43 +160,92 @@ func valueByIndex(target reflect.Value, vector []int) reflect.Value {
 	return target
 }
 
-func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
-	meta := mapper.TypeMap(target)
-
-	if field, ok := meta.Names[name]; ok {
-		return field
-	}
-
-	find := func(parent *reflectx.FieldInfo, key string) *reflectx.FieldInfo {
-		if field := fieldByName(parent.Field.Type, key); field != nil {
-			// translate the field
-			index := append(meta.Tree.Index, parent.Index...)
-			index = append(index, field.Index...)
-			// traverse
-			return meta.GetByTraversal(index)
+func fieldByPath(field *reflectx.FieldInfo, path string) *reflectx.FieldInfo {
+	if field != nil {
+		if field.Path == path {
+			return field
 		}
 
-		return nil
-	}
-
-	trim := func(parent *reflectx.FieldInfo, name string) string {
-		name = strings.TrimPrefix(name, parent.Name)
-		name = strings.TrimPrefix(name, "_")
-		// done
-		return name
-	}
-
-	for _, parent := range meta.Tree.Children {
-		if key, ok := parent.Options["foreign_key"]; ok && key == name {
-			if field, ok := parent.Options["reference_key"]; ok {
-				return find(parent, field)
+		if key, ok := field.Options["foreign_key"]; ok && key == path {
+			// prepare the reference key
+			if ref, ok := field.Options["reference_key"]; ok {
+				path = field.Path + "." + ref
 			}
 		}
 
-		if _, ok := parent.Options["prefix"]; ok {
-			return find(parent, trim(parent, name))
+		// traverse down
+		for _, child := range field.Children {
+			if node := fieldByPath(child, path); node != nil {
+				return node
+			}
 		}
 	}
 
+	// done!
 	return nil
+}
+
+func fieldByName(target reflect.Type, name string) (field *reflectx.FieldInfo) {
+	// trim function
+	trim := func(key string) string {
+		table := strings.ToLower(inflect.Underscore(target.Name()))
+		// prepare the name
+		key = unquote(key)
+		// prefix trim
+		key = strings.TrimPrefix(key, table)
+		key = strings.TrimPrefix(key, ".")
+
+		return key
+	}
+
+	path := func(key string) ([]string, []string) {
+		// partition the name
+		path := strings.Split(key, ".")
+		// find the last element
+		base := len(path) - 1
+		//partitiaion the head
+		head := path[:base]
+		// partition the tail
+		tail := strings.Split(path[base], "_")
+		// done
+		return head, tail
+	}
+
+	// prepare the field name
+	name = trim(name)
+	// prepare the head and tail
+	head, tail := path(name)
+	// prepare the metadata
+	meta := mapper.TypeMap(target)
+
+	for _, part := range tail {
+		name = strings.Join(head, ".")
+
+		var symbol string
+		// find the symbol
+		if len(name) > 0 {
+			if field = meta.GetByPath(name); field != nil {
+				symbol = "."
+			} else {
+				symbol = "_"
+			}
+		}
+
+		// prepand the name
+		name = name + symbol + part
+		// prepare the head
+		head = strings.Split(name, ".")
+	}
+
+	field = meta.GetByPath(name)
+	// done!
+	return field
+}
+
+func unquote(key string) string {
+	// prepare the name
+	key = strings.Replace(key, `"`, "", -1)
+	key = strings.Replace(key, "`", "", -1)
+	// done
+	return key
 }

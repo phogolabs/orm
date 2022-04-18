@@ -23,8 +23,10 @@ var _ = Describe("Values", func() {
 			Email:     &email,
 			CreatedAt: time.Now(),
 			Group: &Group{
-				ID:   "555",
-				Name: "guest",
+				ID:          "555",
+				Name:        "guest",
+				Description: "My Group",
+				CreatedAt:   time.Now(),
 			},
 		}
 	})
@@ -39,9 +41,20 @@ var _ = Describe("Values", func() {
 			Expect(values[2]).To(Equal(entity.Group.ID))
 		})
 
+		Context("when the column is path", func() {
+			It("scans the values successfully", func() {
+				values, err := scan.Values(entity, "group_id", "group_name", "group_description")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(values).To(HaveLen(3))
+				Expect(values[0]).To(Equal(entity.Group.ID))
+				Expect(values[1]).To(Equal(entity.Group.Name))
+				Expect(values[2]).To(Equal(entity.Group.Description))
+			})
+		})
+
 		Context("when the column is not found", func() {
 			It("scans the values successfully", func() {
-				values, err := scan.Values(entity, "name", "email", "address")
+				values, err := scan.Values(entity, "name", "email", "description")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(values).To(HaveLen(2))
 				Expect(values[0]).To(Equal(entity.Name))

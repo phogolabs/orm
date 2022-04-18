@@ -8,7 +8,7 @@ import (
 	"github.com/phogolabs/orm/dialect/sql/scan"
 )
 
-var _ Procedure = &RoutineQuery{}
+var _ Querier = &RoutineQuery{}
 
 // RoutineQuery represents a named routine
 type RoutineQuery struct {
@@ -82,9 +82,9 @@ func (r *RoutineQuery) Error() error {
 // the Named function.
 type NamedArg = sql.NamedArg
 
-var _ Statement = &NamedQuery{}
+var _ Querier = &NamedQuery{}
 
-// NameQuery is a named query that uses named arguments
+// NamedQuery is a named query that uses named arguments
 type NamedQuery struct {
 	err     error
 	dialect string
@@ -92,7 +92,7 @@ type NamedQuery struct {
 	args    []sql.NamedArg
 }
 
-// NamedQuery create a new named query
+// Query create a new named query
 func Query(query string, params ...interface{}) *NamedQuery {
 	query, columns := scan.NamedQuery(query)
 	// scane the arguments

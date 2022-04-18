@@ -47,7 +47,8 @@ func (d *InsertMutation) Entity(src interface{}) *InsertBuilder {
 
 // UpdateMutation represents an update mutation
 type UpdateMutation struct {
-	builder *UpdateBuilder
+	builder  *UpdateBuilder
+	conflict bool
 }
 
 // NewUpdate creates a Mutation that updates the entity into the db
@@ -56,6 +57,16 @@ func NewUpdate(table ...string) *UpdateMutation {
 
 	return &UpdateMutation{
 		builder: Update(table[0]),
+	}
+}
+
+// ResolveWithEntity resolves the conflict with the entity provided values
+func ResolveWithEntity(src interface{}, columns ...string) ConflictOption {
+	return func(c *conflict) {
+		c.action.update = append(c.action.update, func(u *UpdateSet) {
+			mutation := &UpdateMutation{builder: u.update, conflict: true}
+			mutation.Entity(src, columns...)
+		})
 	}
 }
 
@@ -84,9 +95,7 @@ func (d *UpdateMutation) Entity(src interface{}, columns ...string) *UpdateBuild
 			updateable[column.Name] = value
 		}
 
-		// if the update statement does not have table name
-		// means that we are in DO UPDATE case
-		if builder.table == "" {
+		if d.conflict {
 			continue
 		}
 

@@ -7,30 +7,16 @@ package sql
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
-	"io/fs"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/phogolabs/orm/dialect"
-	"github.com/phogolabs/prana/sqlexec"
-	"github.com/phogolabs/prana/sqlmigr"
 )
-
-// FileSystem represents the SQL filesystem
-type FileSystem = fs.FS
-
-// Provider represents a routine provider
-type Provider = sqlexec.Provider
-
-// Map represents a key value map
-type Map map[string]interface{}
-
-var _ dialect.Driver = &Driver{}
 
 // Driver is a dialect.Driver implementation for SQL based databases.
 type Driver struct {
-	conn
+	Conn
 	dialect string
 }
 
@@ -40,34 +26,23 @@ func Open(driver, source string) (*Driver, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Driver{conn{db}, driver}, nil
+	return &Driver{Conn{db}, driver}, nil
 }
 
 // OpenDB wraps the given database/sql.DB method with a Driver.
 func OpenDB(driver string, db *sql.DB) *Driver {
-	return &Driver{conn{db}, driver}
+	return &Driver{Conn{db}, driver}
 }
 
 // DB returns the underlying *sql.DB instance.
 func (d Driver) DB() *sql.DB {
-	return d.conn.ExecQuerier.(*sql.DB)
-}
-
-// Ping pings the server
-func (d Driver) Ping(ctx context.Context) error {
-	return d.DB().PingContext(ctx)
-}
-
-// Migrate runs the migrations
-func (d Driver) Migrate(storage FileSystem) error {
-	db := sqlx.NewDb(d.DB(), d.dialect)
-	return sqlmigr.RunAll(db, storage)
+	return d.ExecQuerier.(*sql.DB)
 }
 
 // Dialect implements the dialect.Dialect method.
 func (d Driver) Dialect() string {
-	// if the underlying driver is wrapped with opencensus driver.
-	for _, name := range []string{dialect.MySQL, dialect.SQLite} {
+	// If the underlying driver is wrapped with opencensus driver.
+	for _, name := range []string{dialect.MySQL, dialect.SQLite, dialect.Postgres} {
 		if strings.HasPrefix(d.dialect, name) {
 			return name
 		}
@@ -77,61 +52,43 @@ func (d Driver) Dialect() string {
 
 // Tx starts and returns a transaction.
 func (d *Driver) Tx(ctx context.Context) (dialect.Tx, error) {
-	return d.BeginTx(ctx, &sql.TxOptions{})
+	return d.BeginTx(ctx, nil)
 }
 
 // BeginTx starts a transaction with options.
 func (d *Driver) BeginTx(ctx context.Context, opts *TxOptions) (dialect.Tx, error) {
-	tx, err := d.ExecQuerier.(*sql.DB).BeginTx(ctx, opts)
+	tx, err := d.DB().BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-	return &Tx{conn{tx}}, nil
+	return &Tx{
+		ExecQuerier: Conn{tx},
+		Tx:          tx,
+	}, nil
 }
 
 // Close closes the underlying connection.
-func (d *Driver) Close() error {
-	return d.ExecQuerier.(*sql.DB).Close()
-}
+func (d *Driver) Close() error { return d.DB().Close() }
 
-// Tx wraps the sql.Tx for implementing the dialect.Tx interface.
+// Tx implements dialect.Tx interface.
 type Tx struct {
-	conn
-}
-
-// Commit commits the transaction.
-func (t *Tx) Commit() error {
-	return t.ExecQuerier.(*sql.Tx).Commit()
-}
-
-// Rollback rollback the transaction.
-func (t *Tx) Rollback() error {
-	return t.ExecQuerier.(*sql.Tx).Rollback()
+	dialect.ExecQuerier
+	driver.Tx
 }
 
 // ExecQuerier wraps the standard Exec and Query methods.
 type ExecQuerier interface {
-	Execer
-	Querier
-}
-
-// ExecQuerier wraps the standard Exec methods.
-type Execer interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-}
-
-// Querier wraps the standard Query methods.
-type Querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
-// shared connection ExecQuerier between Driver and Tx.
-type conn struct {
+// Conn implements dialect.ExecQuerier given ExecQuerier.
+type Conn struct {
 	ExecQuerier
 }
 
 // Exec implements the dialect.Exec method.
-func (c *conn) Exec(ctx context.Context, query string, args, v interface{}) error {
+func (c Conn) Exec(ctx context.Context, query string, args, v interface{}) error {
 	argv, ok := args.([]interface{})
 	if !ok {
 		return fmt.Errorf("dialect/sql: invalid type %T. expect []interface{} for args", v)
@@ -153,8 +110,8 @@ func (c *conn) Exec(ctx context.Context, query string, args, v interface{}) erro
 	return nil
 }
 
-// Exec implements the dialect.Query method.
-func (c *conn) Query(ctx context.Context, query string, args, v interface{}) error {
+// Query implements the dialect.Query method.
+func (c Conn) Query(ctx context.Context, query string, args, v interface{}) error {
 	vr, ok := v.(*Rows)
 	if !ok {
 		return fmt.Errorf("dialect/sql: invalid type %T. expect *sql.Rows", v)
@@ -174,11 +131,8 @@ func (c *conn) Query(ctx context.Context, query string, args, v interface{}) err
 var _ dialect.Driver = (*Driver)(nil)
 
 type (
-	// DB is a database handle representing a pool of zero or more
-	// underlying connections.
-	DB = sql.DB
 	// Rows wraps the sql.Rows to avoid locks copy.
-	Rows struct{ *sql.Rows }
+	Rows struct{ ColumnScanner }
 	// Result is an alias to sql.Result.
 	Result = sql.Result
 	// NullBool is an alias to sql.NullBool.
@@ -195,7 +149,31 @@ type (
 	TxOptions = sql.TxOptions
 )
 
-// ErrNoRows is returned by Scan when QueryRow doesn't return a
-// row. In such a case, QueryRow returns a placeholder *Row value that
-// defers this error until a Scan.
-var ErrNoRows = sql.ErrNoRows
+// NullScanner represents an sql.Scanner that may be null.
+// NullScanner implements the sql.Scanner interface so it can
+// be used as a scan destination, similar to the types above.
+type NullScanner struct {
+	S     sql.Scanner
+	Valid bool // Valid is true if the Scan value is not NULL.
+}
+
+// Scan implements the Scanner interface.
+func (n *NullScanner) Scan(value interface{}) error {
+	n.Valid = value != nil
+	if n.Valid {
+		return n.S.Scan(value)
+	}
+	return nil
+}
+
+// ColumnScanner is the interface that wraps the standard
+// sql.Rows methods used for scanning database rows.
+type ColumnScanner interface {
+	Close() error
+	ColumnTypes() ([]*sql.ColumnType, error)
+	Columns() ([]string, error)
+	Err() error
+	Next() bool
+	NextResultSet() bool
+	Scan(dest ...interface{}) error
+}

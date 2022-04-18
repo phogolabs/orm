@@ -25,9 +25,6 @@ var (
 )
 
 type (
-	// Map is key-value hashmap that can be used as a argument to NamedQuery
-	Map = sql.Map
-
 	// A NamedArg is a named argument. NamedArg values may be used as
 	// arguments to Query or Exec and bind to the corresponding named
 	// parameter in the SQL statement.
@@ -46,22 +43,22 @@ type (
 // Querier executes the commands
 type Querier interface {
 	// All executes the query and returns a list of entities.
-	All(ctx context.Context, q sql.Statement, v interface{}) error
+	All(ctx context.Context, q sql.Querier, v interface{}) error
 
 	// Only returns the only entity in the query, returns an error if not
 	// exactly one entity was returned.
-	Only(ctx context.Context, q sql.Statement, v interface{}) error
+	Only(ctx context.Context, q sql.Querier, v interface{}) error
 
 	// First returns the first entity in the query. Returns *NotFoundError
 	// when no records were found.
-	First(ctx context.Context, q sql.Statement, v interface{}) error
+	First(ctx context.Context, q sql.Querier, v interface{}) error
 
 	// Query executes a query that returns rows, typically a SELECT in SQL.
 	// It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
-	Query(ctx context.Context, q sql.Statement) (*sql.Rows, error)
+	Query(ctx context.Context, q sql.Querier) (*sql.Rows, error)
 
 	// Exec executes a query that doesn't return rows. For example, in SQL, INSERT
 	// or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
 	// sql.Result.
-	Exec(ctx context.Context, q sql.Statement) (sql.Result, error)
+	Exec(ctx context.Context, q sql.Querier) (sql.Result, error)
 }

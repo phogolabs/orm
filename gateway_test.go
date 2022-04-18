@@ -90,12 +90,8 @@ var _ = Describe("Gateway", func() {
 					Values(i, faker.FirstName(), faker.LastName(), faker.Email()).
 					Returning("id")
 
-			result, err := gateway.Exec(ctx, query)
+			_, err := gateway.Exec(ctx, query)
 			Expect(err).To(Succeed())
-
-			affected, err := result.RowsAffected()
-			Expect(err).To(Succeed())
-			Expect(affected).To(BeNumerically("==", 1))
 		}
 	})
 
@@ -104,85 +100,6 @@ var _ = Describe("Gateway", func() {
 		Expect(err).To(Succeed())
 
 		Expect(gateway.Close()).To(Succeed())
-	})
-
-	Describe("Routine", func() {
-		// var fileSystem *fake.FileSystem
-
-		// BeforeEach(func() {
-		// 	buffer := bytes.NewBufferString(fmt.Sprintf("-- name: %v", "cmd"))
-		// 	fmt.Fprintln(buffer)
-		// 	fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
-
-		// 	content := buffer.Bytes()
-
-		// 	node := &parcello.Node{
-		// 		Name:    "script.sql",
-		// 		Content: &content,
-		// 		Mutex:   &sync.RWMutex{},
-		// 	}
-
-		// 	fileSystem = &fake.FileSystem{}
-		// 	fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
-
-		// 	fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-		// 		return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-		// 	}
-		// })
-
-		// It("reads the directory", func() {
-		// 	Expect(gateway.Routine(fileSystem)).To(Succeed())
-		// })
-
-		// Context("when the routine is executed", func() {
-		// 	It("execs the routine", func() {
-		// 		Expect(gateway.Routine(fileSystem)).To(Succeed())
-		// 		_, err := gateway.Query(ctx, orm.Routine("cmd"))
-		// 		Expect(err).To(Succeed())
-		// 	})
-		// })
-	})
-
-	Describe("Migrate", func() {
-		// var fileSystem *fake.FileSystem
-
-		// BeforeEach(func() {
-		// 	buffer := bytes.NewBufferString("-- name: up")
-
-		// 	fmt.Fprintln(buffer)
-		// 	fmt.Fprintln(buffer, "SELECT * FROM sqlite_master")
-
-		// 	content := buffer.Bytes()
-
-		// 	node := &parcello.Node{
-		// 		Name:    "00060524000000_setup.sql",
-		// 		Content: &content,
-		// 		Mutex:   &sync.RWMutex{},
-		// 	}
-
-		// 	fileSystem = &fake.FileSystem{}
-		// 	fileSystem.OpenFileReturns(parcello.NewResourceFile(node), nil)
-
-		// 	fileSystem.WalkStub = func(dir string, fn filepath.WalkFunc) error {
-		// 		return fn(node.Name, &parcello.ResourceFileInfo{Node: node}, nil)
-		// 	}
-
-		// 	query :=
-		// 		sql.CreateTable("migrations").IfNotExists().
-		// 			Columns(
-		// 				sql.Column("id").Type("varchar(15)"),
-		// 				sql.Column("description").Type("text").Attr("NOT NULL"),
-		// 				sql.Column("created_at").Type("timestamp").Attr("NOT NULL"),
-		// 			).
-		// 			PrimaryKey("id")
-
-		// 	_, err := gateway.Exec(ctx, query)
-		// 	Expect(err).To(Succeed())
-		// })
-
-		// It("executes the migration successfully", func() {
-		// 	Expect(gateway.Migrate(fileSystem)).To(Succeed())
-		// })
 	})
 
 	Describe("Begin", func() {

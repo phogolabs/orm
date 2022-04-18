@@ -96,6 +96,11 @@ func Args(src []interface{}, columns ...string) ([]interface{}, error) {
 // provided. Only simple value types are supported (i.e. Bool, Ints, Uints,
 // Floats, Interface, String, NamedArg)
 func Values(src interface{}, columns ...string) ([]interface{}, error) {
+	// prepare the input
+	for index, column := range columns {
+		columns[index] = unquote(column)
+	}
+
 	value, err := valueOf(src)
 	if err != nil {
 		return nil, err

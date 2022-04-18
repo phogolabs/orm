@@ -22,7 +22,7 @@ type engine struct {
 }
 
 // All executes the query and returns a list of entities.
-func (g *engine) All(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *engine) All(ctx context.Context, q sql.Querier, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (g *engine) All(ctx context.Context, q sql.Statement, v interface{}) error 
 
 // Only returns the only entity in the query, returns an error if not
 // exactly one entity was returned.
-func (g *engine) Only(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *engine) Only(ctx context.Context, q sql.Querier, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (g *engine) Only(ctx context.Context, q sql.Statement, v interface{}) error
 
 // First returns the first entity in the query. Returns *NotFoundError
 // when no user was found.
-func (g *engine) First(ctx context.Context, q sql.Statement, v interface{}) error {
+func (g *engine) First(ctx context.Context, q sql.Querier, v interface{}) error {
 	rows, err := g.Query(ctx, q)
 	if err != nil {
 		return g.wrap(err)
@@ -91,7 +91,7 @@ func (g *engine) First(ctx context.Context, q sql.Statement, v interface{}) erro
 
 // Query executes a query that returns rows, typically a SELECT in SQL.
 // It scans the result into the pointer v. In SQL, you it's usually *sql.Rows.
-func (g *engine) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) {
+func (g *engine) Query(ctx context.Context, q sql.Querier) (*sql.Rows, error) {
 	// compile the query prior to execution
 	query, params, err := g.compile(q)
 	if err != nil {
@@ -110,7 +110,7 @@ func (g *engine) Query(ctx context.Context, q sql.Statement) (*sql.Rows, error) 
 // Exec executes a query that doesn't return rows. For example, in SQL, INSERT
 // or UPDATE.  It scans the result into the pointer v. In SQL, you it's usually
 // sql.Result.
-func (g *engine) Exec(ctx context.Context, q sql.Statement) (sql.Result, error) {
+func (g *engine) Exec(ctx context.Context, q sql.Querier) (sql.Result, error) {
 	// compile the query prior to execution
 	query, params, err := g.compile(q)
 	if err != nil {
@@ -126,9 +126,14 @@ func (g *engine) Exec(ctx context.Context, q sql.Statement) (sql.Result, error) 
 	return result, nil
 }
 
-func (g *engine) compile(stmt sql.Statement) (string, []interface{}, error) {
+func (g *engine) compile(stmt sql.Querier) (string, []interface{}, error) {
+	type QuerierRoutine interface {
+		Name() string
+		SetQuery(string)
+	}
+
 	// find the command if any
-	if routine, ok := stmt.(sql.Procedure); ok {
+	if routine, ok := stmt.(QuerierRoutine); ok {
 		// get the actual SQL query
 		query, err := g.provider.Query(routine.Name())
 		// if getting the query fails
@@ -139,17 +144,25 @@ func (g *engine) compile(stmt sql.Statement) (string, []interface{}, error) {
 		routine.SetQuery(query)
 	}
 
+	type QuerierDialect interface {
+		SetDialect(dialect string)
+	}
+
 	// set the dialect
-	if query, ok := stmt.(sql.Translatable); ok {
+	if query, ok := stmt.(QuerierDialect); ok {
 		query.SetDialect(g.dialect)
 	}
 
 	// compile the query
 	query, params := stmt.Query()
 
+	type QuerierErr interface {
+		Err() error
+	}
+
 	// check for errors
-	if reporter, ok := stmt.(sql.Errorable); ok {
-		if err := reporter.Error(); err != nil {
+	if queryErr, ok := stmt.(QuerierErr); ok {
+		if err := queryErr.Err(); err != nil {
 			return "", nil, g.wrap(err)
 		}
 	}
