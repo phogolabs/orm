@@ -23,7 +23,7 @@ var _ = Describe("Allocator", func() {
 				},
 			}
 
-			columns := []string{"id", "group_id", "name", "created_at", "group_name", "group_description"}
+			columns := []string{"id", "group_id", "name", "created_at", "group.name", "group.description"}
 
 			allocator, err := scan.NewAllocator(reflect.TypeOf(&User{}), columns)
 			Expect(err).NotTo(HaveOccurred())

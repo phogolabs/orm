@@ -8,6 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 var _ = Describe("Scan", func() {
@@ -19,13 +20,9 @@ var _ = Describe("Scan", func() {
 		Password string  `db:"password"`
 	}
 
-	type Member struct {
-		User *User `db:"user,inline,prefix"`
-	}
-
 	type UserGroup struct {
-		Name   string  `db:"name"`
-		Member *Member `db:"member"`
+		Name string `db:"name"`
+		User *User  `db:"user,foreign_key=user_id,reference_key=id"`
 	}
 
 	BeforeEach(func() {
@@ -34,10 +31,10 @@ var _ = Describe("Scan", func() {
 		db, err = sql.Open("sqlite3", "file:test.db?cache=shared&mode=memory")
 		Expect(err).To(BeNil())
 
-		_, err = db.Exec("CREATE TABLE users (id int, name varchar(255), password varchar(10))")
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id int, name varchar(255), password varchar(10))")
 		Expect(err).To(BeNil())
 
-		_, err = db.Exec("CREATE TABLE groups (name varchar(255), member_user_id int, member_user_name varchar(255), member_user_password varchar(10))")
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS user_groups (name varchar(255), user_id int)")
 		Expect(err).To(BeNil())
 	})
 
@@ -47,7 +44,7 @@ var _ = Describe("Scan", func() {
 		_, err = db.Exec("DELETE FROM users")
 		Expect(err).To(BeNil())
 
-		_, err = db.Exec("DELETE FROM groups")
+		_, err = db.Exec("DELETE FROM user_groups")
 		Expect(err).To(BeNil())
 
 		Expect(db.Close()).To(Succeed())
@@ -71,19 +68,17 @@ var _ = Describe("Scan", func() {
 
 		Context("when the collection is nested", func() {
 			It("scans the row successfully", func() {
-				_, err := db.Exec("INSERT INTO groups VALUES('admin', 1, 'root', 'swordfish')")
+				_, err := db.Exec("INSERT INTO user_groups VALUES('admin', 7)")
 				Expect(err).To(BeNil())
 
 				group := &UserGroup{}
 
-				rows, err := db.Query("SELECT * FROM groups")
+				rows, err := db.Query("SELECT * FROM user_groups")
 				Expect(err).To(BeNil())
 
 				Expect(scan.Row(rows, group)).To(Succeed())
 				Expect(group.Name).To(Equal("admin"))
-				Expect(group.Member.User.ID).To(Equal(1))
-				Expect(group.Member.User.Password).To(Equal("swordfish"))
-				Expect(*group.Member.User.Name).To(Equal("root"))
+				Expect(group.User.ID).To(Equal(7))
 			})
 		})
 	})
@@ -100,18 +95,18 @@ var _ = Describe("Scan", func() {
 				&User{ID: 1},
 			}
 
-			rows, err := db.Query("SELECT name,password FROM users")
+			rows, err := db.Query("SELECT name, password FROM users")
 			Expect(err).To(BeNil())
 
 			Expect(scan.Rows(rows, &users)).To(Succeed())
 			Expect(users).To(HaveLen(2))
 
 			Expect(users[0].ID).To(Equal(1))
-			Expect(*users[0].Name).To(Equal("root"))
+			Expect(users[0].Name).To(PointTo(Equal("root")))
 			Expect(users[0].Password).To(Equal("swordfish"))
 
 			Expect(users[1].ID).To(Equal(0))
-			Expect(*users[1].Name).To(Equal("admin"))
+			Expect(users[1].Name).To(PointTo(Equal("admin")))
 			Expect(users[1].Password).To(Equal("qwerty"))
 		})
 	})

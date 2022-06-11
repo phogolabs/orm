@@ -181,7 +181,7 @@ func (x *Projection) As(prefix string, extra ...string) *Projection {
 		head = append(head, extra...)
 		head = append(head, name)
 		// prepare
-		name = strings.Join(head, "_")
+		name = strings.Join(head, ".")
 		// alias
 		column.As(name)
 	}

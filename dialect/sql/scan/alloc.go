@@ -160,32 +160,10 @@ func valueByIndex(target reflect.Value, vector []int) reflect.Value {
 	return target
 }
 
-func fieldByPath(field *reflectx.FieldInfo, path string) *reflectx.FieldInfo {
-	if field != nil {
-		if field.Path == path {
-			return field
-		}
+func fieldByName(target reflect.Type, name string) *reflectx.FieldInfo {
+	// prepare the metadata
+	meta := mapper.TypeMap(target)
 
-		if key, ok := field.Options["foreign_key"]; ok && key == path {
-			// prepare the reference key
-			if ref, ok := field.Options["reference_key"]; ok {
-				path = field.Path + "." + ref
-			}
-		}
-
-		// traverse down
-		for _, child := range field.Children {
-			if node := fieldByPath(child, path); node != nil {
-				return node
-			}
-		}
-	}
-
-	// done!
-	return nil
-}
-
-func fieldByName(target reflect.Type, name string) (field *reflectx.FieldInfo) {
 	// trim function
 	trim := func(key string) string {
 		table := strings.ToLower(inflect.Underscore(target.Name()))
@@ -198,46 +176,47 @@ func fieldByName(target reflect.Type, name string) (field *reflectx.FieldInfo) {
 		return key
 	}
 
-	path := func(key string) ([]string, []string) {
-		// partition the name
+	prepare := func(key string) string {
+		tree := meta.Index
+		// find the path
 		path := strings.Split(key, ".")
-		// find the last element
-		base := len(path) - 1
-		//partitiaion the head
-		head := path[:base]
-		// partition the tail
-		tail := strings.Split(path[base], "_")
-		// done
-		return head, tail
-	}
 
-	// prepare the field name
-	name = trim(name)
-	// prepare the head and tail
-	head, tail := path(name)
-	// prepare the metadata
-	meta := mapper.TypeMap(target)
+		// key index
+		if index := len(path) - 1; index > 0 {
+			// prepare the key
+			key = path[index]
+			// parent key
+			parent := strings.Join(path[:index], ".")
+			// find the parent
+			if field := meta.GetByPath(parent); field != nil {
+				tree = field.Children
 
-	for _, part := range tail {
-		name = strings.Join(head, ".")
-
-		var symbol string
-		// find the symbol
-		if len(name) > 0 {
-			if field = meta.GetByPath(name); field != nil {
-				symbol = "."
-			} else {
-				symbol = "_"
+				for _, field := range tree {
+					if field.Name == key {
+						return field.Path
+					}
+				}
 			}
 		}
 
-		// prepand the name
-		name = name + symbol + part
-		// prepare the head
-		head = strings.Split(name, ".")
+		for _, field := range tree {
+			if fkey, ok := field.Options["foreign_key"]; ok && fkey == key {
+				// prepare the reference key
+				if ref, ok := field.Options["reference_key"]; ok {
+					return field.Path + "." + ref
+				}
+			}
+		}
+
+		return key
 	}
 
-	field = meta.GetByPath(name)
+	// trum the field name
+	name = trim(name)
+	// prepare the field name
+	name = prepare(name)
+	// look up the field
+	field := meta.GetByPath(name)
 	// done!
 	return field
 }

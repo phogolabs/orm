@@ -2313,16 +2313,16 @@ func (s *Selector) join(kind string, t TableView) *Selector {
 		kind:  kind,
 		table: t,
 	})
-	// switch view := t.(type) {
-	// case *SelectTable:
-	//   if view.as == "" {
-	//     view.as = "t" + strconv.Itoa(len(s.joins))
-	//   }
-	// case *Selector:
-	//   if view.as == "" {
-	//     view.as = "t" + strconv.Itoa(len(s.joins))
-	//   }
-	// }
+	switch view := t.(type) {
+	case *SelectTable:
+		// if view.as == "" {
+		//   view.as = "t" + strconv.Itoa(len(s.joins))
+		// }
+	case *Selector:
+		if view.as == "" {
+			view.as = "t" + strconv.Itoa(len(s.joins))
+		}
+	}
 	if st, ok := t.(state); ok {
 		st.SetDialect(s.dialect)
 	}

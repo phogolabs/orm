@@ -43,7 +43,7 @@ var _ = Describe("Values", func() {
 
 		Context("when the column is path", func() {
 			It("scans the values successfully", func() {
-				values, err := scan.Values(entity, "group_id", "group_name", "group_description")
+				values, err := scan.Values(entity, "group.id", "group.name", "group.description")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(values).To(HaveLen(3))
 				Expect(values[0]).To(Equal(entity.Group.ID))

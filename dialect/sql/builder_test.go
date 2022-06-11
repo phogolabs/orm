@@ -901,7 +901,7 @@ func TestBuilder(t *testing.T) {
 					Join(t3).On(t1.C("id"), t3.C("user_id")).
 					Join(t2).On(t2.C("id"), t3.C("group_id"))
 			}(),
-			wantQuery: "SELECT `users`.* FROM `users` JOIN `user_groups` AS `t1` ON `users`.`id` = `t1`.`user_id` JOIN `groups` AS `t2` ON `t2`.`id` = `t1`.`group_id`",
+			wantQuery: "SELECT `users`.* FROM `users` JOIN `user_groups` ON `users`.`id` = `user_groups`.`user_id` JOIN `groups` ON `groups`.`id` = `user_groups`.`group_id`",
 		},
 		{
 			input: func() Querier {
@@ -913,7 +913,7 @@ func TestBuilder(t *testing.T) {
 					Join(t3).On(t1.C("id"), t3.C("user_id")).
 					Join(t2).On(t2.C("id"), t3.C("group_id"))
 			}(),
-			wantQuery: `SELECT "users".* FROM "users" JOIN "user_groups" AS "t1" ON "users"."id" = "t1"."user_id" JOIN "groups" AS "t2" ON "t2"."id" = "t1"."group_id"`,
+			wantQuery: `SELECT "users".* FROM "users" JOIN "user_groups" ON "users"."id" = "user_groups"."user_id" JOIN "groups" ON "groups"."id" = "user_groups"."group_id"`,
 		},
 		{
 			input: func() Querier {
@@ -1146,7 +1146,7 @@ func TestBuilder(t *testing.T) {
 				t3 := Select().Count().From(t1).Join(t1).On(t2.C("id"), t1.C("blocked_id"))
 				return t3.Count(Distinct(t3.Columns("id", "name")...))
 			}(),
-			wantQuery: "SELECT COUNT(DISTINCT `t1`.`id`, `t1`.`name`) FROM `users` AS `t1` JOIN `users` AS `t1` ON `groups`.`id` = `t1`.`blocked_id`",
+			wantQuery: "SELECT COUNT(DISTINCT `users`.`id`, `users`.`name`) FROM `users` JOIN `users` ON `groups`.`id` = `users`.`blocked_id`",
 		},
 		{
 			input: func() Querier {
@@ -1156,7 +1156,7 @@ func TestBuilder(t *testing.T) {
 				t3 := d.Select().Count().From(t1).Join(t1).On(t2.C("id"), t1.C("blocked_id"))
 				return t3.Count(Distinct(t3.Columns("id", "name")...))
 			}(),
-			wantQuery: `SELECT COUNT(DISTINCT "t1"."id", "t1"."name") FROM "users" AS "t1" JOIN "users" AS "t1" ON "groups"."id" = "t1"."blocked_id"`,
+			wantQuery: `SELECT COUNT(DISTINCT "users"."id", "users"."name") FROM "users" JOIN "users" ON "groups"."id" = "users"."blocked_id"`,
 		},
 		{
 			input:     Select(Sum("age"), Min("age")).From(Table("users")),
@@ -1304,7 +1304,7 @@ func TestBuilder(t *testing.T) {
 					Join(t4).
 					On(t1.C("id"), t4.C("id")).Limit(1)
 			}(),
-			wantQuery: `SELECT * FROM "groups" JOIN (SELECT "user_groups"."id" FROM "user_groups" JOIN "users" AS "t1" ON "user_groups"."id" = "t1"."id2" WHERE "t1"."id" = $1) AS "t1" ON "groups"."id" = "t1"."id" LIMIT 1`,
+			wantQuery: `SELECT * FROM "groups" JOIN (SELECT "user_groups"."id" FROM "user_groups" JOIN "users" ON "user_groups"."id" = "users"."id2" WHERE "users"."id" = $1) AS "t1" ON "groups"."id" = "t1"."id" LIMIT 1`,
 			wantArgs:  []interface{}{"baz"},
 		},
 		{
@@ -1482,22 +1482,23 @@ func TestBuilder(t *testing.T) {
 					})).
 					Where(EQ(t2.C("name"), "pedro"))
 			}(),
-			wantQuery: "SELECT * FROM `s1`.`users` JOIN `s2`.`pets` AS `t1` ON `s1`.`users`.`id` = `t1`.`owner_id` WHERE `t1`.`name` = ?",
+			wantQuery: "SELECT * FROM `s1`.`users` JOIN `s2`.`pets` ON `s1`.`users`.`id` = `s2`.`pets`.`owner_id` WHERE `s2`.`pets`.`name` = ?",
 			wantArgs:  []interface{}{"pedro"},
 		},
 		{
 			input: func() Querier {
 				t1, t2 := Table("users").Schema("s1"), Table("pets").Schema("s2")
-				sel := Select("*").
-					From(t1).Join(t2).
+
+				sel := Select("*")
+				sel.SetDialect(dialect.SQLite)
+				sel.From(t1).Join(t2).
 					OnP(P(func(b *Builder) {
 						b.Ident(t1.C("id")).WriteOp(OpEQ).Ident(t2.C("owner_id"))
 					})).
 					Where(EQ(t2.C("name"), "pedro"))
-				sel.SetDialect(dialect.SQLite)
 				return sel
 			}(),
-			wantQuery: "SELECT * FROM `users` JOIN `pets` AS `t1` ON `users`.`id` = `t1`.`owner_id` WHERE `t1`.`name` = ?",
+			wantQuery: "SELECT * FROM `users` JOIN `pets` ON `users`.`id` = `pets`.`owner_id` WHERE `pets`.`name` = ?",
 			wantArgs:  []interface{}{"pedro"},
 		},
 		{
@@ -1665,7 +1666,7 @@ func TestSelector_Union(t *testing.T) {
 			From(t3),
 	}
 	query, args = n.Query()
-	require.Equal(t, "WITH RECURSIVE `path`(`id`, `name`, `parent_id`) AS (SELECT `files`.`id`, `files`.`name`, `files`.`parent_id` FROM `files` WHERE `files`.`parent_id` IS NULL AND `files`.`deleted` = ? UNION ALL SELECT `files`.`id`, `files`.`name`, `files`.`parent_id` FROM `files` JOIN `path` AS `t1` ON `files`.`parent_id` = `t1`.`id` WHERE `files`.`deleted` = ?) SELECT `t1`.`id`, `t1`.`name`, `t1`.`parent_id` FROM `path` AS `t1`", query)
+	require.Equal(t, "WITH RECURSIVE `path`(`id`, `name`, `parent_id`) AS (SELECT `files`.`id`, `files`.`name`, `files`.`parent_id` FROM `files` WHERE `files`.`parent_id` IS NULL AND `files`.`deleted` = ? UNION ALL SELECT `files`.`id`, `files`.`name`, `files`.`parent_id` FROM `files` JOIN `path` ON `files`.`parent_id` = `path`.`id` WHERE `files`.`deleted` = ?) SELECT `path`.`id`, `path`.`name`, `path`.`parent_id` FROM `path`", query)
 	require.Equal(t, []interface{}{false, false}, args)
 }
 
@@ -1740,7 +1741,7 @@ func TestSelectWithLock(t *testing.T) {
 			WithLockTables("pets"),
 		).
 		Query()
-	require.Equal(t, `SELECT * FROM "pets" JOIN "users" AS "t1" ON "pets"."owner_id" = "t1"."id" WHERE "id" = $1 FOR UPDATE OF "pets" SKIP LOCKED`, query)
+	require.Equal(t, `SELECT * FROM "pets" JOIN "users" ON "pets"."owner_id" = "users"."id" WHERE "id" = $1 FOR UPDATE OF "pets" SKIP LOCKED`, query)
 	require.Equal(t, 20, args[0])
 
 	query, args = Dialect(dialect.MySQL).
@@ -1997,7 +1998,7 @@ func TestReusePredicates(t *testing.T) {
 					GT("balance", 100),
 				)
 			}(),
-			wantQuery: `SELECT * FROM "users" WHERE "balance" > $1 AND "id" IN (SELECT "user_groups"."user_id" FROM "user_groups" JOIN "groups" AS "t1" ON "user_groups"."group_id" = "t1"."id" WHERE "t1"."name" = $2) AND "balance" > $3`,
+			wantQuery: `SELECT * FROM "users" WHERE "balance" > $1 AND "id" IN (SELECT "user_groups"."user_id" FROM "user_groups" JOIN "groups" ON "user_groups"."group_id" = "groups"."id" WHERE "groups"."name" = $2) AND "balance" > $3`,
 			wantArgs:  []interface{}{0, "ent", 100},
 		},
 	}
