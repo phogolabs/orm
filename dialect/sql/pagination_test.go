@@ -23,16 +23,25 @@ var _ = Describe("PaginateBy", func() {
 
 		query, args := paginator.Query()
 		Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? ORDER BY `name` ASC LIMIT 101"))
-		Expect(paginator.Token()).To(BeEmpty())
+		Expect(paginator.Cursor()).To(BeNil())
 		Expect(args).To(HaveLen(1))
 	})
 
-	Context("when the token is provided", func() {
+	Context("when the cursor is provided", func() {
+		var cursor *sql.Cursor
+
+		BeforeEach(func() {
+			cursor = &sql.Cursor{
+				OrderBy: sql.OrderBy("name"),
+				WhereAt: []interface{}{"john"},
+			}
+		})
+
 		It("returns a paginator", func() {
-			paginator := query.PaginateBy("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d")
+			paginator := query.PaginateBy(cursor)
 			query, args := paginator.Query()
 			Expect(query).To(Equal("SELECT * FROM `users` WHERE `name` LIKE ? AND (`name` > ? OR `name` = ?) ORDER BY `name` ASC LIMIT 101"))
-			Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
+			Expect(paginator.Cursor()).To(Equal(cursor))
 			Expect(args).To(HaveLen(3))
 		})
 	})
@@ -65,7 +74,14 @@ var _ = Describe("PaginateBy", func() {
 
 			paginator := query.Limit(2).PaginateBy()
 			Expect(paginator.Scan(&users)).To(Succeed())
-			Expect(paginator.Token()).To(Equal("W3siYyI6Im5hbWUiLCJvIjoiYXNjIiwidiI6IkJyb3duIn1d"))
+
+			cursor := paginator.Cursor()
+			Expect(cursor).NotTo(BeNil())
+			Expect(cursor.OrderBy).NotTo(BeNil())
+			Expect(cursor.OrderBy.String()).To(Equal("name asc"))
+			Expect(cursor.WhereAt).To(HaveLen(1))
+			Expect(cursor.WhereAt).To(ContainElement("Brown"))
+
 			Expect(users).To(HaveLen(2))
 			Expect(users[0].Name).To(Equal("Mike"))
 			Expect(users[1].Name).To(Equal("Peter"))
@@ -75,7 +91,7 @@ var _ = Describe("PaginateBy", func() {
 			It("returns an error", func() {
 				user := &User{}
 				paginator := query.Limit(2).PaginateBy()
-				Expect(paginator.Scan(&user)).To(MatchError("dialect/sql: invalid type **sql_test.User. expect []interface{}"))
+				Expect(paginator.Scan(&user)).To(MatchError("sql: invalid type **sql_test.User. expect []interface{}"))
 			})
 		})
 	})
