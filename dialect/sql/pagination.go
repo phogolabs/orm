@@ -166,7 +166,7 @@ func (c *Cursor) MarshalBinary() ([]byte, error) {
 
 		var target []byte
 		// encode
-		base64.URLEncoding.Encode(source, target)
+		base64.URLEncoding.Encode(target, source)
 		// prepare the target
 		data = bytes.Trim(target, "=")
 	}
