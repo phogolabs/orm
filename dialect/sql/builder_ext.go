@@ -515,7 +515,7 @@ func (x *OrderColumn) UnmarshalText(data []byte) error {
 	// prepare the name
 	if len(elem) > 0 {
 		name = string(elem[0])
-		name = strings.Replace(name, "`", "", -1)
+		// name = strings.Replace(name, "`", "", -1)
 	}
 
 	switch len(elem) {
@@ -608,18 +608,7 @@ func (x *OrderColumn) Err() error {
 
 // Equal returns true the expressions are equal; otherwise false.
 func (x *OrderColumn) Equal(y *OrderColumn) bool {
-	unquote := func(key string) string {
-		// prepare the name
-		key = strings.Replace(key, `"`, "", -1)
-		key = strings.Replace(key, "`", "", -1)
-		// done
-		return key
-	}
-
-	cx := unquote(x.column)
-	cy := unquote(y.column)
-	//done!
-	return strings.EqualFold(cx, cy) && strings.EqualFold(x.order, y.order)
+	return strings.EqualFold(x.column, y.column) && strings.EqualFold(x.order, y.order)
 }
 
 // Query returns the order by clause
