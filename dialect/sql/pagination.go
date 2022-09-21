@@ -147,16 +147,19 @@ type Cursor struct {
 
 // MarshalBinary encodes the receiver into a binary form and returns the result.
 func (c *Cursor) MarshalBinary() ([]byte, error) {
-	source, err := json.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-
 	var target []byte
-	// encode
-	base64.URLEncoding.Encode(source, target)
 
-	target = bytes.Trim(target, "=")
+	if c.valid() {
+		source, err := json.Marshal(c)
+		if err != nil {
+			return nil, err
+		}
+
+		// encode
+		base64.URLEncoding.Encode(source, target)
+		// prepare the target
+		target = bytes.Trim(target, "=")
+	}
 	// done!
 	return target, nil
 }
@@ -165,21 +168,23 @@ func (c *Cursor) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary must copy the data if it wishes to retain the data after
 // returning.
 func (c *Cursor) UnmarshalBinary(data []byte) error {
-	if n := len(data) % 4; n != 0 {
-		suffix := []byte("=")
-		suffix = bytes.Repeat(suffix, 4-n)
-		// prepare the data
-		data = append(data, suffix...)
-	}
+	if len(data) > 0 {
+		if n := len(data) % 4; n != 0 {
+			suffix := []byte("=")
+			suffix = bytes.Repeat(suffix, 4-n)
+			// prepare the data
+			data = append(data, suffix...)
+		}
 
-	var target []byte
-	// decode
-	if _, err := base64.URLEncoding.Decode(target, data); err != nil {
-		return err
-	}
+		var target []byte
+		// decode
+		if _, err := base64.URLEncoding.Decode(target, data); err != nil {
+			return err
+		}
 
-	if err := json.Unmarshal(target, c); err != nil {
-		return err
+		if err := json.Unmarshal(target, c); err != nil {
+			return err
+		}
 	}
 	// done!
 	return nil
