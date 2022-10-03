@@ -188,6 +188,8 @@ func (c *Cursor) UnmarshalBinary(source []byte) error {
 			return err
 		}
 
+		target = bytes.Trim(target, "\x00")
+		// move back to json
 		if err := json.Unmarshal(target, c); err != nil {
 			return err
 		}
