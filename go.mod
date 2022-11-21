@@ -7,7 +7,7 @@ require (
 	github.com/go-openapi/inflect v0.19.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.16
-	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.1
 	github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5
 	github.com/phogolabs/prana v1.0.0-rc10
