@@ -14,40 +14,57 @@ import (
 	"github.com/phogolabs/orm/dialect"
 )
 
+var _ dialect.Driver = (*Driver)(nil)
+
 // Driver is a dialect.Driver implementation for SQL based databases.
 type Driver struct {
-	Conn
-	dialect string
+	// Querier
+	dialect.ExecQuerier
+	// Dialect name
+	name string
 }
 
 // Open wraps the database/sql.Open method and returns a dialect.Driver that implements the an ent/dialect.Driver interface.
-func Open(driver, source string) (*Driver, error) {
-	db, err := sql.Open(driver, source)
+func Open(name, source string) (*Driver, error) {
+	db, err := sql.Open(name, source)
 	if err != nil {
 		return nil, err
 	}
-	return &Driver{Conn{db}, driver}, nil
+
+	driver := &Driver{
+		ExecQuerier: &Conn{db},
+		name:        name,
+	}
+
+	return driver, nil
 }
 
 // OpenDB wraps the given database/sql.DB method with a Driver.
-func OpenDB(driver string, db *sql.DB) *Driver {
-	return &Driver{Conn{db}, driver}
+func OpenDB(name string, db *sql.DB) *Driver {
+	driver := &Driver{
+		ExecQuerier: &Conn{db},
+		name:        name,
+	}
+
+	return driver
 }
 
 // DB returns the underlying *sql.DB instance.
 func (d Driver) DB() *sql.DB {
-	return d.ExecQuerier.(*sql.DB)
+	conn := d.ExecQuerier.(*Conn)
+	// the underlying database
+	return conn.ExecQuerier.(*sql.DB)
 }
 
 // Dialect implements the dialect.Dialect method.
 func (d Driver) Dialect() string {
 	// If the underlying driver is wrapped with opencensus driver.
 	for _, name := range []string{dialect.MySQL, dialect.SQLite, dialect.Postgres} {
-		if strings.HasPrefix(d.dialect, name) {
+		if strings.HasPrefix(d.name, name) {
 			return name
 		}
 	}
-	return d.dialect
+	return d.name
 }
 
 // Tx starts and returns a transaction.
@@ -61,10 +78,13 @@ func (d *Driver) BeginTx(ctx context.Context, opts *TxOptions) (dialect.Tx, erro
 	if err != nil {
 		return nil, err
 	}
-	return &Tx{
-		ExecQuerier: Conn{tx},
+
+	dtx := &Tx{
+		ExecQuerier: &Conn{tx},
 		Tx:          tx,
-	}, nil
+	}
+
+	return dtx, nil
 }
 
 // Close closes the underlying connection.
@@ -72,7 +92,9 @@ func (d *Driver) Close() error { return d.DB().Close() }
 
 // Tx implements dialect.Tx interface.
 type Tx struct {
+	// Querier for the current transaction
 	dialect.ExecQuerier
+	// Inheri from the actual driver
 	driver.Tx
 }
 
@@ -88,7 +110,7 @@ type Conn struct {
 }
 
 // Exec implements the dialect.Exec method.
-func (c Conn) Exec(ctx context.Context, query string, args, v interface{}) error {
+func (c *Conn) Exec(ctx context.Context, query string, args, v interface{}) error {
 	argv, ok := args.([]interface{})
 	if !ok {
 		return fmt.Errorf("dialect/sql: invalid type %T. expect []interface{} for args", v)
@@ -111,7 +133,7 @@ func (c Conn) Exec(ctx context.Context, query string, args, v interface{}) error
 }
 
 // Query implements the dialect.Query method.
-func (c Conn) Query(ctx context.Context, query string, args, v interface{}) error {
+func (c *Conn) Query(ctx context.Context, query string, args, v interface{}) error {
 	vr, ok := v.(*Rows)
 	if !ok {
 		return fmt.Errorf("dialect/sql: invalid type %T. expect *sql.Rows", v)
@@ -127,8 +149,6 @@ func (c Conn) Query(ctx context.Context, query string, args, v interface{}) erro
 	*vr = Rows{rows}
 	return nil
 }
-
-var _ dialect.Driver = (*Driver)(nil)
 
 type (
 	// Rows wraps the sql.Rows to avoid locks copy.

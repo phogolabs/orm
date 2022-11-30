@@ -23,7 +23,8 @@ type Provider = sqlexec.Provider
 
 // Migrate runs the migrations
 func (d Driver) Migrate(storage FileSystem) error {
-	db := sqlx.NewDb(d.DB(), d.dialect)
+	db := sqlx.NewDb(d.DB(), d.name)
+	// execute the migration
 	return sqlmigr.RunAll(db, storage)
 }
 
