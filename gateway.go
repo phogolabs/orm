@@ -113,19 +113,27 @@ func (g *Gateway) Begin(ctx context.Context) (*GatewayTx, error) {
 // RunInTx runs a callback function within a transaction. It commits the
 // transaction if succeeds, otherwise rollbacks.
 func (g *Gateway) RunInTx(ctx context.Context, fn RunTxFunc) error {
+	logger := log.GetContext(ctx)
+
 	gtx, err := g.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
 	if err := fn(gtx); err != nil {
-		if err := gtx.Rollback(); err != nil {
-			log.WithError(err).Error("cannot rollback")
+		if rerr := gtx.Rollback(); rerr != nil {
+			logger.WithError(rerr).Error("cannot rollback")
 		}
+
 		return err
 	}
 
-	return gtx.Commit()
+	if cerr := gtx.Commit(); cerr != nil {
+		logger.WithError(cerr).Error("cannot commit")
+		return cerr
+	}
+
+	return nil
 }
 
 // All executes the query and returns a list of entities.
