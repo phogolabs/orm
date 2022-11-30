@@ -2,6 +2,8 @@ package dialect
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 
 	"github.com/phogolabs/log"
@@ -68,7 +70,7 @@ func (d *LoggerDriver) Query(ctx context.Context, query string, args, v interfac
 
 // Tx adds an log-id for the transaction and calls the underlying driver Tx command.
 func (d *LoggerDriver) Tx(ctx context.Context) (Tx, error) {
-	logger := d.logger.WithField("sql.tx", time.Now().Unix())
+	logger := d.logger.WithField("sql.tx", d.random())
 
 	tx, err := d.Driver.Tx(ctx)
 	if err != nil {
@@ -78,6 +80,19 @@ func (d *LoggerDriver) Tx(ctx context.Context) (Tx, error) {
 
 	logger.Infof("tx.start success")
 	return &LoggerTx{tx, logger, ctx}, nil
+}
+
+func (d *LoggerDriver) random() string {
+	var (
+		size   = 12
+		buffer = make([]byte, size)
+	)
+
+	rand.Read(buffer)
+	// encode the buffer as a string
+	vector := base64.StdEncoding.EncodeToString(buffer)
+	// Base 64 can be longer than len
+	return vector[:size]
 }
 
 // LoggerTx is a transaction implementation that logs all transaction operations.
