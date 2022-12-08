@@ -55,8 +55,8 @@ github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59/go.mod h1:q/89r3U
 github.com/aymerick/raymond v2.0.2+incompatible h1:VEp3GpgdAnv9B2GFyTvqgcKvY+mfKMjPOA3SbKLtnU0=
 github.com/aymerick/raymond v2.0.2+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/blang/vfs v1.0.0/go.mod h1:jjuNUc/IKcRNNWC9NUCvz4fR9PZLPIKxEygtPs/4tSI=
-github.com/bxcodec/faker/v3 v3.8.0 h1:F59Qqnsh0BOtZRC+c4cXoB/VNYDMS3R5mlSpxIap1oU=
-github.com/bxcodec/faker/v3 v3.8.0/go.mod h1:gF31YgnMSMKgkvl+fyEo1xuSMbEuieyqfeslGYFjneM=
+github.com/bxcodec/faker/v3 v3.8.1 h1:qO/Xq19V6uHt2xujwpaetgKhraGCapqY2CRWGD/SqcM=
+github.com/bxcodec/faker/v3 v3.8.1/go.mod h1:DdSDccxF5msjFo5aO4vrobRQ8nIApg8kq3QWPEQD6+o=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
@@ -255,8 +255,6 @@ github.com/phogolabs/parcello v0.8.1/go.mod h1:/HlY+yKSdyM8MUX9YvwT3+sED9SKXizc5
 github.com/phogolabs/parcello v0.8.2/go.mod h1:rtKgAK1yF6KZOllQDfcHvOzYYwV3kCt61LJybif3SCE=
 github.com/phogolabs/prana v1.0.0-rc10 h1:ybUEW5td+wvPmVeQqZMpo9pqKN5JXGk30JTyvj/3nR0=
 github.com/phogolabs/prana v1.0.0-rc10/go.mod h1:y92Ktk/rxzeRC8/uf4Iq0X6AeTU+/KOwIPejZ564aiU=
-github.com/phogolabs/prana v1.0.0-rc9 h1:4QZhv9Vygya3HMQj5Ipo372VHlk0Vb8Gnn7upqzf7X0=
-github.com/phogolabs/prana v1.0.0-rc9/go.mod h1:y92Ktk/rxzeRC8/uf4Iq0X6AeTU+/KOwIPejZ564aiU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
