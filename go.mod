@@ -3,7 +3,7 @@ module github.com/phogolabs/orm
 go 1.18
 
 require (
-	github.com/bxcodec/faker/v3 v3.8.0
+	github.com/bxcodec/faker/v3 v3.8.1
 	github.com/go-openapi/inflect v0.19.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.16
