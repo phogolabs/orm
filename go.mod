@@ -11,7 +11,7 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/phogolabs/log v0.0.0-20210430125128-bb23cd1dfac5
 	github.com/phogolabs/prana v1.0.0-rc10
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 )
 
 require (
