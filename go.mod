@@ -10,7 +10,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/phogolabs/log v0.0.0-20230111045248-dad4d3c50e0f
-	github.com/phogolabs/prana v1.0.0-rc11
+	github.com/phogolabs/prana v1.0.0-rc9
 	github.com/stretchr/testify v1.11.1
 )
 
