@@ -956,7 +956,7 @@ func (u *UpdateSet) SetExcluded(name string) *UpdateSet {
 	switch u.update.Dialect() {
 	case dialect.MySQL:
 		u.update.Set(name, ExprFunc(func(b *Builder) {
-			b.WriteString("VALUES(").Ident(name).WriteByte(')')
+			b.WriteString("VALUES(").Ident(name).WriteChar(')')
 		}))
 	default:
 		t := Dialect(u.update.dialect).Table("excluded")
@@ -973,13 +973,13 @@ func (i *InsertBuilder) Query() (string, []interface{}) {
 	if i.defaults && len(i.columns) == 0 {
 		i.writeDefault()
 	} else {
-		i.WriteByte('(').IdentComma(i.columns...).WriteByte(')')
+		i.WriteChar('(').IdentComma(i.columns...).WriteChar(')')
 		i.WriteString(" VALUES ")
 		for j, v := range i.values {
 			if j > 0 {
 				i.Comma()
 			}
-			i.WriteByte('(').Args(v...).WriteByte(')')
+			i.WriteChar('(').Args(v...).WriteChar(')')
 		}
 	}
 	if i.conflict != nil {
@@ -1016,7 +1016,7 @@ func (i *InsertBuilder) writeConflict() {
 		case t.constraint != "":
 			i.WriteString(" ON CONSTRAINT ").Ident(t.constraint)
 		case len(t.columns) != 0:
-			i.WriteString(" (").IdentComma(t.columns...).WriteByte(')')
+			i.WriteString(" (").IdentComma(t.columns...).WriteChar(')')
 		}
 		if p := i.conflict.target.where; p != nil {
 			i.WriteString(" WHERE ").Join(p)
@@ -1089,7 +1089,7 @@ func (u *UpdateBuilder) Add(column string, v interface{}) *UpdateBuilder {
 	u.values = append(u.values, ExprFunc(func(b *Builder) {
 		b.WriteString("COALESCE")
 		b.Nested(func(b *Builder) {
-			b.Ident(Table(u.table).C(column)).Comma().WriteByte('0')
+			b.Ident(Table(u.table).C(column)).Comma().WriteChar('0')
 		})
 		b.WriteString(" + ")
 		b.Arg(v)
@@ -1829,15 +1829,15 @@ func (p *Predicate) mayWrap(preds []*Predicate, b *Builder, op string) {
 		b.Join(preds[0])
 		return
 	case n > 1 && p.depth != 0:
-		b.WriteByte('(')
-		defer b.WriteByte(')')
+		b.WriteChar('(')
+		defer b.WriteChar(')')
 	}
 	for i := range preds {
 		preds[i].depth = p.depth + 1
 		if i > 0 {
-			b.WriteByte(' ')
+			b.WriteChar(' ')
 			b.WriteString(op)
-			b.WriteByte(' ')
+			b.WriteChar(' ')
 		}
 		if len(preds[i].fns) > 1 {
 			b.Nested(func(b *Builder) {
@@ -2025,7 +2025,7 @@ func (s *SelectTable) C(column string) string {
 	if s.as == "" {
 		b.writeSchema(s.schema)
 	}
-	b.Ident(name).WriteByte('.').Ident(column)
+	b.Ident(name).WriteChar('.').Ident(column)
 	return b.String()
 }
 
@@ -2380,7 +2380,7 @@ func (s *Selector) C(column string) string {
 	if s.as != "" {
 		b := &Builder{dialect: s.dialect}
 		b.Ident(s.as)
-		b.WriteByte('.')
+		b.WriteChar('.')
 		b.Ident(column)
 		return b.String()
 	}
@@ -2807,7 +2807,7 @@ func (w *WithBuilder) As(s Querier) *WithBuilder {
 // C returns a formatted string for the WITH column.
 func (w *WithBuilder) C(column string) string {
 	b := &Builder{dialect: w.dialect}
-	b.Ident(w.name).WriteByte('.').Ident(column)
+	b.Ident(w.name).WriteChar('.').Ident(column)
 	return b.String()
 }
 
@@ -2819,9 +2819,9 @@ func (w *WithBuilder) Query() (string, []interface{}) {
 	}
 	w.Ident(w.name)
 	if len(w.columns) > 0 {
-		w.WriteByte('(')
+		w.WriteChar('(')
 		w.IdentComma(w.columns...)
-		w.WriteByte(')')
+		w.WriteChar(')')
 	}
 	w.WriteString(" AS ")
 	w.Nested(func(b *Builder) {
@@ -2969,7 +2969,7 @@ func (b *Builder) Ident(s string) *Builder {
 	case len(s) == 0:
 	case s != "*" && !b.isIdent(s) && !isFunc(s) && !isModifier(s):
 		if b.qualifier != "" {
-			b.WriteString(b.Quote(b.qualifier)).WriteByte('.')
+			b.WriteString(b.Quote(b.qualifier)).WriteChar('.')
 		}
 		b.WriteString(b.Quote(s))
 	case (isFunc(s) || isModifier(s)) && b.postgres():
@@ -3001,8 +3001,8 @@ func (b *Builder) String() string {
 	return b.sb.String()
 }
 
-// WriteByte wraps the Buffer.WriteByte to make it chainable with other methods.
-func (b *Builder) WriteByte(c byte) *Builder {
+// WriteChar wraps the Buffer.WriteByte to make it chainable with other methods.
+func (b *Builder) WriteChar(c byte) *Builder {
 	if b.sb == nil {
 		b.sb = &strings.Builder{}
 	}
@@ -3046,7 +3046,7 @@ func (b *Builder) AddError(err error) *Builder {
 
 func (b *Builder) writeSchema(schema string) {
 	if schema != "" && b.dialect != dialect.SQLite {
-		b.Ident(schema).WriteByte('.')
+		b.Ident(schema).WriteChar('.')
 	}
 }
 
@@ -3063,7 +3063,7 @@ func (b *Builder) Err() error {
 		}
 		br.WriteString(b.errs[i].Error())
 	}
-	return fmt.Errorf(br.String())
+	return fmt.Errorf("%s", br.String())
 }
 
 // An Op represents an operator.
@@ -3186,7 +3186,7 @@ func (b *Builder) Comma() *Builder {
 
 // Pad adds a space to the query.
 func (b *Builder) Pad() *Builder {
-	return b.WriteByte(' ')
+	return b.WriteChar(' ')
 }
 
 // Join joins a list of Queries to the builder.
@@ -3226,9 +3226,9 @@ func (b *Builder) join(qs []Querier, sep string) *Builder {
 // Nested gets a callback, and wraps its result with parentheses.
 func (b *Builder) Nested(f func(*Builder)) *Builder {
 	nb := &Builder{dialect: b.dialect, total: b.total, sb: &strings.Builder{}}
-	nb.WriteByte('(')
+	nb.WriteChar('(')
 	f(nb)
-	nb.WriteByte(')')
+	nb.WriteChar(')')
 	b.WriteString(nb.String())
 	b.args = append(b.args, nb.args...)
 	b.total = nb.total

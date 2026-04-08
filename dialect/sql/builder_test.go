@@ -81,7 +81,7 @@ func TestBuilder(t *testing.T) {
 					Column("id").Type("int").Attr("auto_increment"),
 					Column("card_id").Type("int"),
 					Column("doc").Type("longtext").Check(func(b *Builder) {
-						b.WriteString("JSON_VALID(").Ident("doc").WriteByte(')')
+						b.WriteString("JSON_VALID(").Ident("doc").WriteChar(')')
 					}),
 				).
 				PrimaryKey("id", "name").
@@ -1457,7 +1457,7 @@ func TestBuilder(t *testing.T) {
 				Select("*").
 				From(Table("test")).
 				Where(P(func(b *Builder) {
-					b.WriteString("nlevel(").Ident("path").WriteByte(')').WriteOp(OpGT).Arg(1)
+					b.WriteString("nlevel(").Ident("path").WriteChar(')').WriteOp(OpGT).Arg(1)
 				})),
 			wantQuery: `SELECT * FROM "test" WHERE nlevel("path") > $1`,
 			wantArgs:  []interface{}{1},
@@ -1467,7 +1467,7 @@ func TestBuilder(t *testing.T) {
 				Select("*").
 				From(Table("test")).
 				Where(P(func(b *Builder) {
-					b.WriteString("nlevel(").Ident("path").WriteByte(')').WriteOp(OpGT).Arg(1)
+					b.WriteString("nlevel(").Ident("path").WriteChar(')').WriteOp(OpGT).Arg(1)
 				})),
 			wantQuery: `SELECT * FROM "test" WHERE nlevel("path") > $1`,
 			wantArgs:  []interface{}{1},
@@ -1585,7 +1585,7 @@ func TestSelector_SelectExpr(t *testing.T) {
 			b.Ident("first_name").WriteOp(OpAdd).Ident("last_name")
 		}),
 		ExprFunc(func(b *Builder) {
-			b.WriteString("COALESCE(").Ident("age").Comma().Arg(0).WriteByte(')')
+			b.WriteString("COALESCE(").Ident("age").Comma().Arg(0).WriteChar(')')
 		}),
 		Expr("?", "b"),
 	).From(Table("users")).Query()
@@ -1598,9 +1598,9 @@ func TestSelector_SelectExpr(t *testing.T) {
 			Expr("age + $1", 1),
 			ExprFunc(func(b *Builder) {
 				b.Nested(func(b *Builder) {
-					b.WriteString("similarity(").Ident("name").Comma().Arg("A").WriteByte(')')
+					b.WriteString("similarity(").Ident("name").Comma().Arg("A").WriteChar(')')
 					b.WriteOp(OpAdd)
-					b.WriteString("similarity(").Ident("desc").Comma().Arg("D").WriteByte(')')
+					b.WriteString("similarity(").Ident("desc").Comma().Arg("D").WriteChar(')')
 				})
 				b.WriteString(" AS s")
 			}),

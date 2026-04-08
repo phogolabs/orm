@@ -66,7 +66,7 @@ func ExampleRoutine() {
 	}
 }
 
-func ExampleSQL() {
+func ExampleQuery() {
 	gateway, err := orm.Open("sqlite3", "example.db")
 	if err != nil {
 		panic(err)
