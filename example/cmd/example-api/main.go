@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/bxcodec/faker/v3"
+	"github.com/go-faker/faker/v4"
 	"github.com/phogolabs/log"
 	"github.com/phogolabs/orm/example/database"
 	"github.com/phogolabs/orm/example/database/ent"

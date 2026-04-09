@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bxcodec/faker/v3"
+	"github.com/go-faker/faker/v4"
 	"github.com/phogolabs/orm"
 	"github.com/phogolabs/orm/dialect/sql"
 
