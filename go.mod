@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	github.com/go-faker/faker/v4 v4.8.0
-	github.com/go-openapi/inflect v0.21.5
+	github.com/go-openapi/inflect v0.21.6
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/onsi/ginkgo/v2 v2.32.0
